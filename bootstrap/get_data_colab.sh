@@ -10,6 +10,17 @@ mkdir -p "${DATA_ROOT}"
 
 python -m pip install --quiet --upgrade datalad datalad-installer
 
+# DataLad/git-annex creates local git commits during dataset initialization.
+# Fresh Colab runtimes usually have no Git identity configured, which makes
+# `git annex init` fail unless we set a harmless local automation identity.
+if [ -z "$(git config --global user.email || true)" ]; then
+  git config --global user.email "colab-runner@example.invalid"
+fi
+
+if [ -z "$(git config --global user.name || true)" ]; then
+  git config --global user.name "Colab Runner"
+fi
+
 git_annex_version() {
   if ! command -v git-annex >/dev/null 2>&1; then
     return 1
