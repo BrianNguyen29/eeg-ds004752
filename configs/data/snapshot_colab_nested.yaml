@@ -1,0 +1,9 @@
+snapshot_id: colab_drive_nested_ds004752_v1_0_1
+dataset_root: /content/drive/MyDrive/eeg/eeg-ds004752/data/ds004752
+dataset_config: configs/data/dataset.yaml
+artifact_root: /content/drive/MyDrive/eeg/eeg-ds004752/artifacts
+gate0_output_root: /content/drive/MyDrive/eeg/eeg-ds004752/artifacts/gate0
+cache_root: /content/drive/MyDrive/eeg/eeg-ds004752/cache
+checkpoint_root: /content/drive/MyDrive/eeg/eeg-ds004752/checkpoints
+allow_metadata_only: true
+require_materialized_payloads_for_signal_audit: true

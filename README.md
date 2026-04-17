@@ -23,6 +23,13 @@ drive.mount('/content/drive')
 !python -m src.cli audit --profile t4_safe --config configs/data/snapshot_colab.yaml
 ```
 
+If your Drive layout is nested under `MyDrive/eeg/eeg-ds004752`, use:
+
+```python
+!bash bootstrap/get_data_colab.sh /content/drive/MyDrive/eeg/eeg-ds004752/data metadata
+!python -m src.cli audit --profile t4_safe --config configs/data/snapshot_colab_nested.yaml
+```
+
 The recommended notebook entrypoint is:
 
 ```text

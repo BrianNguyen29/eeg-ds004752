@@ -33,6 +33,20 @@ The repo must not track raw EDF/MAT payloads or runtime artifacts.
   checkpoints/
 ```
 
+If you prefer keeping all EEG projects under one folder, the equivalent
+supported layout is:
+
+```text
+/content/drive/MyDrive/eeg/eeg-ds004752/
+  data/
+    ds004752/
+  artifacts/
+  cache/
+  checkpoints/
+```
+
+Use `configs/data/snapshot_colab_nested.yaml` for this layout.
+
 ## Standard Colab sequence
 
 ```python

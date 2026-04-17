@@ -4,20 +4,41 @@ set -euo pipefail
 DATA_ROOT="${1:-/content/drive/MyDrive/eeg-ds004752/data}"
 DATASET_DIR="${DATA_ROOT}/ds004752"
 GET_TARGET="${2:-metadata}"
+MIN_GIT_ANNEX_VERSION="10.20230126"
 
 mkdir -p "${DATA_ROOT}"
 
-python -m pip install --quiet --upgrade datalad
+python -m pip install --quiet --upgrade datalad datalad-installer
 
-if ! command -v git-annex >/dev/null 2>&1; then
-  if command -v apt-get >/dev/null 2>&1; then
-    apt-get update -qq
-    apt-get install -y -qq git-annex
-  else
-    echo "git-annex is required but apt-get is unavailable." >&2
-    exit 2
+git_annex_version() {
+  if ! command -v git-annex >/dev/null 2>&1; then
+    return 1
   fi
+  git-annex version | awk '/git-annex version:/ {print $3; exit}'
+}
+
+git_annex_ok() {
+  local current
+  current="$(git_annex_version || true)"
+  if [ -z "${current}" ]; then
+    return 1
+  fi
+  printf '%s\n%s\n' "${MIN_GIT_ANNEX_VERSION}" "${current}" | sort -V -C
+}
+
+if ! git_annex_ok; then
+  echo "Installing recent git-annex with datalad-installer..."
+  datalad-installer --sudo ok git-annex -m datalad/git-annex:release
+  hash -r
 fi
+
+if ! git_annex_ok; then
+  echo "git-annex >= ${MIN_GIT_ANNEX_VERSION} is required." >&2
+  echo "Detected version: $(git_annex_version || echo 'not found')" >&2
+  exit 2
+fi
+
+echo "Using git-annex $(git_annex_version)"
 
 if [ ! -d "${DATASET_DIR}/.datalad" ]; then
   datalad clone https://github.com/OpenNeuroDatasets/ds004752.git "${DATASET_DIR}"

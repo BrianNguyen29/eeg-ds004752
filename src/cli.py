@@ -24,6 +24,7 @@ def build_parser() -> argparse.ArgumentParser:
     smoke = subparsers.add_parser("smoke", help="Validate config and project paths")
     smoke.add_argument("--profile", default="t4_safe")
     smoke.add_argument("--config", default="configs/data/snapshot.yaml")
+    smoke.add_argument("--dataset-root")
 
     synthetic = subparsers.add_parser("synthetic", help="Create Gate 2 placeholder artefact")
     synthetic.add_argument("--profile", default="a100_fast")
@@ -58,7 +59,7 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.command == "smoke":
             config = load_config(args.config)
-            dataset_root = Path(config.get("dataset_root", "ds004752"))
+            dataset_root = Path(args.dataset_root or config.get("dataset_root", "ds004752"))
             if not dataset_root.exists():
                 raise FileNotFoundError(f"Dataset root not found: {dataset_root}")
             print(f"Smoke OK: profile={args.profile} config={args.config} dataset={dataset_root}")
