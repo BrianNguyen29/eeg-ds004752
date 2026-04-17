@@ -15,7 +15,7 @@ def build_materialization_report(dataset_root: str | Path, max_examples: int = 4
     dataset_root = Path(dataset_root)
     payloads: dict[str, Any] = {}
     for payload_type, pattern in PAYLOAD_PATTERNS.items():
-        files = sorted(dataset_root.rglob(pattern))
+        files = sorted(path for path in dataset_root.rglob(pattern) if _is_worktree_payload(dataset_root, path))
         records = [_payload_record(dataset_root, path) for path in files]
         missing = [record for record in records if not record["materialized"]]
         materialized = [record for record in records if record["materialized"]]
@@ -69,6 +69,13 @@ def _payload_record(dataset_root: Path, path: Path) -> dict[str, Any]:
         "materialized": materialized,
         "datalad_get": f"datalad get {path.relative_to(dataset_root).as_posix()}",
     }
+
+
+def _is_worktree_payload(dataset_root: Path, path: Path) -> bool:
+    parts = path.relative_to(dataset_root).parts
+    if not parts:
+        return False
+    return parts[0] != ".git"
 
 
 def _resolve_target(path: Path) -> Path | None:
