@@ -5,6 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from src.audit.gate0 import _write_json
 from src.audit.gate0 import run_gate0_audit
 
 
@@ -44,6 +45,19 @@ class Gate0AuditTests(unittest.TestCase):
             manifest = result.manifest
             self.assertIn(manifest["signal_audit"]["status"], {"dependency_missing", "failed"})
             self.assertIn("signal_level_audit_not_passed", manifest["gate0_blockers"])
+
+    def test_write_json_handles_numpy_like_scalars(self) -> None:
+        class NumpyLikeScalar:
+            def item(self) -> int:
+                return 7
+
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "manifest.json"
+            _write_json(path, {"value": NumpyLikeScalar(), "path": Path("x")})
+
+            data = json.loads(path.read_text(encoding="utf-8"))
+            self.assertEqual(data["value"], 7)
+            self.assertEqual(data["path"], "x")
 
 
 def _write_minimal_dataset(root: Path) -> None:

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import json
+import math
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -306,9 +307,10 @@ def _payload_state(dataset_root: Path, pattern: str) -> dict[str, Any]:
 def _is_pointer_like(path: Path) -> bool:
     if path.is_symlink():
         try:
-            return not path.resolve(strict=True).exists()
+            target = path.resolve(strict=True)
         except FileNotFoundError:
             return True
+        return target.stat().st_size <= 4096
     if not path.exists() or path.stat().st_size > 4096:
         return False
     try:
@@ -435,7 +437,24 @@ No overrides recorded.
 
 
 def _write_json(path: Path, data: dict[str, Any]) -> None:
-    path.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    path.write_text(json.dumps(_json_safe(data), indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+
+def _json_safe(value: Any) -> Any:
+    if isinstance(value, dict):
+        return {str(key): _json_safe(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(item) for item in value]
+    if isinstance(value, Path):
+        return str(value)
+    if hasattr(value, "item"):
+        try:
+            return _json_safe(value.item())
+        except (TypeError, ValueError):
+            pass
+    if isinstance(value, float) and not math.isfinite(value):
+        return None
+    return value
 
 
 def _write_latest_pointer(output_root: Path, output_dir: Path) -> None:
