@@ -1,0 +1,5 @@
+split_id: loso_session
+group_key: participant_session
+leakage_policy: no_session_overlap_for_secondary_robustness
+primary_candidate: false
+

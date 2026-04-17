@@ -1,0 +1,6 @@
+branch: ieeg
+sampling_frequency_expected: 2000
+notch_hz: 50
+referencing: subject_session_qc_required
+claim_role: privileged_teacher_source_only_after_gate0_lock
+

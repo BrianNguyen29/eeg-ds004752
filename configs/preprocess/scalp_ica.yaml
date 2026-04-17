@@ -1,0 +1,9 @@
+branch: scalp_ica_stress_test
+sampling_frequency_expected: 200
+notch_hz: 50
+bandpass_hz:
+  low: 0.5
+  high: 100
+ica: true
+claim_role: stress_test_only
+

@@ -1,0 +1,9 @@
+precision: amp
+amp: true
+batch_size: 64
+num_workers: 4
+cache_policy: enabled
+checkpoint_cadence: every_epoch
+artifact_flush_cadence: every_step
+outer_fold_parallelism: 1
+

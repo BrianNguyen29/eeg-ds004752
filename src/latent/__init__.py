@@ -1,0 +1,2 @@
+"""Latent representation package placeholder."""
+

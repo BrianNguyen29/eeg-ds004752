@@ -1,0 +1,10 @@
+dataset_id: ds004752
+dataset_root: ds004752
+doi: doi:10.18112/openneuro.ds004752.v1.0.1
+bids_version_expected: 1.4.0
+task: verbalWM
+modalities:
+  scalp_eeg: eeg
+  intracranial_eeg: ieeg
+derivatives_root: ds004752/derivatives
+

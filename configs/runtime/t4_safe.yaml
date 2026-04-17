@@ -1,0 +1,9 @@
+precision: fp32
+amp: false
+batch_size: 16
+num_workers: 2
+cache_policy: enabled
+checkpoint_cadence: every_step
+artifact_flush_cadence: every_step
+outer_fold_parallelism: 1
+

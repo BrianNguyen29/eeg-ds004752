@@ -1,0 +1,8 @@
+control_suite_status: draft
+controls:
+  scalp_only_baseline: required
+  grouped_permutation: required
+  nuisance_shared_control: required
+  spatial_control: required
+  transfer_consistency: required
+

@@ -1,0 +1,5 @@
+split_id: loso_subject
+group_key: participant_id
+leakage_policy: no_subject_overlap_between_train_and_test
+primary_candidate: true
+

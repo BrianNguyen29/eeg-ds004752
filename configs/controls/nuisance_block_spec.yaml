@@ -1,0 +1,8 @@
+nuisance_block_status: draft
+nuisance_families:
+  - subject_identity
+  - session_identity
+  - artifact_flag
+  - response_time
+  - correctness
+

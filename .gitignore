@@ -1,0 +1,25 @@
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+.env
+
+# Runtime outputs
+/artifacts/*
+!artifacts/.gitkeep
+
+# Local or Drive-backed datasets should not be committed to the code repo.
+/data/
+/ds004752/
+
+# Raw payloads are managed externally by DataLad/git-annex/OpenNeuro.
+# Keep metadata and pointer governance under version control, but never
+# accidentally commit materialized signal payloads.
+ds004752/**/*.edf
+ds004752/**/*.mat
+
+# Local notebooks checkpoints
+.ipynb_checkpoints/

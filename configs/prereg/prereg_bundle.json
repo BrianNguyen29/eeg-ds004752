@@ -1,0 +1,8 @@
+{
+  "status": "draft_blocked",
+  "gate": "pre_gate_2_5",
+  "message": "Real-data substantive phases must not run until this bundle is locked after Gate 2 synthetic validation and threshold freeze.",
+  "artifact_hashes": {},
+  "locked_at": null
+}
+

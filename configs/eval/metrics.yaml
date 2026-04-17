@@ -1,0 +1,7 @@
+metrics_status: draft
+primary_metric: balanced_accuracy
+secondary_metrics:
+  - auc
+  - calibration_error
+  - fold_variance
+

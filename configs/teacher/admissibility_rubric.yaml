@@ -1,0 +1,5 @@
+rubric_status: draft
+requires_observability_evidence: true
+requires_no_leakage_review: true
+override_requires_log_entry: true
+

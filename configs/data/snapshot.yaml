@@ -1,0 +1,8 @@
+snapshot_id: local_ds004752_v1_0_1
+dataset_root: ds004752
+dataset_config: configs/data/dataset.yaml
+artifact_root: artifacts
+gate0_output_root: artifacts/gate0
+allow_metadata_only: true
+require_materialized_payloads_for_signal_audit: true
+

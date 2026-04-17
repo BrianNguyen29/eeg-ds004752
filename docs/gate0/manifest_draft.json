@@ -1,0 +1,107 @@
+{
+  "manifest_status": "draft_metadata_only",
+  "created_date": "2026-04-17",
+  "dataset_root": "ds004752",
+  "dataset_identity": {
+    "name": "Dataset of intracranial EEG, scalp EEG and beamforming sources from epilepsy patients performing a verbal working memory task",
+    "bids_version": "1.4.0",
+    "dataset_type": "raw",
+    "license": "CC0",
+    "dataset_doi": "doi:10.18112/openneuro.ds004752.v1.0.1"
+  },
+  "file_inventory": {
+    "tsv": 424,
+    "json": 342,
+    "edf": {
+      "count": 136,
+      "state": "git_annex_or_datalad_pointer_not_materialized"
+    },
+    "mat": {
+      "count": 15,
+      "state": "git_annex_or_datalad_pointer_not_materialized"
+    }
+  },
+  "participants": {
+    "n_raw_public": 15,
+    "n_primary_eligible": null,
+    "primary_eligibility_status": "not_locked_pending_gate0_audit"
+  },
+  "sessions": {
+    "total": 68,
+    "by_subject": {
+      "sub-01": 4,
+      "sub-02": 7,
+      "sub-03": 3,
+      "sub-04": 2,
+      "sub-05": 3,
+      "sub-06": 7,
+      "sub-07": 4,
+      "sub-08": 4,
+      "sub-09": 2,
+      "sub-10": 2,
+      "sub-11": 6,
+      "sub-12": 6,
+      "sub-13": 6,
+      "sub-14": 8,
+      "sub-15": 4
+    }
+  },
+  "events_audit": {
+    "eeg_trials_total": 3353,
+    "ieeg_trials_total": 3353,
+    "sessions_with_mismatched_eeg_ieeg_trial_counts": 0,
+    "artifact_trials_total_from_eeg_events": 168,
+    "correct_trials_total_from_eeg_events": 3045,
+    "sessions_with_mismatched_eeg_ieeg_event_core_fields": 0,
+    "schema": [
+      "onset",
+      "duration",
+      "nTrial",
+      "begSample",
+      "endSample",
+      "SetSize",
+      "ProbeLetter",
+      "Match",
+      "Correct",
+      "ResponseTime",
+      "Artifact"
+    ],
+    "content_equivalence_status": "passed_for_core_fields"
+  },
+  "sidecar_schema": {
+    "channels_tsv": [
+      "name",
+      "type",
+      "units",
+      "low_cutoff",
+      "high_cutoff",
+      "sampling_frequency"
+    ],
+    "electrodes_tsv": [
+      "name",
+      "x",
+      "y",
+      "z",
+      "size",
+      "AnatomicalLocation"
+    ]
+  },
+  "derivatives": {
+    "beamforming_mat_files": 15,
+    "availability_status": "pointer_exists_for_each_subject_binary_not_materialized",
+    "roi_audit_status": "blocked_until_materialized"
+  },
+  "gate0_blockers": [
+    "edf_files_are_git_annex_or_datalad_pointers",
+    "mat_files_are_git_annex_or_datalad_pointers",
+    "binary_checksums_not_available_for_real_payloads",
+    "edf_signal_level_alignment_not_checked",
+    "cohort_lock_not_created"
+  ],
+  "next_actions": [
+    "summarize trial counts per subject and condition",
+    "materialize edf and mat payloads with datalad or git-annex",
+    "compute checksums after payload materialization",
+    "create cohort_lock_json_after_signal_level_audit"
+  ]
+}

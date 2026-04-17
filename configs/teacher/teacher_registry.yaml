@@ -1,0 +1,9 @@
+registry_status: draft
+influence_ceiling: 0.40
+teacher_groups:
+  group_a_roi_band_summaries: phase1_candidate
+  group_b_visible_latent_subspace: phase1_candidate
+  group_c_cross_frequency_descriptors: phase2_candidate
+  group_d_marker_gated_targets: phase2_candidate
+  group_e_bridge_targets: phase3_sentinel_first
+
