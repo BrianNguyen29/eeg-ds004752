@@ -4,8 +4,19 @@ from __future__ import annotations
 
 import csv
 import importlib.util
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
+
+@dataclass(frozen=True)
+class EdfInfo:
+    sfreq: float
+    n_channels: int
+    n_times: int
+    duration_sec: float
+    source: str
+    warning: str | None = None
 
 
 def run_signal_audit(
@@ -113,8 +124,8 @@ def _audit_session(dataset_root: Path, ses_dir: Path, mne: Any) -> dict[str, Any
         }
 
     try:
-        eeg_raw = mne.io.read_raw_edf(eeg_path, preload=False, verbose="ERROR")
-        ieeg_raw = mne.io.read_raw_edf(ieeg_path, preload=False, verbose="ERROR")
+        eeg_info = _read_edf_info(eeg_path, mne)
+        ieeg_info = _read_edf_info(ieeg_path, mne)
     except Exception as exc:
         return {
             "status": "read_error",
@@ -125,8 +136,8 @@ def _audit_session(dataset_root: Path, ses_dir: Path, mne: Any) -> dict[str, Any
 
     eeg_events = _read_tsv(eeg_events_path)
     ieeg_events = _read_tsv(ieeg_events_path)
-    eeg_alignment = _check_event_sample_ranges(eeg_events, eeg_raw.n_times)
-    ieeg_alignment = _check_event_sample_ranges(ieeg_events, ieeg_raw.n_times)
+    eeg_alignment = _check_event_sample_ranges(eeg_events, eeg_info.n_times)
+    ieeg_alignment = _check_event_sample_ranges(ieeg_events, ieeg_info.n_times)
     status = "ok" if eeg_alignment["status"] == "ok" and ieeg_alignment["status"] == "ok" else "failed"
 
     return {
@@ -135,21 +146,86 @@ def _audit_session(dataset_root: Path, ses_dir: Path, mne: Any) -> dict[str, Any
         "session": ses_id,
         "eeg": {
             "relative_path": str(eeg_path.relative_to(dataset_root)),
-            "sfreq": eeg_raw.info["sfreq"],
-            "n_channels": len(eeg_raw.ch_names),
-            "n_times": eeg_raw.n_times,
-            "duration_sec": eeg_raw.n_times / eeg_raw.info["sfreq"],
+            "sfreq": eeg_info.sfreq,
+            "n_channels": eeg_info.n_channels,
+            "n_times": eeg_info.n_times,
+            "duration_sec": eeg_info.duration_sec,
+            "reader": eeg_info.source,
+            "reader_warning": eeg_info.warning,
             "event_alignment": eeg_alignment,
         },
         "ieeg": {
             "relative_path": str(ieeg_path.relative_to(dataset_root)),
-            "sfreq": ieeg_raw.info["sfreq"],
-            "n_channels": len(ieeg_raw.ch_names),
-            "n_times": ieeg_raw.n_times,
-            "duration_sec": ieeg_raw.n_times / ieeg_raw.info["sfreq"],
+            "sfreq": ieeg_info.sfreq,
+            "n_channels": ieeg_info.n_channels,
+            "n_times": ieeg_info.n_times,
+            "duration_sec": ieeg_info.duration_sec,
+            "reader": ieeg_info.source,
+            "reader_warning": ieeg_info.warning,
             "event_alignment": ieeg_alignment,
         },
     }
+
+
+def _read_edf_info(path: Path, mne: Any) -> EdfInfo:
+    try:
+        raw = mne.io.read_raw_edf(path, preload=False, verbose="ERROR")
+    except ValueError as exc:
+        if "second must be in 0..59" not in str(exc):
+            raise
+        fallback = _read_edf_header_info(path)
+        return EdfInfo(
+            sfreq=fallback.sfreq,
+            n_channels=fallback.n_channels,
+            n_times=fallback.n_times,
+            duration_sec=fallback.duration_sec,
+            source="edf_header_fallback",
+            warning=str(exc),
+        )
+
+    return EdfInfo(
+        sfreq=float(raw.info["sfreq"]),
+        n_channels=len(raw.ch_names),
+        n_times=int(raw.n_times),
+        duration_sec=float(raw.n_times / raw.info["sfreq"]),
+        source="mne",
+    )
+
+
+def _read_edf_header_info(path: Path) -> EdfInfo:
+    with path.open("rb") as handle:
+        fixed_header = handle.read(256)
+        if len(fixed_header) < 256:
+            raise ValueError(f"EDF header too short: {path}")
+        header_bytes = int(_decode_edf_ascii(fixed_header[184:192]))
+        n_records = int(float(_decode_edf_ascii(fixed_header[236:244])))
+        record_duration = float(_decode_edf_ascii(fixed_header[244:252]))
+        n_channels = int(_decode_edf_ascii(fixed_header[252:256]))
+
+        handle.seek(256 + (216 * n_channels))
+        samples_per_record = []
+        for _ in range(n_channels):
+            samples_per_record.append(int(_decode_edf_ascii(handle.read(8))))
+
+    if header_bytes < 256 or n_channels <= 0 or n_records <= 0 or record_duration <= 0:
+        raise ValueError(f"Invalid EDF header values: {path}")
+    if len(set(samples_per_record)) != 1:
+        raise ValueError(f"EDF channels have non-uniform samples per record: {path}")
+
+    samples = samples_per_record[0]
+    n_times = n_records * samples
+    sfreq = samples / record_duration
+    return EdfInfo(
+        sfreq=float(sfreq),
+        n_channels=n_channels,
+        n_times=n_times,
+        duration_sec=float(n_records * record_duration),
+        source="edf_header",
+    )
+
+
+def _decode_edf_ascii(data: bytes) -> str:
+    return data.decode("ascii", errors="ignore").strip()
 
 
 def _audit_mat(dataset_root: Path, mat_path: Path, scipy_io: Any) -> dict[str, Any]:
