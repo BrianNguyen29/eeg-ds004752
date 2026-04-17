@@ -20,6 +20,8 @@ def build_parser() -> argparse.ArgumentParser:
     audit.add_argument("--config", default="configs/data/snapshot.yaml")
     audit.add_argument("--dataset-root")
     audit.add_argument("--output-root")
+    audit.add_argument("--include-signal", action="store_true")
+    audit.add_argument("--signal-max-sessions", type=int, default=4)
 
     smoke = subparsers.add_parser("smoke", help="Validate config and project paths")
     smoke.add_argument("--profile", default="t4_safe")
@@ -52,7 +54,12 @@ def main(argv: list[str] | None = None) -> int:
             config = load_config(args.config)
             dataset_root = Path(args.dataset_root or config.get("dataset_root", "ds004752"))
             output_root = Path(args.output_root or config.get("gate0_output_root", "artifacts/gate0"))
-            result = run_gate0_audit(dataset_root=dataset_root, output_root=output_root)
+            result = run_gate0_audit(
+                dataset_root=dataset_root,
+                output_root=output_root,
+                include_signal=args.include_signal,
+                signal_max_sessions=args.signal_max_sessions,
+            )
             print(f"Gate 0 audit complete: {result.output_dir}")
             print(f"Manifest: {result.manifest_path}")
             return 0

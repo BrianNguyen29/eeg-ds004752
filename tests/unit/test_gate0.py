@@ -31,6 +31,19 @@ class Gate0AuditTests(unittest.TestCase):
             self.assertEqual(manifest["events_audit"]["core_field_mismatch_count"], 0)
             self.assertEqual(manifest["payload_state"]["edf"]["pointer_like_count"], 2)
             self.assertEqual(manifest["payload_state"]["mat"]["pointer_like_count"], 1)
+            self.assertEqual(manifest["signal_audit"]["status"], "not_requested")
+
+    def test_gate0_audit_can_record_signal_dependency_blocker(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "ds004752"
+            _write_minimal_dataset(root)
+            output_root = Path(tmp) / "artifacts" / "gate0"
+
+            result = run_gate0_audit(root, output_root, include_signal=True)
+
+            manifest = result.manifest
+            self.assertIn(manifest["signal_audit"]["status"], {"dependency_missing", "failed"})
+            self.assertIn("signal_level_audit_not_passed", manifest["gate0_blockers"])
 
 
 def _write_minimal_dataset(root: Path) -> None:
@@ -95,4 +108,3 @@ def _write_minimal_dataset(root: Path) -> None:
 
 if __name__ == "__main__":
     unittest.main()
-

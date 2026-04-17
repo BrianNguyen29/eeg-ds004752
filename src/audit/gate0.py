@@ -9,6 +9,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from .signal import run_signal_audit
+
 CORE_EVENT_FIELDS = (
     "nTrial",
     "duration",
@@ -32,13 +34,18 @@ class AuditResult:
     manifest: dict[str, Any]
 
 
-def run_gate0_audit(dataset_root: str | Path, output_root: str | Path) -> AuditResult:
+def run_gate0_audit(
+    dataset_root: str | Path,
+    output_root: str | Path,
+    include_signal: bool = False,
+    signal_max_sessions: int = 4,
+) -> AuditResult:
     dataset_root = Path(dataset_root)
     output_root = Path(output_root)
     if not dataset_root.exists():
         raise FileNotFoundError(f"Dataset root not found: {dataset_root}")
 
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
     output_dir = output_root / timestamp
     output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -54,9 +61,12 @@ def run_gate0_audit(dataset_root: str | Path, output_root: str | Path) -> AuditR
         "edf": _payload_state(dataset_root, "*.edf"),
         "mat": _payload_state(dataset_root, "*.mat"),
     }
+    signal_audit = run_signal_audit(dataset_root, signal_max_sessions) if include_signal else {
+        "status": "not_requested"
+    }
 
     manifest: dict[str, Any] = {
-        "manifest_status": "draft_metadata_only",
+        "manifest_status": _manifest_status(include_signal, signal_audit),
         "created_utc": timestamp,
         "dataset_root": str(dataset_root),
         "dataset_identity": {
@@ -76,13 +86,14 @@ def run_gate0_audit(dataset_root: str | Path, output_root: str | Path) -> AuditR
         "subjects": subject_inventory,
         "events_audit": events_audit,
         "sidecar_audit": sidecar_audit,
+        "signal_audit": signal_audit,
         "derivatives": {
             "bridge_availability_status": "pointer_level_only"
             if payload_state["mat"]["pointer_like_count"]
             else "materialized_or_unknown",
             "beamforming_subjects_with_files": bridge_availability["subjects_with_beamforming_pointer"],
         },
-        "gate0_blockers": _gate0_blockers(payload_state, events_audit),
+        "gate0_blockers": _gate0_blockers(payload_state, events_audit, signal_audit),
     }
 
     cohort_lock = _cohort_lock(manifest, participants)
@@ -293,6 +304,11 @@ def _payload_state(dataset_root: Path, pattern: str) -> dict[str, Any]:
 
 
 def _is_pointer_like(path: Path) -> bool:
+    if path.is_symlink():
+        try:
+            return not path.resolve(strict=True).exists()
+        except FileNotFoundError:
+            return True
     if not path.exists() or path.stat().st_size > 4096:
         return False
     try:
@@ -303,7 +319,19 @@ def _is_pointer_like(path: Path) -> bool:
     return any(marker in text for marker in markers)
 
 
-def _gate0_blockers(payload_state: dict[str, Any], events_audit: dict[str, Any]) -> list[str]:
+def _manifest_status(include_signal: bool, signal_audit: dict[str, Any]) -> str:
+    if not include_signal:
+        return "draft_metadata_only"
+    if signal_audit.get("status") == "ok":
+        return "draft_metadata_plus_signal_sample"
+    return "draft_metadata_signal_attempted"
+
+
+def _gate0_blockers(
+    payload_state: dict[str, Any],
+    events_audit: dict[str, Any],
+    signal_audit: dict[str, Any],
+) -> list[str]:
     blockers = []
     if payload_state["edf"]["pointer_like_count"]:
         blockers.append("edf_payloads_not_materialized")
@@ -311,6 +339,8 @@ def _gate0_blockers(payload_state: dict[str, Any], events_audit: dict[str, Any])
         blockers.append("mat_derivatives_not_materialized")
     if events_audit["core_field_mismatch_count"]:
         blockers.append("eeg_ieeg_event_core_field_mismatches")
+    if signal_audit.get("status") in {"dependency_missing", "failed"}:
+        blockers.append("signal_level_audit_not_passed")
     blockers.append("cohort_lock_is_draft_until_signal_level_audit")
     return blockers
 
@@ -341,6 +371,7 @@ def _render_audit_report(manifest: dict[str, Any]) -> str:
     payload = manifest["payload_state"]
     subjects = manifest["subjects"]
     sidecar = manifest["sidecar_audit"]
+    signal = manifest["signal_audit"]
     blockers = "\n".join(f"- {item}" for item in manifest["gate0_blockers"])
     return f"""# Gate 0 audit report
 
@@ -381,6 +412,12 @@ Created UTC: {manifest["created_utc"]}
 
 {blockers}
 
+## Signal audit
+
+- Status: {signal.get("status")}
+- Sessions checked: {signal.get("sessions_checked", 0)}
+- MAT files checked: {signal.get("mat_files_checked", 0)}
+
 ## Conclusion
 
 Metadata-level Gate 0 audit is complete. Primary cohort lock and
@@ -410,4 +447,3 @@ def _first(paths: Any) -> Path | None:
     for path in paths:
         return path
     return None
-

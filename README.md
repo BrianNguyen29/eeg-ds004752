@@ -23,6 +23,14 @@ drive.mount('/content/drive')
 !python -m src.cli audit --profile t4_safe --config configs/data/snapshot_colab.yaml
 ```
 
+After downloading a sample payload, run signal-level Gate 0 audit:
+
+```python
+!INSTALL_SIGNAL_EXTRAS=1 bash bootstrap/install_runtime.sh
+!bash bootstrap/get_data_colab.sh /content/drive/MyDrive/eeg-ds004752/data sample
+!python -m src.cli audit --profile t4_safe --config configs/data/snapshot_colab.yaml --include-signal --signal-max-sessions 1
+```
+
 If your Drive layout is nested under `MyDrive/eeg/eeg-ds004752`, use:
 
 ```python
