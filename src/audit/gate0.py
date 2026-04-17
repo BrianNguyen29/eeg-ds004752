@@ -85,8 +85,12 @@ def run_gate0_audit(
         },
         "participants": {
             "n_raw_public": len(participants),
-            "n_primary_eligible": None,
-            "primary_eligibility_status": "not_locked_pending_signal_level_gate0",
+            "n_primary_eligible": _n_primary_eligible(subject_inventory, signal_audit),
+            "primary_eligibility_status": _primary_eligibility_status(
+                payload_state,
+                events_audit,
+                signal_audit,
+            ),
         },
         "file_inventory": file_inventory,
         "payload_state": payload_state,
@@ -321,6 +325,8 @@ def _bridge_availability(dataset_root: Path, materialization_report: dict[str, A
 def _manifest_status(include_signal: bool, signal_audit: dict[str, Any]) -> str:
     if not include_signal:
         return "draft_metadata_only"
+    if _full_signal_audit_passed(signal_audit):
+        return "signal_audit_ready"
     if signal_audit.get("status") == "ok":
         return "draft_metadata_plus_signal_sample"
     return "draft_metadata_signal_attempted"
@@ -340,15 +346,25 @@ def _gate0_blockers(
         blockers.append("eeg_ieeg_event_core_field_mismatches")
     if signal_audit.get("status") in {"dependency_missing", "failed"}:
         blockers.append("signal_level_audit_not_passed")
-    blockers.append("cohort_lock_is_draft_until_signal_level_audit")
+    if not _payloads_materialized(payload_state) or not _full_signal_audit_passed(signal_audit):
+        blockers.append("cohort_lock_is_draft_until_signal_level_audit")
     return blockers
 
 
 def _cohort_lock(manifest: dict[str, Any], participants: list[dict[str, str]]) -> dict[str, Any]:
     by_subject = manifest["subjects"]["by_subject"]
+    signal_ready = manifest["manifest_status"] == "signal_audit_ready"
+    signal_by_subject = _signal_summary_by_subject(manifest["signal_audit"])
+    fallback_registry = _fallback_registry(manifest["signal_audit"])
     return {
-        "cohort_lock_status": "draft_not_primary_locked",
-        "reason": "Signal-level payloads are not materialized; primary eligibility cannot be locked.",
+        "cohort_lock_status": "signal_audit_ready" if signal_ready else "draft_not_primary_locked",
+        "reason": (
+            "All payloads are materialized and all discovered sessions passed signal-level audit."
+            if signal_ready
+            else "Signal-level payloads or full signal audit are incomplete; primary eligibility cannot be locked."
+        ),
+        "n_primary_eligible": manifest["participants"]["n_primary_eligible"],
+        "fallback_reader_registry": fallback_registry,
         "participants": [
             {
                 "participant_id": row.get("participant_id"),
@@ -357,11 +373,83 @@ def _cohort_lock(manifest: dict[str, Any], participants: list[dict[str, str]]) -
                 "pathology": row.get("pathology"),
                 "n_sessions": by_subject.get(row.get("participant_id"), {}).get("n_sessions", 0),
                 "metadata_present": row.get("participant_id") in by_subject,
-                "primary_eligible": None,
+                "signal_sessions_passed": signal_by_subject.get(row.get("participant_id"), {}).get("sessions_passed", 0),
+                "sampling_channel_profiles": signal_by_subject.get(row.get("participant_id"), {}).get(
+                    "sampling_channel_profiles", []
+                ),
+                "primary_eligible": True if signal_ready and row.get("participant_id") in by_subject else None,
+                "exclusion_reason": None,
             }
             for row in participants
         ],
     }
+
+
+def _payloads_materialized(payload_state: dict[str, Any]) -> bool:
+    return all(payload["pointer_like_count"] == 0 for payload in payload_state.values())
+
+
+def _full_signal_audit_passed(signal_audit: dict[str, Any]) -> bool:
+    return (
+        signal_audit.get("status") == "ok"
+        and signal_audit.get("candidate_sessions") == signal_audit.get("sessions_checked")
+        and signal_audit.get("candidate_sessions", 0) > 0
+    )
+
+
+def _primary_eligibility_status(
+    payload_state: dict[str, Any],
+    events_audit: dict[str, Any],
+    signal_audit: dict[str, Any],
+) -> str:
+    if _payloads_materialized(payload_state) and events_audit["core_field_mismatch_count"] == 0 and _full_signal_audit_passed(signal_audit):
+        return "signal_audit_ready"
+    return "not_locked_pending_signal_level_gate0"
+
+
+def _n_primary_eligible(subject_inventory: dict[str, Any], signal_audit: dict[str, Any]) -> int | None:
+    if not _full_signal_audit_passed(signal_audit):
+        return None
+    passed_subjects = {item["subject"] for item in signal_audit.get("session_results", []) if item["status"] == "ok"}
+    return len(passed_subjects & set(subject_inventory["by_subject"].keys()))
+
+
+def _signal_summary_by_subject(signal_audit: dict[str, Any]) -> dict[str, Any]:
+    summary: dict[str, Any] = {}
+    for item in signal_audit.get("session_results", []):
+        if item.get("status") != "ok":
+            continue
+        subject = item["subject"]
+        profile = {
+            "session": item["session"],
+            "eeg_sfreq": item.get("eeg", {}).get("sfreq"),
+            "eeg_channels": item.get("eeg", {}).get("n_channels"),
+            "ieeg_sfreq": item.get("ieeg", {}).get("sfreq"),
+            "ieeg_channels": item.get("ieeg", {}).get("n_channels"),
+        }
+        record = summary.setdefault(subject, {"sessions_passed": 0, "sampling_channel_profiles": []})
+        record["sessions_passed"] += 1
+        record["sampling_channel_profiles"].append(profile)
+    return summary
+
+
+def _fallback_registry(signal_audit: dict[str, Any]) -> list[dict[str, Any]]:
+    fallback = []
+    for item in signal_audit.get("session_results", []):
+        eeg = item.get("eeg", {})
+        ieeg = item.get("ieeg", {})
+        if eeg.get("reader") != "mne" or ieeg.get("reader") != "mne":
+            fallback.append(
+                {
+                    "subject": item["subject"],
+                    "session": item["session"],
+                    "eeg_reader": eeg.get("reader"),
+                    "ieeg_reader": ieeg.get("reader"),
+                    "eeg_warning": eeg.get("reader_warning"),
+                    "ieeg_warning": ieeg.get("reader_warning"),
+                }
+            )
+    return fallback
 
 
 def _render_audit_report(manifest: dict[str, Any]) -> str:

@@ -5,6 +5,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from src.audit.gate0 import _cohort_lock
+from src.audit.gate0 import _gate0_blockers
+from src.audit.gate0 import _manifest_status
 from src.audit.gate0 import _write_json
 from src.audit.gate0 import run_gate0_audit
 
@@ -60,6 +63,42 @@ class Gate0AuditTests(unittest.TestCase):
             data = json.loads(path.read_text(encoding="utf-8"))
             self.assertEqual(data["value"], 7)
             self.assertEqual(data["path"], "x")
+
+    def test_full_signal_pass_promotes_cohort_lock(self) -> None:
+        signal_audit = {
+            "status": "ok",
+            "candidate_sessions": 1,
+            "sessions_checked": 1,
+            "session_results": [
+                {
+                    "status": "ok",
+                    "subject": "sub-01",
+                    "session": "ses-01",
+                    "eeg": {"sfreq": 200.0, "n_channels": 19, "reader": "mne"},
+                    "ieeg": {"sfreq": 2000.0, "n_channels": 48, "reader": "edf_header_fallback", "reader_warning": "bad date"},
+                }
+            ],
+        }
+        payload_state = {
+            "edf": {"pointer_like_count": 0},
+            "mat": {"pointer_like_count": 0},
+        }
+        events_audit = {"core_field_mismatch_count": 0}
+        manifest = {
+            "manifest_status": _manifest_status(True, signal_audit),
+            "participants": {"n_primary_eligible": 1},
+            "subjects": {"by_subject": {"sub-01": {"n_sessions": 1}}},
+            "signal_audit": signal_audit,
+        }
+        participants = [{"participant_id": "sub-01", "age": "24", "sex": "f", "pathology": "test"}]
+
+        self.assertEqual(_gate0_blockers(payload_state, events_audit, signal_audit), [])
+        cohort = _cohort_lock(manifest, participants)
+
+        self.assertEqual(cohort["cohort_lock_status"], "signal_audit_ready")
+        self.assertEqual(cohort["n_primary_eligible"], 1)
+        self.assertTrue(cohort["participants"][0]["primary_eligible"])
+        self.assertEqual(cohort["fallback_reader_registry"][0]["ieeg_reader"], "edf_header_fallback")
 
 
 def _write_minimal_dataset(root: Path) -> None:
