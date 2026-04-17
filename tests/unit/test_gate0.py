@@ -67,8 +67,12 @@ class Gate0AuditTests(unittest.TestCase):
     def test_full_signal_pass_promotes_cohort_lock(self) -> None:
         signal_audit = {
             "status": "ok",
+            "subject_filter": [],
+            "session_filter": [],
             "candidate_sessions": 1,
             "sessions_checked": 1,
+            "candidate_mat_files": 1,
+            "mat_files_checked": 1,
             "session_results": [
                 {
                     "status": "ok",
@@ -85,7 +89,7 @@ class Gate0AuditTests(unittest.TestCase):
         }
         events_audit = {"core_field_mismatch_count": 0}
         manifest = {
-            "manifest_status": _manifest_status(True, signal_audit),
+            "manifest_status": _manifest_status(True, signal_audit, payload_state, events_audit),
             "participants": {"n_primary_eligible": 1},
             "subjects": {"by_subject": {"sub-01": {"n_sessions": 1}}},
             "signal_audit": signal_audit,
@@ -99,6 +103,58 @@ class Gate0AuditTests(unittest.TestCase):
         self.assertEqual(cohort["n_primary_eligible"], 1)
         self.assertTrue(cohort["participants"][0]["primary_eligible"])
         self.assertEqual(cohort["fallback_reader_registry"][0]["ieeg_reader"], "edf_header_fallback")
+
+    def test_filtered_signal_pass_does_not_promote_cohort_lock(self) -> None:
+        signal_audit = {
+            "status": "ok",
+            "subject_filter": ["sub-01"],
+            "session_filter": [],
+            "candidate_sessions": 1,
+            "sessions_checked": 1,
+            "candidate_mat_files": 1,
+            "mat_files_checked": 1,
+            "session_results": [{"status": "ok", "subject": "sub-01", "session": "ses-01"}],
+        }
+        payload_state = {
+            "edf": {"pointer_like_count": 0},
+            "mat": {"pointer_like_count": 0},
+        }
+        events_audit = {"core_field_mismatch_count": 0}
+
+        self.assertEqual(
+            _manifest_status(True, signal_audit, payload_state, events_audit),
+            "draft_metadata_plus_signal_sample",
+        )
+        self.assertIn(
+            "cohort_lock_is_draft_until_signal_level_audit",
+            _gate0_blockers(payload_state, events_audit, signal_audit),
+        )
+
+    def test_partial_mat_signal_pass_does_not_promote_cohort_lock(self) -> None:
+        signal_audit = {
+            "status": "ok",
+            "subject_filter": [],
+            "session_filter": [],
+            "candidate_sessions": 68,
+            "sessions_checked": 68,
+            "candidate_mat_files": 15,
+            "mat_files_checked": 4,
+            "session_results": [{"status": "ok", "subject": "sub-01", "session": "ses-01"}],
+        }
+        payload_state = {
+            "edf": {"pointer_like_count": 0},
+            "mat": {"pointer_like_count": 0},
+        }
+        events_audit = {"core_field_mismatch_count": 0}
+
+        self.assertEqual(
+            _manifest_status(True, signal_audit, payload_state, events_audit),
+            "draft_metadata_plus_signal_sample",
+        )
+        self.assertIn(
+            "cohort_lock_is_draft_until_signal_level_audit",
+            _gate0_blockers(payload_state, events_audit, signal_audit),
+        )
 
 
 def _write_minimal_dataset(root: Path) -> None:

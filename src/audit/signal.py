@@ -45,8 +45,9 @@ def run_signal_audit(
             break
         session_results.append(_audit_session(dataset_root, ses_dir, mne))
 
+    selected_mat_paths = _select_mat_paths(dataset_root, subjects)
     mat_results = []
-    for mat_path in _select_mat_paths(dataset_root, subjects)[:max_sessions]:
+    for mat_path in selected_mat_paths[:max_sessions]:
         mat_results.append(_audit_mat(dataset_root, mat_path, scipy.io))
 
     blockers = []
@@ -65,6 +66,7 @@ def run_signal_audit(
         "candidate_sessions": len(selected_sessions),
         "sessions_checked": len(session_results),
         "session_results": session_results,
+        "candidate_mat_files": len(selected_mat_paths),
         "mat_files_checked": len(mat_results),
         "mat_results": mat_results,
         "blockers": blockers,

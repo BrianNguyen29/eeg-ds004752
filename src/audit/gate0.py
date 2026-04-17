@@ -73,7 +73,7 @@ def run_gate0_audit(
     }
 
     manifest: dict[str, Any] = {
-        "manifest_status": _manifest_status(include_signal, signal_audit),
+        "manifest_status": _manifest_status(include_signal, signal_audit, payload_state, events_audit),
         "created_utc": timestamp,
         "dataset_root": str(dataset_root),
         "dataset_identity": {
@@ -322,10 +322,15 @@ def _bridge_availability(dataset_root: Path, materialization_report: dict[str, A
     }
 
 
-def _manifest_status(include_signal: bool, signal_audit: dict[str, Any]) -> str:
+def _manifest_status(
+    include_signal: bool,
+    signal_audit: dict[str, Any],
+    payload_state: dict[str, Any] | None = None,
+    events_audit: dict[str, Any] | None = None,
+) -> str:
     if not include_signal:
         return "draft_metadata_only"
-    if _full_signal_audit_passed(signal_audit):
+    if _gate0_ready(payload_state, events_audit, signal_audit):
         return "signal_audit_ready"
     if signal_audit.get("status") == "ok":
         return "draft_metadata_plus_signal_sample"
@@ -389,11 +394,31 @@ def _payloads_materialized(payload_state: dict[str, Any]) -> bool:
     return all(payload["pointer_like_count"] == 0 for payload in payload_state.values())
 
 
+def _gate0_ready(
+    payload_state: dict[str, Any] | None,
+    events_audit: dict[str, Any] | None,
+    signal_audit: dict[str, Any],
+) -> bool:
+    if payload_state is None or events_audit is None:
+        return False
+    return (
+        _payloads_materialized(payload_state)
+        and events_audit["core_field_mismatch_count"] == 0
+        and _full_signal_audit_passed(signal_audit)
+    )
+
+
 def _full_signal_audit_passed(signal_audit: dict[str, Any]) -> bool:
+    candidate_mat_files = signal_audit.get("candidate_mat_files")
+    mat_files_checked = signal_audit.get("mat_files_checked")
+    mat_audit_complete = candidate_mat_files is None or candidate_mat_files == mat_files_checked
     return (
         signal_audit.get("status") == "ok"
+        and not signal_audit.get("subject_filter")
+        and not signal_audit.get("session_filter")
         and signal_audit.get("candidate_sessions") == signal_audit.get("sessions_checked")
         and signal_audit.get("candidate_sessions", 0) > 0
+        and mat_audit_complete
     )
 
 
@@ -402,7 +427,7 @@ def _primary_eligibility_status(
     events_audit: dict[str, Any],
     signal_audit: dict[str, Any],
 ) -> str:
-    if _payloads_materialized(payload_state) and events_audit["core_field_mismatch_count"] == 0 and _full_signal_audit_passed(signal_audit):
+    if _gate0_ready(payload_state, events_audit, signal_audit):
         return "signal_audit_ready"
     return "not_locked_pending_signal_level_gate0"
 
