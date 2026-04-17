@@ -31,6 +31,10 @@ After downloading a sample payload, run signal-level Gate 0 audit:
 !python -m src.cli audit --profile t4_safe --config configs/data/snapshot_colab.yaml --include-signal --signal-max-sessions 1
 ```
 
+Each Gate 0 run writes a `materialization_report.json` next to the
+manifest. It lists materialized EDF/MAT payloads, missing payload examples,
+and suggested `datalad get` commands.
+
 If your Drive layout is nested under `MyDrive/eeg/eeg-ds004752`, use:
 
 ```python

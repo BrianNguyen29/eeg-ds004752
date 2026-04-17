@@ -62,6 +62,7 @@ def main(argv: list[str] | None = None) -> int:
             )
             print(f"Gate 0 audit complete: {result.output_dir}")
             print(f"Manifest: {result.manifest_path}")
+            print(f"Materialization report: {result.materialization_report_path}")
             return 0
 
         if args.command == "smoke":

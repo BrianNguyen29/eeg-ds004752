@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+from .materialization import build_materialization_report, payload_state_from_report
 from .signal import run_signal_audit
 
 CORE_EVENT_FIELDS = (
@@ -32,6 +33,7 @@ class AuditResult:
     audit_report_path: Path
     override_log_path: Path
     bridge_availability_path: Path
+    materialization_report_path: Path
     manifest: dict[str, Any]
 
 
@@ -56,12 +58,9 @@ def run_gate0_audit(
     subject_inventory = _subject_inventory(dataset_root)
     events_audit = _events_audit(dataset_root)
     sidecar_audit = _sidecar_audit(dataset_root)
-    bridge_availability = _bridge_availability(dataset_root)
-
-    payload_state = {
-        "edf": _payload_state(dataset_root, "*.edf"),
-        "mat": _payload_state(dataset_root, "*.mat"),
-    }
+    materialization_report = build_materialization_report(dataset_root)
+    payload_state = payload_state_from_report(materialization_report)
+    bridge_availability = _bridge_availability(dataset_root, materialization_report)
     signal_audit = run_signal_audit(dataset_root, signal_max_sessions) if include_signal else {
         "status": "not_requested"
     }
@@ -84,6 +83,10 @@ def run_gate0_audit(
         },
         "file_inventory": file_inventory,
         "payload_state": payload_state,
+        "materialization": {
+            "status": materialization_report["status"],
+            "datalad_get_suggestions": materialization_report["datalad_get_suggestions"],
+        },
         "subjects": subject_inventory,
         "events_audit": events_audit,
         "sidecar_audit": sidecar_audit,
@@ -104,10 +107,12 @@ def run_gate0_audit(
     audit_report_path = output_dir / "audit_report.md"
     override_log_path = output_dir / "override_log.md"
     bridge_availability_path = output_dir / "bridge_availability.json"
+    materialization_report_path = output_dir / "materialization_report.json"
 
     _write_json(manifest_path, manifest)
     _write_json(cohort_lock_path, cohort_lock)
     _write_json(bridge_availability_path, bridge_availability)
+    _write_json(materialization_report_path, materialization_report)
     audit_report_path.write_text(_render_audit_report(manifest), encoding="utf-8")
     override_log_path.write_text(_render_override_log(timestamp), encoding="utf-8")
     _write_latest_pointer(output_root, output_dir)
@@ -119,6 +124,7 @@ def run_gate0_audit(
         audit_report_path=audit_report_path,
         override_log_path=override_log_path,
         bridge_availability_path=bridge_availability_path,
+        materialization_report_path=materialization_report_path,
         manifest=manifest,
     )
 
@@ -270,18 +276,32 @@ def _sidecar_audit(dataset_root: Path) -> dict[str, Any]:
     }
 
 
-def _bridge_availability(dataset_root: Path) -> dict[str, Any]:
+def _bridge_availability(dataset_root: Path, materialization_report: dict[str, Any]) -> dict[str, Any]:
     rows = []
+    mat_payloads_by_path = {
+        record["relative_path"]: record
+        for record in (
+            materialization_report.get("payloads", {})
+            .get("mat", {})
+            .get("missing_examples", [])
+            + materialization_report.get("payloads", {})
+            .get("mat", {})
+            .get("materialized_examples", [])
+        )
+    }
     for sub_dir in sorted(dataset_root.glob("sub-*")):
         if not sub_dir.is_dir():
             continue
         mat_files = sorted((dataset_root / "derivatives" / sub_dir.name / "beamforming").glob("*.mat"))
+        mat_payloads = [mat_payloads_by_path.get(path.relative_to(dataset_root).as_posix()) for path in mat_files]
         rows.append(
             {
                 "subject": sub_dir.name,
-                "beamforming_files": [str(path.relative_to(dataset_root)) for path in mat_files],
+                "beamforming_files": [path.relative_to(dataset_root).as_posix() for path in mat_files],
                 "n_beamforming_files": len(mat_files),
-                "all_files_pointer_like": all(_is_pointer_like(path) for path in mat_files) if mat_files else False,
+                "all_files_pointer_like": all(
+                    payload is not None and not payload["materialized"] for payload in mat_payloads
+                ) if mat_files else False,
             }
         )
     return {
@@ -289,36 +309,6 @@ def _bridge_availability(dataset_root: Path) -> dict[str, Any]:
         "subjects_with_beamforming_pointer": sum(1 for row in rows if row["n_beamforming_files"] > 0),
         "subjects": rows,
     }
-
-
-def _payload_state(dataset_root: Path, pattern: str) -> dict[str, Any]:
-    files = list(dataset_root.rglob(pattern))
-    pointer_like = [path for path in files if _is_pointer_like(path)]
-    return {
-        "count": len(files),
-        "pointer_like_count": len(pointer_like),
-        "materialized_count": len(files) - len(pointer_like),
-        "state": "all_pointer_like"
-        if files and len(pointer_like) == len(files)
-        else "mixed_or_materialized",
-    }
-
-
-def _is_pointer_like(path: Path) -> bool:
-    if path.is_symlink():
-        try:
-            target = path.resolve(strict=True)
-        except FileNotFoundError:
-            return True
-        return target.stat().st_size <= 4096
-    if not path.exists() or path.stat().st_size > 4096:
-        return False
-    try:
-        text = path.read_text(encoding="utf-8", errors="ignore")
-    except OSError:
-        return False
-    markers = (".git/annex/objects", "SHA256E-s", "git-annex", "version https://git-lfs")
-    return any(marker in text for marker in markers)
 
 
 def _manifest_status(include_signal: bool, signal_audit: dict[str, Any]) -> str:
@@ -374,6 +364,7 @@ def _render_audit_report(manifest: dict[str, Any]) -> str:
     subjects = manifest["subjects"]
     sidecar = manifest["sidecar_audit"]
     signal = manifest["signal_audit"]
+    materialization = manifest["materialization"]
     blockers = "\n".join(f"- {item}" for item in manifest["gate0_blockers"])
     return f"""# Gate 0 audit report
 
@@ -402,6 +393,7 @@ Created UTC: {manifest["created_utc"]}
 
 - EDF files: {payload["edf"]["count"]}, pointer-like: {payload["edf"]["pointer_like_count"]}
 - MAT files: {payload["mat"]["count"]}, pointer-like: {payload["mat"]["pointer_like_count"]}
+- Materialization status: {materialization["status"]}
 
 ## Sidecar summary
 

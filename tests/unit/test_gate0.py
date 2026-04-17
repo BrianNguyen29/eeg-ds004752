@@ -23,6 +23,7 @@ class Gate0AuditTests(unittest.TestCase):
             self.assertTrue(result.audit_report_path.exists())
             self.assertTrue(result.override_log_path.exists())
             self.assertTrue(result.bridge_availability_path.exists())
+            self.assertTrue(result.materialization_report_path.exists())
 
             manifest = json.loads(result.manifest_path.read_text(encoding="utf-8"))
             self.assertEqual(manifest["subjects"]["n_subjects"], 1)
@@ -33,6 +34,7 @@ class Gate0AuditTests(unittest.TestCase):
             self.assertEqual(manifest["payload_state"]["edf"]["pointer_like_count"], 2)
             self.assertEqual(manifest["payload_state"]["mat"]["pointer_like_count"], 1)
             self.assertEqual(manifest["signal_audit"]["status"], "not_requested")
+            self.assertEqual(manifest["materialization"]["status"], "incomplete")
 
     def test_gate0_audit_can_record_signal_dependency_blocker(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
