@@ -35,6 +35,13 @@ Each Gate 0 run writes a `materialization_report.json` next to the
 manifest. It lists materialized EDF/MAT payloads, missing payload examples,
 and suggested `datalad get` commands.
 
+To materialize and audit by subject:
+
+```bash
+bash bootstrap/get_data_colab.sh /content/drive/MyDrive/eeg-ds004752/data subjects sub-01 sub-02
+python -m src.cli audit --profile t4_safe --config configs/data/snapshot_colab.yaml --include-signal --subjects sub-01 sub-02 --signal-max-sessions 11
+```
+
 If your Drive layout is nested under `MyDrive/eeg/eeg-ds004752`, use:
 
 ```python

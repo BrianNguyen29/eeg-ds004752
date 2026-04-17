@@ -67,6 +67,15 @@ case "${GET_TARGET}" in
       sub-01/ses-01/ieeg \
       derivatives/sub-01/beamforming
     ;;
+  subjects)
+    if [ "$#" -lt 3 ]; then
+      echo "Usage: $0 DATA_ROOT subjects sub-01 [sub-02 ...]" >&2
+      exit 2
+    fi
+    for subject in "${@:3}"; do
+      datalad get "${subject}" "derivatives/${subject}/beamforming"
+    done
+    ;;
   all)
     datalad get .
     ;;

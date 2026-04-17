@@ -22,6 +22,8 @@ def build_parser() -> argparse.ArgumentParser:
     audit.add_argument("--output-root")
     audit.add_argument("--include-signal", action="store_true")
     audit.add_argument("--signal-max-sessions", type=int, default=4)
+    audit.add_argument("--subjects", nargs="*", help="Restrict signal audit to subject IDs, e.g. sub-01 sub-02")
+    audit.add_argument("--sessions", nargs="*", help="Restrict signal audit to session IDs, e.g. ses-01 ses-02")
 
     smoke = subparsers.add_parser("smoke", help="Validate config and project paths")
     smoke.add_argument("--profile", default="t4_safe")
@@ -59,6 +61,8 @@ def main(argv: list[str] | None = None) -> int:
                 output_root=output_root,
                 include_signal=args.include_signal,
                 signal_max_sessions=args.signal_max_sessions,
+                signal_subjects=args.subjects,
+                signal_sessions=args.sessions,
             )
             print(f"Gate 0 audit complete: {result.output_dir}")
             print(f"Manifest: {result.manifest_path}")

@@ -42,6 +42,8 @@ def run_gate0_audit(
     output_root: str | Path,
     include_signal: bool = False,
     signal_max_sessions: int = 4,
+    signal_subjects: list[str] | None = None,
+    signal_sessions: list[str] | None = None,
 ) -> AuditResult:
     dataset_root = Path(dataset_root)
     output_root = Path(output_root)
@@ -61,7 +63,12 @@ def run_gate0_audit(
     materialization_report = build_materialization_report(dataset_root)
     payload_state = payload_state_from_report(materialization_report)
     bridge_availability = _bridge_availability(dataset_root, materialization_report)
-    signal_audit = run_signal_audit(dataset_root, signal_max_sessions) if include_signal else {
+    signal_audit = run_signal_audit(
+        dataset_root,
+        signal_max_sessions,
+        subjects=signal_subjects,
+        sessions=signal_sessions,
+    ) if include_signal else {
         "status": "not_requested"
     }
 

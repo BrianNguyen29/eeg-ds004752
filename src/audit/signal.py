@@ -8,7 +8,12 @@ from pathlib import Path
 from typing import Any
 
 
-def run_signal_audit(dataset_root: str | Path, max_sessions: int = 4) -> dict[str, Any]:
+def run_signal_audit(
+    dataset_root: str | Path,
+    max_sessions: int = 4,
+    subjects: list[str] | None = None,
+    sessions: list[str] | None = None,
+) -> dict[str, Any]:
     dataset_root = Path(dataset_root)
     missing = _missing_dependencies()
     if missing:
@@ -21,14 +26,16 @@ def run_signal_audit(dataset_root: str | Path, max_sessions: int = 4) -> dict[st
     import mne  # type: ignore
     import scipy.io  # type: ignore
 
+    selected_sessions = _select_session_dirs(dataset_root, subjects, sessions)
+
     session_results = []
-    for ses_dir in sorted(dataset_root.glob("sub-*/ses-*")):
+    for ses_dir in selected_sessions:
         if len(session_results) >= max_sessions:
             break
         session_results.append(_audit_session(dataset_root, ses_dir, mne))
 
     mat_results = []
-    for mat_path in sorted(dataset_root.glob("derivatives/sub-*/beamforming/*.mat"))[:max_sessions]:
+    for mat_path in _select_mat_paths(dataset_root, subjects)[:max_sessions]:
         mat_results.append(_audit_mat(dataset_root, mat_path, scipy.io))
 
     blockers = []
@@ -42,12 +49,43 @@ def run_signal_audit(dataset_root: str | Path, max_sessions: int = 4) -> dict[st
     return {
         "status": "ok" if not blockers else "failed",
         "max_sessions": max_sessions,
+        "subject_filter": subjects or [],
+        "session_filter": sessions or [],
+        "candidate_sessions": len(selected_sessions),
         "sessions_checked": len(session_results),
         "session_results": session_results,
         "mat_files_checked": len(mat_results),
         "mat_results": mat_results,
         "blockers": blockers,
     }
+
+
+def _select_session_dirs(
+    dataset_root: Path,
+    subjects: list[str] | None,
+    sessions: list[str] | None,
+) -> list[Path]:
+    subject_filter = set(subjects or [])
+    session_filter = set(sessions or [])
+    session_dirs = []
+    for ses_dir in sorted(dataset_root.glob("sub-*/ses-*")):
+        if subject_filter and ses_dir.parent.name not in subject_filter:
+            continue
+        if session_filter and ses_dir.name not in session_filter:
+            continue
+        session_dirs.append(ses_dir)
+    return session_dirs
+
+
+def _select_mat_paths(dataset_root: Path, subjects: list[str] | None) -> list[Path]:
+    subject_filter = set(subjects or [])
+    mat_paths = []
+    for mat_path in sorted(dataset_root.glob("derivatives/sub-*/beamforming/*.mat")):
+        subject = mat_path.parents[1].name
+        if subject_filter and subject not in subject_filter:
+            continue
+        mat_paths.append(mat_path)
+    return mat_paths
 
 
 def _missing_dependencies() -> list[str]:
@@ -162,4 +200,3 @@ def _first(paths: Any) -> Path | None:
     for path in paths:
         return path
     return None
-
