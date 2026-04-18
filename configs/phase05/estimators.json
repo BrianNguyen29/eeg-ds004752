@@ -18,15 +18,16 @@
   "default_max_subjects": 3,
   "default_max_sessions": 6,
   "default_max_trials_per_session": 24,
+  "spatial_min_delta_q2": 0.02,
   "teacher_target_family": "ieeg_roi_band_mean_log_power",
   "student_feature_family": "scalp_channel_band_log_power",
   "implemented_controls": [
     "task_vs_matched_temporal_control",
     "grouped_teacher_permutation",
-    "nuisance_only_control"
+    "nuisance_only_control",
+    "rowwise_spatial_permutation_control"
   ],
   "pending_controls": [
-    "spatial_permutation_control_requires_spatial_model_engine",
     "ica_robustness_requires_ica_branch_features"
   ],
   "scientific_scope": [

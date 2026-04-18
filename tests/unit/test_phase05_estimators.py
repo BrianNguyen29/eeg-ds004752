@@ -61,7 +61,8 @@ class Phase05EstimatorTests(unittest.TestCase):
             self.assertEqual(summary["status"], "phase05_estimators_smoke_complete")
             self.assertFalse(summary["claim_ready"])
             self.assertTrue(summary["does_not_train_decoder"])
-            self.assertIn("spatial_permutation_control_not_computed", controls["blockers"])
+            self.assertNotIn("spatial_permutation_control_not_computed", controls["blockers"])
+            self.assertIn("ica_robustness_control_not_computed", controls["blockers"])
 
     def test_cli_phase05_estimators_help(self) -> None:
         with self.assertRaises(SystemExit) as raised:

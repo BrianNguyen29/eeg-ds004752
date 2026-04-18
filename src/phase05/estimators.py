@@ -450,6 +450,12 @@ def _run_observability_estimates(
     x_base = np.asarray([row["x_base"] for row in rows], dtype=float)
     x_nuisance = np.asarray([row["x_nuisance"] for row in rows], dtype=float)
     z = np.asarray([row["z_teacher"] for row in rows], dtype=float)
+    x_spatial = _rowwise_spatial_permutation(
+        np,
+        x_task,
+        extracted["feature_names"],
+        seed=int(config["random_seed"]) + 1701,
+    )
     row_subjects = [row["subject"] for row in rows]
     row_sessions = [row["session"] for row in rows]
     teacher_names = list(extracted["teacher_names"])
@@ -458,6 +464,8 @@ def _run_observability_estimates(
     delta_obs_min = float(thresholds["delta_obs_min"])
     nuisance_relative = float(thresholds["nuisance_relative_ceiling"])
     nuisance_absolute = float(thresholds["nuisance_absolute_ceiling"])
+    spatial_relative = float(thresholds.get("spatial_relative_ceiling", 0.67))
+    spatial_min_delta = float(config.get("spatial_min_delta_q2", 0.02))
 
     fold_results = []
     teacher_summaries = []
@@ -472,6 +480,7 @@ def _run_observability_estimates(
             task_q2 = _ridge_q2(np, x_task[train_idx], y_train, x_task[test_idx], y_test, alpha)
             base_q2 = _ridge_q2(np, x_base[train_idx], y_train, x_base[test_idx], y_test, alpha)
             nuisance_q2 = _ridge_q2(np, x_nuisance[train_idx], y_train, x_nuisance[test_idx], y_test, alpha)
+            spatial_q2 = _ridge_q2(np, x_spatial[train_idx], y_train, x_spatial[test_idx], y_test, alpha)
             null_q2 = []
             train_groups = [f"{row_subjects[i]}:{row_sessions[i]}" for i in train_idx]
             for _ in range(n_permutations):
@@ -484,6 +493,11 @@ def _run_observability_estimates(
                 if task_q2 > 0
                 else nuisance_q2 >= nuisance_absolute
             ) or nuisance_q2 >= nuisance_absolute
+            spatial_veto = (
+                spatial_q2 >= spatial_relative * task_q2
+                if task_q2 > 0
+                else False
+            ) or ((task_q2 - spatial_q2) < spatial_min_delta if not math.isnan(spatial_q2) and not math.isnan(task_q2) else True)
             pass_task_contrast = task_q2 > 0 and p_perm < 0.05 and delta_q2 >= delta_obs_min
             per_fold.append(
                 {
@@ -492,25 +506,36 @@ def _run_observability_estimates(
                     "q2_base": _round_or_none(base_q2),
                     "delta_q2_obs": _round_or_none(delta_q2),
                     "q2_nuisance": _round_or_none(nuisance_q2),
+                    "q2_spatial": _round_or_none(spatial_q2),
                     "p_perm": _round_or_none(p_perm),
                     "pass_task_contrast": bool(pass_task_contrast),
                     "nuisance_veto": bool(nuisance_veto),
+                    "spatial_veto": bool(spatial_veto),
                     "n_train_trials": len(train_idx),
                     "n_test_trials": len(test_idx),
                 }
             )
         deltas = [item["delta_q2_obs"] for item in per_fold if item["delta_q2_obs"] is not None]
         task_q2s = [item["q2_task"] for item in per_fold if item["q2_task"] is not None]
-        passed_folds = [item for item in per_fold if item["pass_task_contrast"] and not item["nuisance_veto"]]
+        passed_folds = [
+            item
+            for item in per_fold
+            if item["pass_task_contrast"] and not item["nuisance_veto"] and not item["spatial_veto"]
+        ]
         teacher_summary = {
             "teacher_id": teacher_name,
             "folds_total": len(per_fold),
-            "folds_task_contrast_passed_without_nuisance_veto": len(passed_folds),
+            "folds_task_contrast_passed_full_computed_controls": len(passed_folds),
             "median_q2_task": _median(deltas=[] if not task_q2s else task_q2s),
             "median_delta_q2_obs": _median(deltas),
-            "status": "survived_task_contrast_screen" if passed_folds else "not_survived_task_contrast_screen",
+            "status": "survived_computed_controls_screen" if passed_folds else "not_survived_computed_controls_screen",
+            "computed_controls": [
+                "task_vs_matched_temporal_control",
+                "grouped_teacher_permutation",
+                "nuisance_only_control",
+                "rowwise_spatial_permutation_control",
+            ],
             "controls_not_yet_computed": [
-                "spatial_permutation_control",
                 "ica_robustness_control",
             ],
         }
@@ -528,15 +553,44 @@ def _run_observability_estimates(
             "delta_obs_min": delta_obs_min,
             "nuisance_relative_ceiling": nuisance_relative,
             "nuisance_absolute_ceiling": nuisance_absolute,
+            "spatial_relative_ceiling": spatial_relative,
+            "spatial_min_delta_q2": spatial_min_delta,
             "p_perm_threshold": 0.05,
         },
         "teacher_summaries": teacher_summaries,
         "fold_results": fold_results,
         "scientific_limit": (
             "These are task-contrast observability estimates for teacher targets, not decoder results. "
-            "Spatial and ICA robustness controls remain explicit blockers for final teacher survival claims."
+            "ICA robustness control remains an explicit blocker for final teacher survival claims."
         ),
     }
+
+
+def _rowwise_spatial_permutation(np: Any, x: Any, feature_names: list[str], seed: int) -> Any:
+    """Destroy scalp channel-location mapping while preserving row/band marginals.
+
+    Feature names are expected to be ``channel:band``. For each trial row and
+    each frequency band, values are shuffled across channels. This is stricter
+    than a column relabeling control because a fixed column permutation would be
+    algebraically invisible to ridge regression.
+    """
+
+    x = np.asarray(x, dtype=float).copy()
+    rng = np.random.default_rng(seed)
+    band_to_indices: dict[str, list[int]] = {}
+    for index, name in enumerate(feature_names):
+        parts = str(name).split(":")
+        if len(parts) < 2:
+            continue
+        band_to_indices.setdefault(parts[-1], []).append(index)
+    for indices in band_to_indices.values():
+        if len(indices) < 2:
+            continue
+        for row_index in range(x.shape[0]):
+            values = x[row_index, indices].copy()
+            rng.shuffle(values)
+            x[row_index, indices] = values
+    return x
 
 
 def _ridge_q2(np: Any, x_train: Any, y_train: Any, x_test: Any, y_test: Any, alpha: float) -> float:
@@ -659,7 +713,7 @@ def _build_controls_report(
     n_permutations: int,
 ) -> dict[str, Any]:
     return {
-        "status": "controls_report_with_explicit_blockers",
+        "status": "controls_report_with_ica_blocker" if "ica_robustness_requires_ica_branch_features" in config["pending_controls"] else "controls_report_complete",
         "implemented_controls": config["implemented_controls"],
         "pending_controls": config["pending_controls"],
         "threshold_registry_hash_sha256": threshold_registry["threshold_registry_hash_sha256"],
@@ -668,13 +722,12 @@ def _build_controls_report(
         "final_min_n_permutations": config["final_min_n_permutations"],
         "final_teacher_survival_claim_allowed": False,
         "blockers": [
-            "spatial_permutation_control_not_computed",
             "ica_robustness_control_not_computed",
         ]
         + ([] if n_permutations >= int(config["final_min_n_permutations"]) else ["permutation_count_below_final_minimum"]),
         "scientific_limit": (
             "Task/base/nuisance estimates can guide implementation QA. Final teacher observability claims require "
-            "the full locked control suite."
+            "the full locked control suite, including ICA robustness."
         ),
     }
 
@@ -692,12 +745,12 @@ def _build_teacher_survival_table(
                 "teacher_id": item["teacher_id"],
                 "task_contrast_screen_status": item["status"],
                 "folds_total": item["folds_total"],
-                "folds_task_contrast_passed_without_nuisance_veto": item[
-                    "folds_task_contrast_passed_without_nuisance_veto"
+                "folds_task_contrast_passed_full_computed_controls": item[
+                    "folds_task_contrast_passed_full_computed_controls"
                 ],
                 "median_q2_task": item["median_q2_task"],
                 "median_delta_q2_obs": item["median_delta_q2_obs"],
-                "final_survival_status": "not_claim_ready_pending_full_controls",
+                "final_survival_status": "not_claim_ready_pending_ica_robustness",
             }
         )
     return {
