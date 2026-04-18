@@ -9,6 +9,7 @@ from pathlib import Path
 from .audit.gate0 import run_gate0_audit
 from .config import load_config
 from .guards import GuardError, assert_real_phase_allowed
+from .phase05.observability import Phase05Error, run_phase05_observability
 from .prereg.bundle import PreregError, run_prereg_assembly
 from .simulation.decision import Gate1Error, run_gate1_decision
 from .synthetic.gate2 import Gate2Error, run_gate2_synthetic_validation
@@ -60,6 +61,8 @@ def build_parser() -> argparse.ArgumentParser:
         phase_parser = subparsers.add_parser(phase, help=f"Guarded {phase} command")
         phase_parser.add_argument("--profile", default="a100_fast")
         phase_parser.add_argument("--config", default="configs/prereg/prereg_bundle.json")
+        phase_parser.add_argument("--phase-config", default="configs/phase05/observability.json")
+        phase_parser.add_argument("--output-root", default="artifacts/phase05")
 
     report = subparsers.add_parser("report_compile", help="Compile available artefact summary")
     report.add_argument("--profile", default="t4_safe")
@@ -151,7 +154,20 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Summary: {result.summary_path}")
             return 0
 
-        if args.command in {"phase05_real", "phase1_real", "phase2_real", "phase3_real"}:
+        if args.command == "phase05_real":
+            phase_config = load_config(args.phase_config)
+            result = run_phase05_observability(
+                prereg_bundle=args.config,
+                config=phase_config,
+                output_root=args.output_root,
+                repo_root=Path.cwd(),
+            )
+            print(f"Phase 0.5 observability-only workflow complete: {result.output_dir}")
+            print(f"Summary: {result.summary_path}")
+            print(f"Report: {result.report_path}")
+            return 0
+
+        if args.command in {"phase1_real", "phase2_real", "phase3_real"}:
             assert_real_phase_allowed(args.command, args.config)
             print(f"{args.command} allowed by locked prereg bundle")
             return 0
@@ -167,7 +183,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Files discovered: {len(files)}")
             return 0
 
-    except (FileNotFoundError, ValueError, GuardError, Gate1Error, Gate2Error, PreregError) as exc:
+    except (FileNotFoundError, ValueError, GuardError, Gate1Error, Gate2Error, PreregError, Phase05Error) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2
 

@@ -1,0 +1,36 @@
+{
+  "phase_id": "phase05_real",
+  "workflow": "observability_only_predecoder",
+  "status": "preregistered_phase05_observability_config",
+  "enabled_teacher_groups": [
+    "group_a_roi_band_summaries",
+    "group_b_visible_latent_subspace"
+  ],
+  "deferred_teacher_groups": {
+    "group_c_cross_frequency_descriptors": "deferred_until_marker_quality_gate",
+    "group_d_marker_gated_targets": "deferred_until_marker_quality_gate",
+    "group_e_bridge_targets": "deferred_until_phase3_sentinel"
+  },
+  "required_controls": [
+    "task_contrast_observability",
+    "grouped_permutation",
+    "spatial_control",
+    "nuisance_shared_control",
+    "ica_robustness_review",
+    "teacher_survival_table"
+  ],
+  "outputs": [
+    "phase05_inputs.json",
+    "teacher_observability_plan.json",
+    "teacher_qc_registry.json",
+    "controls_plan.json",
+    "observability_atlas_draft.json",
+    "phase05_report.md",
+    "phase05_summary.json"
+  ],
+  "scientific_scope": [
+    "Phase 0.5 is observability-only and does not train the Phase 1 decoder.",
+    "This workflow prepares and audits the registered teacher/control plan under the locked prereg bundle.",
+    "No privileged-transfer efficacy claim is permitted from this workflow alone."
+  ]
+}
