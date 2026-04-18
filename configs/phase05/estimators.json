@@ -1,0 +1,38 @@
+{
+  "phase_id": "phase05_real",
+  "workflow": "task_contrast_observability_estimators",
+  "status": "phase05_estimator_config",
+  "signal_windows_sec": {
+    "task_maintenance": [2.25, 4.75],
+    "matched_temporal_control": [5.25, 7.75]
+  },
+  "frequency_bands_hz": {
+    "theta": [4.0, 8.0],
+    "alpha": [8.0, 13.0],
+    "beta": [13.0, 30.0]
+  },
+  "ridge_alpha": 1.0,
+  "default_n_permutations": 20,
+  "final_min_n_permutations": 200,
+  "random_seed": 75205,
+  "default_max_subjects": 3,
+  "default_max_sessions": 6,
+  "default_max_trials_per_session": 24,
+  "teacher_target_family": "ieeg_roi_band_mean_log_power",
+  "student_feature_family": "scalp_channel_band_log_power",
+  "implemented_controls": [
+    "task_vs_matched_temporal_control",
+    "grouped_teacher_permutation",
+    "nuisance_only_control"
+  ],
+  "pending_controls": [
+    "spatial_permutation_control_requires_spatial_model_engine",
+    "ica_robustness_requires_ica_branch_features"
+  ],
+  "scientific_scope": [
+    "This estimator workflow computes task-contrast observability summaries for Phase 0.5 only.",
+    "It does not train Phase 1 decoders.",
+    "It does not prove privileged-transfer efficacy.",
+    "Runs with fewer than final_min_n_permutations are smoke runs, not final inference."
+  ]
+}

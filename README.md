@@ -68,6 +68,7 @@ python -m src.cli audit --profile t4_safe --config configs/data/snapshot.yaml
 python -m src.cli smoke --profile t4_safe --config configs/data/snapshot.yaml
 python -m src.cli synthetic --profile a100_fast --config configs/prereg/prereg_bundle.json
 python -m src.cli phase05_real --profile a100_fast --config configs/prereg/prereg_bundle.json
+python -m src.cli phase05_estimators --profile t4_safe --prereg-bundle artifacts/prereg/<run>/prereg_bundle.json --phase05-run artifacts/phase05/<run> --dataset-root ds004752
 python -m src.cli phase1_real --profile a100_fast --config configs/prereg/prereg_bundle.json
 python -m src.cli report_compile --profile t4_safe --run artifacts/gate0/latest.txt
 ```

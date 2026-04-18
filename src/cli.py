@@ -9,6 +9,7 @@ from pathlib import Path
 from .audit.gate0 import run_gate0_audit
 from .config import load_config
 from .guards import GuardError, assert_real_phase_allowed
+from .phase05.estimators import Phase05EstimatorError, run_phase05_estimators
 from .phase05.observability import Phase05Error, run_phase05_observability
 from .prereg.bundle import PreregError, run_prereg_assembly
 from .simulation.decision import Gate1Error, run_gate1_decision
@@ -56,6 +57,22 @@ def build_parser() -> argparse.ArgumentParser:
     gate1.add_argument("--gate0-run", required=True)
     gate1.add_argument("--config", default="configs/gate1/decision_simulation.json")
     gate1.add_argument("--output-root", default="artifacts/gate1")
+
+    phase05_estimators = subparsers.add_parser(
+        "phase05_estimators",
+        help="Run Phase 0.5 task-contrast observability estimator workflow",
+    )
+    phase05_estimators.add_argument("--profile", default="t4_safe")
+    phase05_estimators.add_argument("--prereg-bundle", required=True)
+    phase05_estimators.add_argument("--phase05-run", required=True)
+    phase05_estimators.add_argument("--dataset-root", required=True)
+    phase05_estimators.add_argument("--config", default="configs/phase05/estimators.json")
+    phase05_estimators.add_argument("--output-root", default="artifacts/phase05_estimators")
+    phase05_estimators.add_argument("--subjects", nargs="*")
+    phase05_estimators.add_argument("--max-subjects", type=int)
+    phase05_estimators.add_argument("--max-sessions", type=int)
+    phase05_estimators.add_argument("--max-trials-per-session", type=int)
+    phase05_estimators.add_argument("--n-permutations", type=int)
 
     for phase in ("phase05_real", "phase1_real", "phase2_real", "phase3_real"):
         phase_parser = subparsers.add_parser(phase, help=f"Guarded {phase} command")
@@ -167,6 +184,26 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Report: {result.report_path}")
             return 0
 
+        if args.command == "phase05_estimators":
+            estimator_config = load_config(args.config)
+            result = run_phase05_estimators(
+                prereg_bundle=args.prereg_bundle,
+                phase05_run=args.phase05_run,
+                dataset_root=args.dataset_root,
+                config=estimator_config,
+                output_root=args.output_root,
+                repo_root=Path.cwd(),
+                subjects=args.subjects,
+                max_subjects=args.max_subjects,
+                max_sessions=args.max_sessions,
+                max_trials_per_session=args.max_trials_per_session,
+                n_permutations=args.n_permutations,
+            )
+            print(f"Phase 0.5 observability estimators complete: {result.output_dir}")
+            print(f"Summary: {result.summary_path}")
+            print(f"Report: {result.report_path}")
+            return 0
+
         if args.command in {"phase1_real", "phase2_real", "phase3_real"}:
             assert_real_phase_allowed(args.command, args.config)
             print(f"{args.command} allowed by locked prereg bundle")
@@ -183,7 +220,16 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Files discovered: {len(files)}")
             return 0
 
-    except (FileNotFoundError, ValueError, GuardError, Gate1Error, Gate2Error, PreregError, Phase05Error) as exc:
+    except (
+        FileNotFoundError,
+        ValueError,
+        GuardError,
+        Gate1Error,
+        Gate2Error,
+        PreregError,
+        Phase05Error,
+        Phase05EstimatorError,
+    ) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2
 
