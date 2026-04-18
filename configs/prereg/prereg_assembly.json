@@ -1,0 +1,43 @@
+{
+  "study_id": "eeg-ds004752-v55",
+  "version": "v0.1.0-gate2.5",
+  "annex_version": "V5.5.1",
+  "dossier_version": "V5.5",
+  "parent_doc_ids": [
+    "V5_5_Integrated_Proposal_vi_complete",
+    "V5_5_Technical_Implementation_Spec_vi_complete",
+    "V5_5_Execution_Supplement_Implementation_Annex_vi",
+    "V5_5_Master_Artifact_Dossier_Freeze_Prereg_Reporting_Control",
+    "ds004752_dossier_trien_khai_vi",
+    "blueprint_trien_khai_v1_colab"
+  ],
+  "revision_policy": {
+    "post_prereg_changes_require_revision_log": true,
+    "claim_affecting_changes_demote_to_post_hoc_unless_refrozen": true,
+    "no_silent_changes_to_comparators_thresholds_teacher_pool_controls_or_reporting": true
+  },
+  "allowed_real_phases_after_lock": [
+    "phase05_real",
+    "phase1_real",
+    "phase2_real",
+    "phase3_real"
+  ],
+  "phase_release_note": "A locked prereg bundle satisfies the release blocker, but each real-data phase must still run through CLI guards using this exact bundle.",
+  "comparator_configs": {
+    "A2d_riemannian": "configs/models/riemannian_a2d.yaml",
+    "A3_distillation": "configs/models/distill_a3.yaml",
+    "A4_privileged": "configs/models/privileged_a4.yaml",
+    "EEGNet": "configs/models/eegnet.yaml",
+    "ShallowConvNet": "configs/models/shallowconvnet.yaml"
+  },
+  "registry_configs": {
+    "teacher_registry": "configs/teacher/teacher_registry.yaml",
+    "admissibility_rubric": "configs/teacher/admissibility_rubric.yaml",
+    "control_suite": "configs/controls/control_suite_spec.yaml",
+    "nuisance_block": "configs/controls/nuisance_block_spec.yaml",
+    "split_loso_subject": "configs/split/loso_subject.yaml",
+    "metrics": "configs/eval/metrics.yaml",
+    "inference_defaults": "configs/eval/inference_defaults.yaml",
+    "claim_mapping": "configs/eval/claim_mapping.yaml"
+  }
+}
