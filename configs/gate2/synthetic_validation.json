@@ -1,0 +1,64 @@
+{
+  "registry_status": "gate2_synthetic_validation_draft",
+  "random_seed": 7522,
+  "n_subjects": 24,
+  "trials_per_class_per_subject": 60,
+  "classes": ["load_4", "load_8"],
+  "n_repeats": 2000,
+  "effect_profiles": {
+    "truly_observable": {
+      "a2_mean_ba": 0.60,
+      "a3_gain_over_a2": 0.015,
+      "a4_gain_over_a3": 0.045,
+      "subject_sd": 0.035,
+      "expected_pattern": "A4 > A3 > A2"
+    },
+    "non_observable": {
+      "a2_mean_ba": 0.60,
+      "a3_gain_over_a2": 0.005,
+      "a4_gain_over_a3": 0.000,
+      "subject_sd": 0.035,
+      "expected_pattern": "A4 does not robustly exceed A3"
+    },
+    "nuisance_shared": {
+      "a2_mean_ba": 0.60,
+      "a3_gain_over_a2": 0.010,
+      "a4_gain_over_a3": 0.035,
+      "subject_sd": 0.035,
+      "expected_pattern": "raw A4 may rise but nuisance control must veto"
+    }
+  },
+  "negative_controls": {
+    "shuffled_teacher_max_gain_over_a3": 0.005,
+    "time_shifted_teacher_max_gain_over_a3": 0.005,
+    "nuisance_veto_required": true
+  },
+  "pass_criteria": {
+    "observable_min_median_a4_minus_a3": 0.03,
+    "observable_min_median_a3_minus_a2": 0.005,
+    "non_observable_max_median_a4_minus_a3": 0.01,
+    "nuisance_requires_veto": true,
+    "negative_control_max_abs_gain": 0.01
+  },
+  "threshold_sweep": {
+    "m_e": [0.10, 0.20, 0.30],
+    "q_e": [0.10, 0.20, 0.30],
+    "a_e": [0.50, 0.67, 0.80],
+    "delta_obs": [0.01, 0.02, 0.03],
+    "spatial_relative_ceiling": [0.50, 0.67, 0.80],
+    "nuisance_relative_ceiling": [0.40, 0.50, 0.60],
+    "tau_viable": [0.10, 0.20, 0.30],
+    "influence_ceiling": [0.30, 0.40]
+  },
+  "frozen_threshold_defaults": {
+    "m_e_min": 0.20,
+    "q_e_min": 0.20,
+    "a_e_min": 0.67,
+    "delta_obs_min": 0.02,
+    "spatial_relative_ceiling": 0.67,
+    "nuisance_relative_ceiling": 0.50,
+    "nuisance_absolute_ceiling": 0.02,
+    "tau_viable": 0.20,
+    "influence_ceiling": 0.40
+  }
+}

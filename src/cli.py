@@ -10,6 +10,7 @@ from .audit.gate0 import run_gate0_audit
 from .config import load_config
 from .guards import GuardError, assert_real_phase_allowed
 from .simulation.decision import Gate1Error, run_gate1_decision
+from .synthetic.gate2 import Gate2Error, run_gate2_synthetic_validation
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -35,6 +36,12 @@ def build_parser() -> argparse.ArgumentParser:
     synthetic.add_argument("--profile", default="a100_fast")
     synthetic.add_argument("--config", default="configs/prereg/prereg_bundle.json")
     synthetic.add_argument("--output-root", default="artifacts/gate2")
+
+    gate2 = subparsers.add_parser("gate2", help="Run Gate 2 synthetic validation and threshold registry")
+    gate2.add_argument("--profile", default="t4_safe")
+    gate2.add_argument("--gate1-run", required=True)
+    gate2.add_argument("--config", default="configs/gate2/synthetic_validation.json")
+    gate2.add_argument("--output-root", default="artifacts/gate2")
 
     gate1 = subparsers.add_parser("gate1", help="Run Gate 1 decision simulation and governance artefact generation")
     gate1.add_argument("--profile", default="t4_safe")
@@ -111,6 +118,19 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Decision memo: {result.decision_memo_path}")
             return 0
 
+        if args.command == "gate2":
+            config = load_config(args.config)
+            result = run_gate2_synthetic_validation(
+                gate1_run=args.gate1_run,
+                config=config,
+                output_root=args.output_root,
+                repo_root=Path.cwd(),
+            )
+            print(f"Gate 2 synthetic validation complete: {result.output_dir}")
+            print(f"Summary: {result.summary_path}")
+            print(f"Threshold registry: {result.threshold_registry_path}")
+            return 0
+
         if args.command in {"phase05_real", "phase1_real", "phase2_real", "phase3_real"}:
             assert_real_phase_allowed(args.command, args.config)
             print(f"{args.command} allowed by locked prereg bundle")
@@ -127,7 +147,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Files discovered: {len(files)}")
             return 0
 
-    except (FileNotFoundError, ValueError, GuardError, Gate1Error) as exc:
+    except (FileNotFoundError, ValueError, GuardError, Gate1Error, Gate2Error) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2
 
