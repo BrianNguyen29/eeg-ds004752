@@ -5,7 +5,7 @@ python --version
 mkdir -p artifacts/cache artifacts/runs artifacts/gate0
 
 if [ "${INSTALL_SIGNAL_EXTRAS:-0}" = "1" ]; then
-  python -m pip install --quiet --upgrade mne scipy numpy
+  python -m pip install --quiet --upgrade mne scipy numpy scikit-learn mne-icalabel
 fi
 
 cat <<'MSG'

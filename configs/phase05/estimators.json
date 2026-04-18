@@ -19,17 +19,21 @@
   "default_max_sessions": 6,
   "default_max_trials_per_session": 24,
   "spatial_min_delta_q2": 0.02,
+  "ica_robustness_min_ratio": 0.7,
+  "ica_iclabel_artifact_probability": 0.9,
+  "ica_target_sfreq": 200.0,
+  "ica_max_components": 15,
+  "ica_random_state": 752051,
   "teacher_target_family": "ieeg_roi_band_mean_log_power",
   "student_feature_family": "scalp_channel_band_log_power",
   "implemented_controls": [
     "task_vs_matched_temporal_control",
     "grouped_teacher_permutation",
     "nuisance_only_control",
-    "rowwise_spatial_permutation_control"
+    "rowwise_spatial_permutation_control",
+    "ica_robustness_control"
   ],
-  "pending_controls": [
-    "ica_robustness_requires_ica_branch_features"
-  ],
+  "pending_controls": [],
   "scientific_scope": [
     "This estimator workflow computes task-contrast observability summaries for Phase 0.5 only.",
     "It does not train Phase 1 decoders.",

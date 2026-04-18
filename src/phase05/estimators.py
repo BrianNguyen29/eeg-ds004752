@@ -315,6 +315,9 @@ def _extract_feature_table(
                     "subject": subject,
                     "session": session,
                     "trial_id": str(event["nTrial"]),
+                    "eeg_path": str(eeg_path),
+                    "trial_start_eeg": trial_start_eeg,
+                    "eeg_sfreq": eeg_sfreq,
                     "set_size": _safe_float(event.get("SetSize")),
                     "x_task_map": dict(zip(x_names, x_task.tolist())),
                     "x_base_map": dict(zip(base_names, x_base.tolist())),
@@ -456,6 +459,14 @@ def _run_observability_estimates(
         extracted["feature_names"],
         seed=int(config["random_seed"]) + 1701,
     )
+    ica_by_subject = _build_ica_features_by_outer_subject(
+        np=np,
+        mne=_mne,
+        rows=rows,
+        subjects=subjects,
+        feature_names=extracted["feature_names"],
+        config=config,
+    )
     row_subjects = [row["subject"] for row in rows]
     row_sessions = [row["session"] for row in rows]
     teacher_names = list(extracted["teacher_names"])
@@ -466,6 +477,8 @@ def _run_observability_estimates(
     nuisance_absolute = float(thresholds["nuisance_absolute_ceiling"])
     spatial_relative = float(thresholds.get("spatial_relative_ceiling", 0.67))
     spatial_min_delta = float(config.get("spatial_min_delta_q2", 0.02))
+    ica_min_ratio = float(config.get("ica_robustness_min_ratio", 0.7))
+    ica_epsilon = 1e-6
 
     fold_results = []
     teacher_summaries = []
@@ -481,6 +494,13 @@ def _run_observability_estimates(
             base_q2 = _ridge_q2(np, x_base[train_idx], y_train, x_base[test_idx], y_test, alpha)
             nuisance_q2 = _ridge_q2(np, x_nuisance[train_idx], y_train, x_nuisance[test_idx], y_test, alpha)
             spatial_q2 = _ridge_q2(np, x_spatial[train_idx], y_train, x_spatial[test_idx], y_test, alpha)
+            ica_fold = ica_by_subject.get(outer_subject, {"status": "failed", "reason": "missing_ica_fold"})
+            x_ica = ica_fold.get("x_ica")
+            q2_ica = (
+                _ridge_q2(np, x_ica[train_idx], y_train, x_ica[test_idx], y_test, alpha)
+                if ica_fold.get("status") == "ok" and x_ica is not None
+                else float("nan")
+            )
             null_q2 = []
             train_groups = [f"{row_subjects[i]}:{row_sessions[i]}" for i in train_idx]
             for _ in range(n_permutations):
@@ -499,6 +519,8 @@ def _run_observability_estimates(
                 else False
             ) or ((task_q2 - spatial_q2) < spatial_min_delta if not math.isnan(spatial_q2) and not math.isnan(task_q2) else True)
             pass_task_contrast = task_q2 > 0 and p_perm < 0.05 and delta_q2 >= delta_obs_min
+            ica_ratio = q2_ica / (task_q2 + ica_epsilon) if task_q2 > 0 and not math.isnan(q2_ica) else float("nan")
+            ica_veto = bool(pass_task_contrast and (math.isnan(ica_ratio) or ica_ratio < ica_min_ratio))
             per_fold.append(
                 {
                     "outer_test_subject": outer_subject,
@@ -507,10 +529,15 @@ def _run_observability_estimates(
                     "delta_q2_obs": _round_or_none(delta_q2),
                     "q2_nuisance": _round_or_none(nuisance_q2),
                     "q2_spatial": _round_or_none(spatial_q2),
+                    "q2_ica": _round_or_none(q2_ica),
+                    "ica_ratio": _round_or_none(ica_ratio),
                     "p_perm": _round_or_none(p_perm),
                     "pass_task_contrast": bool(pass_task_contrast),
                     "nuisance_veto": bool(nuisance_veto),
                     "spatial_veto": bool(spatial_veto),
+                    "ica_veto": bool(ica_veto),
+                    "ica_fold_status": ica_fold.get("status"),
+                    "ica_fold_reason": ica_fold.get("reason"),
                     "n_train_trials": len(train_idx),
                     "n_test_trials": len(test_idx),
                 }
@@ -520,12 +547,14 @@ def _run_observability_estimates(
         passed_folds = [
             item
             for item in per_fold
-            if item["pass_task_contrast"] and not item["nuisance_veto"] and not item["spatial_veto"]
+            if item["pass_task_contrast"] and not item["nuisance_veto"] and not item["spatial_veto"] and not item["ica_veto"]
         ]
+        ica_failed_folds = [item for item in per_fold if item["ica_fold_status"] != "ok"]
         teacher_summary = {
             "teacher_id": teacher_name,
             "folds_total": len(per_fold),
             "folds_task_contrast_passed_full_computed_controls": len(passed_folds),
+            "folds_with_ica_computed": len(per_fold) - len(ica_failed_folds),
             "median_q2_task": _median(deltas=[] if not task_q2s else task_q2s),
             "median_delta_q2_obs": _median(deltas),
             "status": "survived_computed_controls_screen" if passed_folds else "not_survived_computed_controls_screen",
@@ -534,10 +563,9 @@ def _run_observability_estimates(
                 "grouped_teacher_permutation",
                 "nuisance_only_control",
                 "rowwise_spatial_permutation_control",
-            ],
-            "controls_not_yet_computed": [
                 "ica_robustness_control",
             ],
+            "controls_not_yet_computed": [],
         }
         teacher_summaries.append(teacher_summary)
         fold_results.append({"teacher_id": teacher_name, "fold_results": per_fold})
@@ -555,13 +583,19 @@ def _run_observability_estimates(
             "nuisance_absolute_ceiling": nuisance_absolute,
             "spatial_relative_ceiling": spatial_relative,
             "spatial_min_delta_q2": spatial_min_delta,
+            "ica_robustness_min_ratio": ica_min_ratio,
             "p_perm_threshold": 0.05,
         },
+        "ica_diagnostics": {
+            outer_subject: {key: value for key, value in fold.items() if key != "x_ica"}
+            for outer_subject, fold in ica_by_subject.items()
+        },
+        "ica_control_status": "computed" if all(fold.get("status") == "ok" for fold in ica_by_subject.values()) else "incomplete",
         "teacher_summaries": teacher_summaries,
         "fold_results": fold_results,
         "scientific_limit": (
             "These are task-contrast observability estimates for teacher targets, not decoder results. "
-            "ICA robustness control remains an explicit blocker for final teacher survival claims."
+            "ICA robustness is computed only when the ICA stress-test branch fits and labels components successfully."
         ),
     }
 
@@ -591,6 +625,208 @@ def _rowwise_spatial_permutation(np: Any, x: Any, feature_names: list[str], seed
             rng.shuffle(values)
             x[row_index, indices] = values
     return x
+
+
+def _build_ica_features_by_outer_subject(
+    *,
+    np: Any,
+    mne: Any,
+    rows: list[dict[str, Any]],
+    subjects: list[str],
+    feature_names: list[str],
+    config: dict[str, Any],
+) -> dict[str, Any]:
+    results: dict[str, Any] = {}
+    for outer_subject in subjects:
+        try:
+            results[outer_subject] = _build_single_fold_ica_features(
+                np=np,
+                mne=mne,
+                rows=rows,
+                outer_subject=outer_subject,
+                feature_names=feature_names,
+                config=config,
+            )
+        except Exception as exc:  # pragma: no cover - real EDF/ICA edge cases are environment-specific
+            results[outer_subject] = {
+                "status": "failed",
+                "reason": f"ica_fit_or_transform_failed: {exc}",
+                "x_ica": None,
+            }
+    return results
+
+
+def _build_single_fold_ica_features(
+    *,
+    np: Any,
+    mne: Any,
+    rows: list[dict[str, Any]],
+    outer_subject: str,
+    feature_names: list[str],
+    config: dict[str, Any],
+) -> dict[str, Any]:
+    target_sfreq = float(config.get("ica_target_sfreq", 200.0))
+    artifact_probability = float(config.get("ica_iclabel_artifact_probability", 0.9))
+    max_components = int(config.get("ica_max_components", 15))
+    random_state = int(config.get("ica_random_state", 752051))
+    bands = {name: tuple(values) for name, values in config["frequency_bands_hz"].items()}
+    task_window = tuple(config["signal_windows_sec"]["task_maintenance"])
+
+    raw_by_path = _read_raws_for_rows(mne, rows)
+    common_channels = _common_channels(raw_by_path)
+    if len(common_channels) < 2:
+        return {"status": "failed", "reason": "fewer_than_two_common_scalp_channels", "x_ica": None}
+
+    train_rows = [row for row in rows if row["subject"] != outer_subject]
+    train_segments = []
+    for row in train_rows:
+        segment = _extract_resampled_segment(
+            np=np,
+            raw=raw_by_path[row["eeg_path"]],
+            channel_names=common_channels,
+            trial_start=int(row["trial_start_eeg"]),
+            window_sec=task_window,
+            target_sfreq=target_sfreq,
+        )
+        train_segments.append(segment)
+    if not train_segments:
+        return {"status": "failed", "reason": "no_training_segments_for_ica", "x_ica": None}
+
+    train_data = np.concatenate(train_segments, axis=1)
+    if train_data.shape[1] < max(20, 4 * len(common_channels)):
+        return {"status": "failed", "reason": "insufficient_training_samples_for_ica", "x_ica": None}
+
+    info = mne.create_info(ch_names=common_channels, sfreq=target_sfreq, ch_types="eeg")
+    raw_train = mne.io.RawArray(train_data, info, verbose="ERROR")
+    try:
+        raw_train.set_montage("standard_1020", on_missing="ignore", verbose="ERROR")
+    except Exception:
+        pass
+    h_freq = min(100.0, target_sfreq / 2.0 - 1.0)
+    if h_freq > 2.0:
+        raw_train.filter(l_freq=1.0, h_freq=h_freq, verbose="ERROR")
+
+    n_components = max(1, min(max_components, len(common_channels) - 1))
+    ica = mne.preprocessing.ICA(
+        n_components=n_components,
+        method="fastica",
+        random_state=random_state,
+        max_iter="auto",
+        verbose="ERROR",
+    )
+    ica.fit(raw_train, verbose="ERROR")
+    labels, probabilities = _label_ica_components(raw_train, ica)
+    if not labels:
+        return {
+            "status": "failed",
+            "reason": "iclabel_unavailable_or_failed",
+            "x_ica": None,
+            "n_common_channels": len(common_channels),
+            "n_components": n_components,
+        }
+
+    excluded = [
+        index
+        for index, (label, probability) in enumerate(zip(labels, probabilities))
+        if label != "brain" and float(probability) >= artifact_probability
+    ]
+    x_ica = np.full((len(rows), len(feature_names)), np.nan, dtype=float)
+    feature_index = {name: index for index, name in enumerate(feature_names)}
+    for row_index, row in enumerate(rows):
+        segment = _extract_resampled_segment(
+            np=np,
+            raw=raw_by_path[row["eeg_path"]],
+            channel_names=common_channels,
+            trial_start=int(row["trial_start_eeg"]),
+            window_sec=task_window,
+            target_sfreq=target_sfreq,
+        )
+        raw_segment = mne.io.RawArray(segment, info.copy(), verbose="ERROR")
+        try:
+            raw_segment.set_montage("standard_1020", on_missing="ignore", verbose="ERROR")
+        except Exception:
+            pass
+        cleaned = ica.apply(raw_segment, exclude=excluded, verbose="ERROR").get_data()
+        values, names = _window_bandpower_features(
+            np=np,
+            data=cleaned,
+            channel_names=common_channels,
+            sfreq=target_sfreq,
+            trial_start=0,
+            window_sec=(0.0, cleaned.shape[1] / target_sfreq),
+            bands=bands,
+            prefix="scalp_ica",
+        )
+        for name, value in zip(names, values.tolist()):
+            if name in feature_index:
+                x_ica[row_index, feature_index[name]] = value
+
+    return {
+        "status": "ok",
+        "reason": "ica_stress_branch_computed",
+        "x_ica": x_ica,
+        "n_common_channels": len(common_channels),
+        "common_channels": common_channels,
+        "target_sfreq": target_sfreq,
+        "n_components": n_components,
+        "component_labels": labels,
+        "component_probabilities": [round(float(value), 6) for value in probabilities],
+        "excluded_components": excluded,
+        "artifact_probability_threshold": artifact_probability,
+    }
+
+
+def _read_raws_for_rows(mne: Any, rows: list[dict[str, Any]]) -> dict[str, Any]:
+    raw_by_path = {}
+    for path_text in sorted({row["eeg_path"] for row in rows}):
+        raw_by_path[path_text] = _read_edf(mne, Path(path_text))
+    return raw_by_path
+
+
+def _common_channels(raw_by_path: dict[str, Any]) -> list[str]:
+    common: set[str] | None = None
+    for raw in raw_by_path.values():
+        channels = {str(name) for name in raw.ch_names}
+        common = channels if common is None else common & channels
+    return sorted(common or set())
+
+
+def _extract_resampled_segment(
+    *,
+    np: Any,
+    raw: Any,
+    channel_names: list[str],
+    trial_start: int,
+    window_sec: tuple[float, float],
+    target_sfreq: float,
+) -> Any:
+    sfreq = float(raw.info["sfreq"])
+    picks = [raw.ch_names.index(name) for name in channel_names]
+    data = raw.get_data(picks=picks)
+    start = trial_start + int(round(window_sec[0] * sfreq))
+    stop = min(trial_start + int(round(window_sec[1] * sfreq)), data.shape[1])
+    if stop <= start:
+        raise Phase05EstimatorError("Invalid ICA segment extraction window")
+    segment = data[:, start:stop]
+    duration = (stop - start) / sfreq
+    n_target = max(4, int(round(duration * target_sfreq)))
+    old_t = np.linspace(0.0, duration, segment.shape[1], endpoint=False)
+    new_t = np.linspace(0.0, duration, n_target, endpoint=False)
+    return np.vstack([np.interp(new_t, old_t, channel) for channel in segment])
+
+
+def _label_ica_components(raw_train: Any, ica: Any) -> tuple[list[str], list[float]]:
+    try:
+        from mne_icalabel import label_components  # type: ignore
+    except Exception:
+        return [], []
+    try:
+        labels = label_components(raw_train, ica, method="iclabel")
+    except Exception:
+        return [], []
+    component_labels = [str(label) for label in labels.get("labels", [])]
+    probabilities = labels.get("y_pred_proba", [])
+    return component_labels, [float(value) for value in probabilities]
 
 
 def _ridge_q2(np: Any, x_train: Any, y_train: Any, x_test: Any, y_test: Any, alpha: float) -> float:
@@ -712,22 +948,27 @@ def _build_controls_report(
     threshold_registry: dict[str, Any],
     n_permutations: int,
 ) -> dict[str, Any]:
+    blockers = []
+    if observability.get("ica_control_status") != "computed":
+        blockers.append("ica_robustness_control_not_computed")
+    if n_permutations < int(config["final_min_n_permutations"]):
+        blockers.append("permutation_count_below_final_minimum")
     return {
-        "status": "controls_report_with_ica_blocker" if "ica_robustness_requires_ica_branch_features" in config["pending_controls"] else "controls_report_complete",
+        "status": "controls_report_complete" if not blockers else "controls_report_with_explicit_blockers",
         "implemented_controls": config["implemented_controls"],
         "pending_controls": config["pending_controls"],
         "threshold_registry_hash_sha256": threshold_registry["threshold_registry_hash_sha256"],
         "n_permutations": n_permutations,
         "permutation_inference_status": observability["permutation_inference_status"],
+        "ica_control_status": observability.get("ica_control_status"),
+        "ica_diagnostics": observability.get("ica_diagnostics"),
         "final_min_n_permutations": config["final_min_n_permutations"],
-        "final_teacher_survival_claim_allowed": False,
-        "blockers": [
-            "ica_robustness_control_not_computed",
-        ]
-        + ([] if n_permutations >= int(config["final_min_n_permutations"]) else ["permutation_count_below_final_minimum"]),
+        "phase05_teacher_survival_table_ready": not blockers,
+        "final_teacher_survival_claim_allowed": not blockers,
+        "blockers": blockers,
         "scientific_limit": (
-            "Task/base/nuisance estimates can guide implementation QA. Final teacher observability claims require "
-            "the full locked control suite, including ICA robustness."
+            "Task/base/nuisance/spatial/ICA estimates support Phase 0.5 observability tables only. "
+            "They do not prove decoder performance or privileged-transfer efficacy."
         ),
     }
 
@@ -750,11 +991,17 @@ def _build_teacher_survival_table(
                 ],
                 "median_q2_task": item["median_q2_task"],
                 "median_delta_q2_obs": item["median_delta_q2_obs"],
-                "final_survival_status": "not_claim_ready_pending_ica_robustness",
+                "final_survival_status": "claim_ready_for_phase05_observability_table"
+                if observability.get("ica_control_status") == "computed"
+                and n_permutations >= int(config["final_min_n_permutations"])
+                else "not_claim_ready_pending_controls_or_final_permutation_count",
             }
         )
     return {
-        "status": "teacher_survival_table_draft_not_claim_ready",
+        "status": "teacher_survival_table_ready_for_phase05_observability"
+        if observability.get("ica_control_status") == "computed"
+        and n_permutations >= int(config["final_min_n_permutations"])
+        else "teacher_survival_table_draft_not_claim_ready",
         "threshold_registry_hash_sha256": threshold_registry["threshold_registry_hash_sha256"],
         "n_permutations": n_permutations,
         "final_min_n_permutations": config["final_min_n_permutations"],
@@ -789,8 +1036,11 @@ def _build_summary(
     n_permutations: int,
 ) -> dict[str, Any]:
     smoke = n_permutations < int(config["final_min_n_permutations"])
+    controls_complete = not controls_report["blockers"]
     return {
-        "status": "phase05_estimators_smoke_complete" if smoke else "phase05_estimators_control_limited_complete",
+        "status": "phase05_estimators_smoke_complete"
+        if smoke
+        else ("phase05_estimators_controls_complete" if controls_complete else "phase05_estimators_control_limited_complete"),
         "run_dir": str(output_dir),
         "phase_id": inputs["phase_id"],
         "workflow": inputs["workflow"],
@@ -808,10 +1058,13 @@ def _build_summary(
         "does_not_train_decoder": True,
         "does_not_estimate_privileged_transfer_efficacy": True,
         "claim_ready": False,
-        "next_step": "implement_spatial_and_ica_controls_then_rerun_with_final_permutation_count",
+        "phase05_observability_table_ready": controls_complete,
+        "next_step": "review_phase05_observability_tables_before_phase1"
+        if controls_complete
+        else "complete_remaining_controls_or_rerun_with_final_permutation_count",
         "scientific_integrity_limits": [
             "This is a Phase 0.5 observability estimator run, not Phase 1 decoding.",
-            "Teacher survival table is draft until full controls and final permutation count are complete.",
+            "Teacher survival table is not evidence of decoder performance or privileged-transfer efficacy.",
             "No privileged-transfer efficacy claim is allowed from this output.",
         ],
     }

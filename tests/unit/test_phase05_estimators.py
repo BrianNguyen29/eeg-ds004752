@@ -33,9 +33,11 @@ class Phase05EstimatorTests(unittest.TestCase):
 
             original_imports = estimators._optional_signal_imports
             original_read_edf = estimators._read_edf
+            original_ica = estimators._build_ica_features_by_outer_subject
             try:
                 estimators._optional_signal_imports = _fake_signal_imports
                 estimators._read_edf = _fake_read_edf
+                estimators._build_ica_features_by_outer_subject = _fake_ica_features_by_outer_subject
                 result = run_phase05_estimators(
                     prereg_bundle=prereg.prereg_bundle_path,
                     phase05_run=phase05.output_dir,
@@ -51,6 +53,7 @@ class Phase05EstimatorTests(unittest.TestCase):
             finally:
                 estimators._optional_signal_imports = original_imports
                 estimators._read_edf = original_read_edf
+                estimators._build_ica_features_by_outer_subject = original_ica
 
             self.assertTrue(result.summary_path.exists())
             self.assertTrue(result.observability_path.exists())
@@ -62,7 +65,8 @@ class Phase05EstimatorTests(unittest.TestCase):
             self.assertFalse(summary["claim_ready"])
             self.assertTrue(summary["does_not_train_decoder"])
             self.assertNotIn("spatial_permutation_control_not_computed", controls["blockers"])
-            self.assertIn("ica_robustness_control_not_computed", controls["blockers"])
+            self.assertNotIn("ica_robustness_control_not_computed", controls["blockers"])
+            self.assertEqual(controls["ica_control_status"], "computed")
 
     def test_cli_phase05_estimators_help(self) -> None:
         with self.assertRaises(SystemExit) as raised:
@@ -110,6 +114,21 @@ def _fake_read_edf(_mne, path: Path):
     return _FakeRaw(data, 2000.0, ["i1", "i2", "i3"])
 
 
+def _fake_ica_features_by_outer_subject(*, np, rows, subjects, feature_names, **_kwargs):
+    x_task = np.asarray([row["x_task"] for row in rows], dtype=float)
+    return {
+        subject: {
+            "status": "ok",
+            "reason": "fake_ica_for_unit_test",
+            "x_ica": x_task,
+            "n_common_channels": 2,
+            "n_components": 1,
+            "excluded_components": [],
+        }
+        for subject in subjects
+    }
+
+
 def _estimator_config() -> dict[str, object]:
     return {
         "phase_id": "phase05_real",
@@ -126,17 +145,22 @@ def _estimator_config() -> dict[str, object]:
         "default_max_subjects": 2,
         "default_max_sessions": 2,
         "default_max_trials_per_session": 6,
+        "spatial_min_delta_q2": 0.02,
+        "ica_robustness_min_ratio": 0.7,
+        "ica_iclabel_artifact_probability": 0.9,
+        "ica_target_sfreq": 200.0,
+        "ica_max_components": 2,
+        "ica_random_state": 752051,
         "teacher_target_family": "ieeg_roi_band_mean_log_power",
         "student_feature_family": "scalp_channel_band_log_power",
         "implemented_controls": [
             "task_vs_matched_temporal_control",
             "grouped_teacher_permutation",
             "nuisance_only_control",
+            "rowwise_spatial_permutation_control",
+            "ica_robustness_control",
         ],
-        "pending_controls": [
-            "spatial_permutation_control_requires_spatial_model_engine",
-            "ica_robustness_requires_ica_branch_features",
-        ],
+        "pending_controls": [],
         "scientific_scope": ["test scope"],
     }
 
