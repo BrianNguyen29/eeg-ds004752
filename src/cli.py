@@ -9,6 +9,7 @@ from pathlib import Path
 from .audit.gate0 import run_gate0_audit
 from .config import load_config
 from .guards import GuardError, assert_real_phase_allowed
+from .simulation.decision import Gate1Error, run_gate1_decision
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -34,6 +35,12 @@ def build_parser() -> argparse.ArgumentParser:
     synthetic.add_argument("--profile", default="a100_fast")
     synthetic.add_argument("--config", default="configs/prereg/prereg_bundle.json")
     synthetic.add_argument("--output-root", default="artifacts/gate2")
+
+    gate1 = subparsers.add_parser("gate1", help="Run Gate 1 decision simulation and governance artefact generation")
+    gate1.add_argument("--profile", default="t4_safe")
+    gate1.add_argument("--gate0-run", required=True)
+    gate1.add_argument("--config", default="configs/gate1/decision_simulation.json")
+    gate1.add_argument("--output-root", default="artifacts/gate1")
 
     for phase in ("phase05_real", "phase1_real", "phase2_real", "phase3_real"):
         phase_parser = subparsers.add_parser(phase, help=f"Guarded {phase} command")
@@ -91,6 +98,19 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Synthetic placeholder written: {path}")
             return 0
 
+        if args.command == "gate1":
+            config = load_config(args.config)
+            result = run_gate1_decision(
+                gate0_run=args.gate0_run,
+                config=config,
+                output_root=args.output_root,
+                repo_root=Path.cwd(),
+            )
+            print(f"Gate 1 decision layer complete: {result.output_dir}")
+            print(f"Summary: {result.summary_path}")
+            print(f"Decision memo: {result.decision_memo_path}")
+            return 0
+
         if args.command in {"phase05_real", "phase1_real", "phase2_real", "phase3_real"}:
             assert_real_phase_allowed(args.command, args.config)
             print(f"{args.command} allowed by locked prereg bundle")
@@ -107,7 +127,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Files discovered: {len(files)}")
             return 0
 
-    except (FileNotFoundError, ValueError, GuardError) as exc:
+    except (FileNotFoundError, ValueError, GuardError, Gate1Error) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2
 

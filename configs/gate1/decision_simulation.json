@@ -1,0 +1,22 @@
+{
+  "registry_status": "gate1_draft_until_reviewed",
+  "random_seed": 4752,
+  "n_repeats": 5000,
+  "ci_method": "binomial_order_statistic_median_ci",
+  "effect_grid_delta_ba": [0.02, 0.05, 0.08],
+  "teacher_survival_fraction_grid": [0.20, 0.40, 0.60],
+  "heterogeneity_levels": {
+    "low": 0.02,
+    "medium": 0.05,
+    "high": 0.08
+  },
+  "primary_metric": "balanced_accuracy",
+  "primary_comparator": "A2d_riemannian",
+  "privileged_model": "A4_observability_constrained_privileged",
+  "subject_level_sesoi_delta_ba": 0.03,
+  "max_allowed_delta_ece": 0.02,
+  "influence_ceiling": 0.40,
+  "ci_alpha": 0.05,
+  "ci_rule": "subject_level_bootstrap_median_ci_lower_must_exceed_zero_for_strong_claim",
+  "pivot_policy": "if_detectable_effect_requires_large_or_unrealistic_gain_then_default_to_mechanism_or_atlas_centered_claim"
+}
