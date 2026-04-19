@@ -9,6 +9,7 @@ from pathlib import Path
 from .audit.gate0 import run_gate0_audit
 from .config import load_config
 from .guards import GuardError, assert_real_phase_allowed
+from .phase1.model_smoke import Phase1ModelSmokeError, run_phase1_model_smoke
 from .phase1.smoke import Phase1SmokeError, run_phase1_smoke
 from .phase05.estimators import Phase05EstimatorError, run_phase05_estimators
 from .phase05.observability import Phase05Error, run_phase05_observability
@@ -84,8 +85,11 @@ def build_parser() -> argparse.ArgumentParser:
         phase_parser.add_argument("--readiness-run")
         phase_parser.add_argument("--dataset-root")
         phase_parser.add_argument("--smoke", action="store_true")
+        phase_parser.add_argument("--model-smoke", action="store_true")
+        phase_parser.add_argument("--comparators", nargs="*")
         phase_parser.add_argument("--max-outer-folds", type=int, default=2)
         phase_parser.add_argument("--outer-test-subjects", nargs="*")
+        phase_parser.add_argument("--max-trials-per-session", type=int)
 
     report = subparsers.add_parser("report_compile", help="Compile available artefact summary")
     report.add_argument("--profile", default="t4_safe")
@@ -210,6 +214,35 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Report: {result.report_path}")
             return 0
 
+        if args.command == "phase1_real" and args.smoke and args.model_smoke:
+            raise ValueError("phase1_real cannot use --smoke and --model-smoke together")
+
+        if args.command == "phase1_real" and args.model_smoke:
+            if not args.readiness_run:
+                raise ValueError("phase1_real --model-smoke requires --readiness-run")
+            if not args.dataset_root:
+                raise ValueError("phase1_real --model-smoke requires --dataset-root")
+            phase_config_path = args.phase_config
+            if phase_config_path == "configs/phase05/observability.json":
+                phase_config_path = "configs/phase1/model_smoke.json"
+            model_config = load_config(phase_config_path)
+            result = run_phase1_model_smoke(
+                prereg_bundle=args.config,
+                readiness_run=args.readiness_run,
+                dataset_root=args.dataset_root,
+                output_root=args.output_root,
+                config=model_config,
+                repo_root=Path.cwd(),
+                comparators=args.comparators,
+                max_outer_folds=args.max_outer_folds,
+                outer_test_subjects=args.outer_test_subjects,
+                max_trials_per_session=args.max_trials_per_session,
+            )
+            print(f"Phase 1 A2/A2b model smoke complete: {result.output_dir}")
+            print(f"Summary: {result.summary_path}")
+            print(f"Report: {result.report_path}")
+            return 0
+
         if args.command == "phase1_real" and args.smoke:
             if not args.readiness_run:
                 raise ValueError("phase1_real --smoke requires --readiness-run")
@@ -255,6 +288,7 @@ def main(argv: list[str] | None = None) -> int:
         Phase05Error,
         Phase05EstimatorError,
         Phase1SmokeError,
+        Phase1ModelSmokeError,
     ) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2

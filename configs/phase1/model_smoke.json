@@ -1,0 +1,29 @@
+{
+  "phase_id": "phase1_real",
+  "workflow": "a2_a2b_model_implementation_smoke",
+  "status": "phase1_model_smoke_config",
+  "signal_windows_sec": {
+    "task_maintenance": [2.25, 4.75]
+  },
+  "frequency_bands_hz": {
+    "theta": [4.0, 8.0],
+    "alpha": [8.0, 13.0],
+    "beta": [13.0, 30.0]
+  },
+  "default_comparators": ["A2", "A2b"],
+  "default_max_outer_folds": 2,
+  "default_max_trials_per_session": 24,
+  "logistic_probe": {
+    "learning_rate": 0.05,
+    "n_steps": 160,
+    "l2": 0.001,
+    "random_seed": 752061
+  },
+  "scientific_scope": [
+    "This is a Phase 1 model implementation smoke for A2/A2b only.",
+    "The smoke probe checks data loading, LOSO split discipline, training loop, logits, metrics, calibration-shell and artifact writing.",
+    "It is not the final EEGNet comparator implementation.",
+    "It does not estimate privileged-transfer efficacy.",
+    "No headline claim is permitted from this smoke output."
+  ]
+}
