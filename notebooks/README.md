@@ -11,4 +11,6 @@ Recommended Colab sequence:
 4. `03_colab_gate2_synthetic_validation.ipynb`: run synthetic validation.
 5. `04_colab_gate25_preregistration_bundle.ipynb`: lock prereg bundle after Gate 2 pass.
 6. `EEG_Phase05_Observability_Estimators.ipynb`: run Phase 0.5 observability estimator workflow under the locked prereg bundle.
-7. Real decoder phases only after locked prereg and the required Phase 0.5 controls are complete.
+7. `06_colab_phase1_input_freeze_and_decoder_readiness.ipynb`: hash-link Gate 0/1/2/2.5 and Phase 0.5 sources, freeze Phase 1 split/teacher/comparator readiness, and run guard smoke without training a decoder.
+8. `07_colab_phase1_decoder_smoke.ipynb`: run the guarded Phase 1 smoke contract on 1-2 outer folds, producing fold/comparator/calibration/control/influence artifact shells without claiming model efficacy.
+9. Full real decoder phases only after locked prereg, required Phase 0.5 controls, Phase 1 readiness checks, and Phase 1 smoke contract review pass.

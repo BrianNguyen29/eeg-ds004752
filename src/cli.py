@@ -9,6 +9,7 @@ from pathlib import Path
 from .audit.gate0 import run_gate0_audit
 from .config import load_config
 from .guards import GuardError, assert_real_phase_allowed
+from .phase1.smoke import Phase1SmokeError, run_phase1_smoke
 from .phase05.estimators import Phase05EstimatorError, run_phase05_estimators
 from .phase05.observability import Phase05Error, run_phase05_observability
 from .prereg.bundle import PreregError, run_prereg_assembly
@@ -80,6 +81,11 @@ def build_parser() -> argparse.ArgumentParser:
         phase_parser.add_argument("--config", default="configs/prereg/prereg_bundle.json")
         phase_parser.add_argument("--phase-config", default="configs/phase05/observability.json")
         phase_parser.add_argument("--output-root", default="artifacts/phase05")
+        phase_parser.add_argument("--readiness-run")
+        phase_parser.add_argument("--dataset-root")
+        phase_parser.add_argument("--smoke", action="store_true")
+        phase_parser.add_argument("--max-outer-folds", type=int, default=2)
+        phase_parser.add_argument("--outer-test-subjects", nargs="*")
 
     report = subparsers.add_parser("report_compile", help="Compile available artefact summary")
     report.add_argument("--profile", default="t4_safe")
@@ -204,6 +210,25 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Report: {result.report_path}")
             return 0
 
+        if args.command == "phase1_real" and args.smoke:
+            if not args.readiness_run:
+                raise ValueError("phase1_real --smoke requires --readiness-run")
+            if not args.dataset_root:
+                raise ValueError("phase1_real --smoke requires --dataset-root")
+            result = run_phase1_smoke(
+                prereg_bundle=args.config,
+                readiness_run=args.readiness_run,
+                dataset_root=args.dataset_root,
+                output_root=args.output_root,
+                repo_root=Path.cwd(),
+                max_outer_folds=args.max_outer_folds,
+                outer_test_subjects=args.outer_test_subjects,
+            )
+            print(f"Phase 1 decoder smoke contract complete: {result.output_dir}")
+            print(f"Summary: {result.summary_path}")
+            print(f"Report: {result.report_path}")
+            return 0
+
         if args.command in {"phase1_real", "phase2_real", "phase3_real"}:
             assert_real_phase_allowed(args.command, args.config)
             print(f"{args.command} allowed by locked prereg bundle")
@@ -229,6 +254,7 @@ def main(argv: list[str] | None = None) -> int:
         PreregError,
         Phase05Error,
         Phase05EstimatorError,
+        Phase1SmokeError,
     ) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2
