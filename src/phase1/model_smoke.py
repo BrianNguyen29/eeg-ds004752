@@ -331,26 +331,25 @@ def _run_single_fold(
     fold_index: int,
     logits_dir: Path,
 ) -> dict[str, Any]:
-    np, _mne = _optional_signal_imports()
     train_rows = [row for row in rows if row["subject"] != outer_subject]
     test_rows = [row for row in rows if row["subject"] == outer_subject]
     if not train_rows or not test_rows:
         raise Phase1ModelSmokeError(f"Fold {outer_subject} has empty train/test rows")
-    x_train = np.asarray([row["features"] for row in train_rows], dtype=float)
-    y_train = np.asarray([row["label"] for row in train_rows], dtype=float)
-    x_test = np.asarray([row["features"] for row in test_rows], dtype=float)
-    y_test = np.asarray([row["label"] for row in test_rows], dtype=float)
-    x_train, x_test = _impute_and_standardize(np, x_train, x_test)
+    x_train = [[float(value) for value in row["features"]] for row in train_rows]
+    y_train = [float(row["label"]) for row in train_rows]
+    x_test = [[float(value) for value in row["features"]] for row in test_rows]
+    y_test = [float(row["label"]) for row in test_rows]
+    x_train, x_test = _impute_and_standardize(x_train, x_test)
 
     fold_id = f"fold_{fold_index:02d}_{outer_subject}"
     metrics_by_comparator = {}
     logits_by_comparator = {}
     for comparator_id in comparators:
-        weights = _sample_weights(np, train_rows, comparator_id)
-        model = _fit_logistic_probe(np, x_train, y_train, weights, config["logistic_probe"])
-        prob = _sigmoid(np, x_test @ model["coef"] + model["intercept"])
-        pred = (prob >= 0.5).astype(int)
-        metrics = _classification_metrics(np, y_test, prob, pred)
+        weights = _sample_weights(train_rows, comparator_id)
+        model = _fit_logistic_probe(x_train, y_train, weights, config["logistic_probe"])
+        prob = [_sigmoid(_dot(row, model["coef"]) + model["intercept"]) for row in x_test]
+        pred = [1 if value >= 0.5 else 0 for value in prob]
+        metrics = _classification_metrics(y_test, prob, pred)
         metrics.update(
             {
                 "comparator_id": comparator_id,
@@ -393,76 +392,125 @@ def _run_single_fold(
     }
 
 
-def _sample_weights(np: Any, train_rows: list[dict[str, Any]], comparator_id: str) -> Any:
+def _sample_weights(train_rows: list[dict[str, Any]], comparator_id: str) -> list[float]:
     if comparator_id != "A2b":
-        return np.ones(len(train_rows), dtype=float)
+        return [1.0] * len(train_rows)
     subject_counts: dict[str, int] = {}
     for row in train_rows:
         subject_counts[row["subject"]] = subject_counts.get(row["subject"], 0) + 1
-    weights = np.asarray([1.0 / subject_counts[row["subject"]] for row in train_rows], dtype=float)
-    return weights / float(np.mean(weights))
+    weights = [1.0 / subject_counts[row["subject"]] for row in train_rows]
+    mean_weight = sum(weights) / len(weights)
+    return [weight / mean_weight for weight in weights]
 
 
-def _impute_and_standardize(np: Any, x_train: Any, x_test: Any) -> tuple[Any, Any]:
-    means = np.nanmean(x_train, axis=0)
-    means = np.where(np.isfinite(means), means, 0.0)
-    x_train = np.where(np.isfinite(x_train), x_train, means)
-    x_test = np.where(np.isfinite(x_test), x_test, means)
-    std = np.std(x_train, axis=0)
-    std = np.where(std > 1e-8, std, 1.0)
-    return (x_train - means) / std, (x_test - means) / std
+def _impute_and_standardize(
+    x_train: list[list[float]],
+    x_test: list[list[float]],
+) -> tuple[list[list[float]], list[list[float]]]:
+    if not x_train:
+        raise Phase1ModelSmokeError("Cannot standardize an empty training matrix")
+    n_features = len(x_train[0])
+    means = []
+    stds = []
+    for column in range(n_features):
+        values = [row[column] for row in x_train if math.isfinite(row[column])]
+        mean = sum(values) / len(values) if values else 0.0
+        variance = sum((value - mean) ** 2 for value in values) / len(values) if values else 0.0
+        std = math.sqrt(variance)
+        means.append(mean)
+        stds.append(std if std > 1e-8 else 1.0)
+
+    def transform(matrix: list[list[float]]) -> list[list[float]]:
+        transformed = []
+        for row in matrix:
+            transformed.append(
+                [
+                    ((value if math.isfinite(value) else means[index]) - means[index]) / stds[index]
+                    for index, value in enumerate(row)
+                ]
+            )
+        return transformed
+
+    return transform(x_train), transform(x_test)
 
 
-def _fit_logistic_probe(np: Any, x: Any, y: Any, sample_weights: Any, config: dict[str, Any]) -> dict[str, Any]:
-    coef = np.zeros(x.shape[1], dtype=float)
+def _fit_logistic_probe(
+    x: list[list[float]],
+    y: list[float],
+    sample_weights: list[float],
+    config: dict[str, Any],
+) -> dict[str, Any]:
+    coef = [0.0] * len(x[0])
     intercept = 0.0
     lr = float(config["learning_rate"])
     l2 = float(config["l2"])
     n_steps = int(config["n_steps"])
-    weights = sample_weights / float(np.sum(sample_weights))
+    weight_sum = sum(sample_weights)
+    weights = [weight / weight_sum for weight in sample_weights]
     for _ in range(n_steps):
-        prob = _sigmoid(np, x @ coef + intercept)
-        error = (prob - y) * weights
-        grad = x.T @ error + l2 * coef
-        bias_grad = float(np.sum(error))
-        coef -= lr * grad
+        grad = [0.0] * len(coef)
+        bias_grad = 0.0
+        for features, label, weight in zip(x, y, weights):
+            prob = _sigmoid(_dot(features, coef) + intercept)
+            error = (prob - label) * weight
+            for index, value in enumerate(features):
+                grad[index] += value * error
+            bias_grad += error
+        for index, value in enumerate(coef):
+            grad[index] += l2 * value
+        coef = [value - lr * grad[index] for index, value in enumerate(coef)]
         intercept -= lr * bias_grad
-    return {"coef": coef, "intercept": float(intercept)}
+    return {"coef": coef, "intercept": intercept}
 
 
-def _sigmoid(np: Any, z: Any) -> Any:
-    z = np.clip(z, -40, 40)
-    return 1.0 / (1.0 + np.exp(-z))
+def _dot(left: list[float], right: list[float]) -> float:
+    return sum(x * y for x, y in zip(left, right))
 
 
-def _classification_metrics(np: Any, y_true: Any, prob: Any, pred: Any) -> dict[str, Any]:
-    y_true = y_true.astype(int)
-    pos = y_true == 1
-    neg = y_true == 0
-    tpr = float(np.mean(pred[pos] == 1)) if bool(np.any(pos)) else float("nan")
-    tnr = float(np.mean(pred[neg] == 0)) if bool(np.any(neg)) else float("nan")
+def _sigmoid(z: float) -> float:
+    z = max(-40.0, min(40.0, z))
+    return 1.0 / (1.0 + math.exp(-z))
+
+
+def _classification_metrics(y_true: list[float], prob: list[float], pred: list[int]) -> dict[str, Any]:
+    labels = [int(value) for value in y_true]
+    positives = [index for index, value in enumerate(labels) if value == 1]
+    negatives = [index for index, value in enumerate(labels) if value == 0]
+    tpr = _indexed_accuracy(pred, positives, expected=1)
+    tnr = _indexed_accuracy(pred, negatives, expected=0)
     ba = _safe_mean([tpr, tnr])
     return {
         "balanced_accuracy": _round_or_none(ba),
-        "accuracy": _round_or_none(float(np.mean(pred == y_true))),
-        "brier": _round_or_none(float(np.mean((prob - y_true) ** 2))),
-        "ece_10_bins": _round_or_none(_ece(np, y_true, prob, n_bins=10)),
-        "n_pos": int(np.sum(pos)),
-        "n_neg": int(np.sum(neg)),
+        "accuracy": _round_or_none(sum(1 for label, guess in zip(labels, pred) if label == guess) / len(labels)),
+        "brier": _round_or_none(sum((p - label) ** 2 for p, label in zip(prob, labels)) / len(labels)),
+        "ece_10_bins": _round_or_none(_ece(labels, prob, n_bins=10)),
+        "n_pos": len(positives),
+        "n_neg": len(negatives),
     }
 
 
-def _ece(np: Any, y_true: Any, prob: Any, n_bins: int) -> float:
-    edges = np.linspace(0.0, 1.0, n_bins + 1)
+def _indexed_accuracy(pred: list[int], indices: list[int], expected: int) -> float:
+    if not indices:
+        return float("nan")
+    return sum(1 for index in indices if pred[index] == expected) / len(indices)
+
+
+def _ece(y_true: list[int], prob: list[float], n_bins: int) -> float:
     total = len(y_true)
     ece = 0.0
-    for lo, hi in zip(edges[:-1], edges[1:]):
-        mask = (prob >= lo) & (prob < hi if hi < 1.0 else prob <= hi)
-        if not bool(np.any(mask)):
+    for bin_index in range(n_bins):
+        lo = bin_index / n_bins
+        hi = (bin_index + 1) / n_bins
+        indices = [
+            index
+            for index, value in enumerate(prob)
+            if value >= lo and (value < hi if hi < 1.0 else value <= hi)
+        ]
+        if not indices:
             continue
-        conf = float(np.mean(prob[mask]))
-        acc = float(np.mean(y_true[mask]))
-        ece += float(np.sum(mask)) / total * abs(conf - acc)
+        conf = sum(prob[index] for index in indices) / len(indices)
+        acc = sum(y_true[index] for index in indices) / len(indices)
+        ece += len(indices) / total * abs(conf - acc)
     return ece
 
 
