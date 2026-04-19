@@ -59,14 +59,23 @@ class Phase05EstimatorTests(unittest.TestCase):
             self.assertTrue(result.observability_path.exists())
             self.assertTrue(result.controls_report_path.exists())
             self.assertTrue(result.teacher_survival_path.exists())
+            self.assertTrue(result.exclusion_note_path.exists())
             summary = json.loads(result.summary_path.read_text(encoding="utf-8"))
             controls = json.loads(result.controls_report_path.read_text(encoding="utf-8"))
+            exclusions = json.loads(result.exclusion_note_path.read_text(encoding="utf-8"))
             self.assertEqual(summary["status"], "phase05_estimators_smoke_complete")
             self.assertFalse(summary["claim_ready"])
             self.assertTrue(summary["does_not_train_decoder"])
+            self.assertEqual(exclusions["status"], "no_phase05_estimator_exclusions")
             self.assertNotIn("spatial_permutation_control_not_computed", controls["blockers"])
             self.assertNotIn("ica_robustness_control_not_computed", controls["blockers"])
             self.assertEqual(controls["ica_control_status"], "computed")
+
+    def test_patch_edf_header_starttime_clamps_invalid_seconds(self) -> None:
+        payload = bytearray(b" " * 256)
+        payload[176:184] = b"12.34.60"
+        patched = estimators._patch_edf_header_starttime(bytes(payload))
+        self.assertEqual(patched[176:184], b"12.34.59")
 
     def test_cli_phase05_estimators_help(self) -> None:
         with self.assertRaises(SystemExit) as raised:

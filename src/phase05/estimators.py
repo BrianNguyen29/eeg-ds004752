@@ -18,6 +18,7 @@ import json
 import math
 import random
 import subprocess
+import tempfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -39,6 +40,7 @@ class Phase05EstimatorResult:
     controls_report_path: Path
     teacher_survival_path: Path
     coverage_registry_path: Path
+    exclusion_note_path: Path
     report_path: Path
     summary_path: Path
     summary: dict[str, Any]
@@ -121,6 +123,7 @@ def run_phase05_estimators(
     controls_report = _build_controls_report(observability, config, threshold_registry, n_perm)
     teacher_survival = _build_teacher_survival_table(observability, threshold_registry, config, n_perm)
     coverage_registry = _build_coverage_registry(extracted, selected_sessions)
+    exclusion_note = _build_exclusion_note(extracted, selected_sessions, bundle, phase05_run)
     summary = _build_summary(
         output_dir=output_dir,
         inputs=inputs,
@@ -129,6 +132,7 @@ def run_phase05_estimators(
         controls_report=controls_report,
         teacher_survival=teacher_survival,
         coverage_registry=coverage_registry,
+        exclusion_note=exclusion_note,
         config=config,
         n_permutations=n_perm,
     )
@@ -139,6 +143,7 @@ def run_phase05_estimators(
     controls_report_path = output_dir / "controls_report.json"
     teacher_survival_path = output_dir / "teacher_survival_table.json"
     coverage_registry_path = output_dir / "coverage_registry.json"
+    exclusion_note_path = output_dir / "phase05_estimator_exclusion_note.json"
     report_path = output_dir / "phase05_estimators_report.md"
     summary_path = output_dir / "phase05_estimators_summary.json"
 
@@ -148,6 +153,7 @@ def run_phase05_estimators(
     _write_json(controls_report_path, controls_report)
     _write_json(teacher_survival_path, teacher_survival)
     _write_json(coverage_registry_path, coverage_registry)
+    _write_json(exclusion_note_path, exclusion_note)
     report_path.write_text(_render_report(summary, controls_report, teacher_survival), encoding="utf-8")
     _write_json(summary_path, summary)
     _write_latest_pointer(output_root, output_dir)
@@ -160,6 +166,7 @@ def run_phase05_estimators(
         controls_report_path=controls_report_path,
         teacher_survival_path=teacher_survival_path,
         coverage_registry_path=coverage_registry_path,
+        exclusion_note_path=exclusion_note_path,
         report_path=report_path,
         summary_path=summary_path,
         summary=summary,
@@ -236,6 +243,7 @@ def _extract_feature_table(
     teacher_name_set: set[str] = set()
     feature_name_set: set[str] = set()
     skipped_sessions = []
+    read_fallbacks = []
 
     for item in selected_sessions:
         subject = item["subject"]
@@ -265,6 +273,10 @@ def _extract_feature_table(
         except Phase05EstimatorError as exc:
             skipped_sessions.append({"subject": subject, "session": session, "reason": str(exc)})
             continue
+        for modality, raw in [("eeg", eeg_raw), ("ieeg", ieeg_raw)]:
+            fallback = getattr(raw, "_phase05_read_fallback", None)
+            if fallback:
+                read_fallbacks.append({"subject": subject, "session": session, "modality": modality, **fallback})
         eeg_data = eeg_raw.get_data()
         ieeg_data = ieeg_raw.get_data()
         eeg_sfreq = float(eeg_raw.info["sfreq"])
@@ -343,6 +355,7 @@ def _extract_feature_table(
         "feature_names": feature_names,
         "teacher_names": teacher_names,
         "skipped_sessions": skipped_sessions,
+        "read_fallbacks": read_fallbacks,
     }
 
 
@@ -350,7 +363,59 @@ def _read_edf(mne: Any, path: Path) -> Any:
     try:
         return mne.io.read_raw_edf(path, preload=True, verbose="ERROR")
     except Exception as exc:  # pragma: no cover - depends on real EDF edge cases
-        raise Phase05EstimatorError(f"Could not read EDF payload {path}: {exc}") from exc
+        message = str(exc)
+        if "second must be in 0..59" not in message:
+            raise Phase05EstimatorError(f"Could not read EDF payload {path}: {message}") from exc
+        try:
+            raw = _read_edf_with_patched_starttime(mne, path)
+        except Exception as fallback_exc:
+            raise Phase05EstimatorError(
+                f"Could not read EDF payload {path}: {message}; patched-starttime fallback failed: {fallback_exc}"
+            ) from fallback_exc
+        setattr(
+            raw,
+            "_phase05_read_fallback",
+            {
+                "path": str(path),
+                "reason": message,
+                "fallback": "patched_edf_header_starttime_seconds_to_59",
+            },
+        )
+        return raw
+
+
+def _read_edf_with_patched_starttime(mne: Any, path: Path) -> Any:
+    patched = _patch_edf_header_starttime(path.read_bytes())
+    temp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(suffix=".edf", delete=False) as handle:
+            handle.write(patched)
+            temp_path = Path(handle.name)
+        return mne.io.read_raw_edf(temp_path, preload=True, verbose="ERROR")
+    finally:
+        if temp_path is not None:
+            temp_path.unlink(missing_ok=True)
+
+
+def _patch_edf_header_starttime(payload: bytes) -> bytes:
+    if len(payload) < 184:
+        raise Phase05EstimatorError("EDF payload too small to patch starttime header")
+    patched = bytearray(payload)
+    raw_time = bytes(patched[176:184]).decode("ascii", errors="ignore")
+    parts = raw_time.split(".")
+    if len(parts) != 3:
+        raise Phase05EstimatorError(f"Unexpected EDF starttime format: {raw_time!r}")
+    hour, minute, second = (_clamp_time_component(part, limit) for part, limit in zip(parts, [23, 59, 59]))
+    patched[176:184] = f"{hour:02d}.{minute:02d}.{second:02d}".encode("ascii")
+    return bytes(patched)
+
+
+def _clamp_time_component(value: str, limit: int) -> int:
+    try:
+        parsed = int(value)
+    except ValueError as exc:
+        raise Phase05EstimatorError(f"Invalid EDF starttime component: {value!r}") from exc
+    return max(0, min(limit, parsed))
 
 
 def _window_bandpower_features(
@@ -931,6 +996,7 @@ def _build_feature_report(extracted: dict[str, Any], selected_sessions: list[dic
         "teacher_target_family": config["teacher_target_family"],
         "selected_sessions": selected_sessions,
         "skipped_sessions": extracted["skipped_sessions"],
+        "read_fallbacks": extracted.get("read_fallbacks", []),
         "n_rows": len(rows),
         "n_subjects": len({row["subject"] for row in rows}),
         "n_sessions": len({f"{row['subject']}:{row['session']}" for row in rows}),
@@ -1023,6 +1089,37 @@ def _build_coverage_registry(extracted: dict[str, Any], selected_sessions: list[
     }
 
 
+def _build_exclusion_note(
+    extracted: dict[str, Any],
+    selected_sessions: list[dict[str, str]],
+    bundle: dict[str, Any],
+    phase05_run: Path,
+) -> dict[str, Any]:
+    skipped = extracted.get("skipped_sessions", [])
+    read_fallbacks = extracted.get("read_fallbacks", [])
+    selected_keys = {f"{item['subject']}:{item['session']}" for item in selected_sessions}
+    included_keys = {f"{row['subject']}:{row['session']}" for row in extracted["rows"]}
+    return {
+        "status": "no_phase05_estimator_exclusions" if not skipped else "phase05_estimator_exclusions_recorded",
+        "phase05_source_of_truth": str(phase05_run),
+        "prereg_bundle_hash_sha256": bundle["prereg_bundle_hash_sha256"],
+        "selected_sessions": len(selected_keys),
+        "included_sessions": len(included_keys),
+        "excluded_sessions": len(skipped),
+        "skipped_sessions": skipped,
+        "read_fallbacks": read_fallbacks,
+        "fallback_policy": (
+            "EDF payloads with invalid starttime seconds are read through a temporary header-patched copy "
+            "that clamps the EDF header starttime seconds field to 59. Signal samples are otherwise unchanged. "
+            "If this fallback fails, the session remains excluded and is listed here."
+        ),
+        "scientific_limit": (
+            "Exclusions or EDF read fallbacks affect Phase 0.5 observability coverage only. "
+            "They do not provide decoder efficacy evidence."
+        ),
+    }
+
+
 def _build_summary(
     *,
     output_dir: Path,
@@ -1032,6 +1129,7 @@ def _build_summary(
     controls_report: dict[str, Any],
     teacher_survival: dict[str, Any],
     coverage_registry: dict[str, Any],
+    exclusion_note: dict[str, Any],
     config: dict[str, Any],
     n_permutations: int,
 ) -> dict[str, Any]:
@@ -1055,6 +1153,10 @@ def _build_summary(
         "controls_blockers": controls_report["blockers"],
         "teacher_survival_status": teacher_survival["status"],
         "coverage_status": coverage_registry["status"],
+        "selected_sessions": exclusion_note["selected_sessions"],
+        "included_sessions": exclusion_note["included_sessions"],
+        "excluded_sessions": exclusion_note["excluded_sessions"],
+        "exclusion_note_status": exclusion_note["status"],
         "does_not_train_decoder": True,
         "does_not_estimate_privileged_transfer_efficacy": True,
         "claim_ready": False,
