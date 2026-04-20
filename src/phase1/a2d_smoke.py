@@ -310,23 +310,52 @@ def _extract_covariance_rows(
 
 
 def _coerce_covariance_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    coerced = []
+    np = _numpy()
+    prepared = []
     for row in rows:
         cov = row.get("covariance")
         if cov is None:
             raise Phase1A2dSmokeError("A2d rows require covariance matrices")
+        matrix = np.asarray(cov, dtype=float)
+        if len(matrix.shape) != 2 or matrix.shape[0] != matrix.shape[1]:
+            raise Phase1A2dSmokeError("Covariance matrices must be square")
+        channel_names = list(row.get("channel_names", []))
+        if channel_names and len(channel_names) != matrix.shape[0]:
+            raise Phase1A2dSmokeError(
+                f"Channel name count {len(channel_names)} does not match covariance shape {matrix.shape}"
+            )
         label = int(row.get("label", 1 if int(row.get("set_size", 0)) == 8 else 0))
-        coerced.append(
+        prepared.append(
             {
                 "subject": str(row["subject"]),
                 "session": str(row.get("session", "")),
                 "trial_id": str(row.get("trial_id", "")),
                 "set_size": int(row.get("set_size", 8 if label else 4)),
                 "label": label,
-                "covariance": cov,
-                "channel_names": list(row.get("channel_names", [])),
+                "covariance": matrix,
+                "channel_names": channel_names,
             }
         )
+
+    if prepared and all(row["channel_names"] for row in prepared):
+        common = set(prepared[0]["channel_names"])
+        for row in prepared[1:]:
+            common &= set(row["channel_names"])
+        common_ordered = [name for name in prepared[0]["channel_names"] if name in common]
+        if len(common_ordered) < 2:
+            raise Phase1A2dSmokeError(
+                f"A2d channel alignment requires at least two common channels; got {common_ordered}"
+            )
+        for row in prepared:
+            index_by_name = {name: index for index, name in enumerate(row["channel_names"])}
+            indices = [index_by_name[name] for name in common_ordered]
+            row["covariance"] = row["covariance"][np.ix_(indices, indices)]
+            row["channel_names"] = list(common_ordered)
+
+    coerced = []
+    for row in prepared:
+        row["covariance"] = row["covariance"].tolist()
+        coerced.append(row)
     return coerced
 
 

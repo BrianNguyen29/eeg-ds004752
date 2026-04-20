@@ -65,6 +65,30 @@ class Phase1A2dSmokeTests(unittest.TestCase):
             main(["phase1_real", "--help"])
         self.assertEqual(raised.exception.code, 0)
 
+    def test_a2d_smoke_aligns_covariances_to_common_channels(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            gate0 = root / "gate0" / "run"
+            dataset = root / "data" / "ds004752"
+            readiness = root / "phase1_readiness" / "run"
+            prereg = root / "prereg_bundle.json"
+            _write_gate0(gate0)
+            _write_prereg(prereg, gate0)
+            _write_readiness(readiness, gate0, prereg)
+
+            result = run_phase1_a2d_smoke(
+                prereg_bundle=prereg,
+                readiness_run=readiness,
+                dataset_root=dataset,
+                output_root=root / "phase1_a2d_smoke",
+                repo_root=Path.cwd(),
+                max_outer_folds=2,
+                precomputed_rows=_precomputed_covariance_rows_with_extra_channel(),
+            )
+
+            manifest = json.loads((result.output_dir / "a2d_covariance_manifest.json").read_text(encoding="utf-8"))
+            self.assertEqual(manifest["matrix_shapes"], ["3x3"])
+
 
 def _precomputed_covariance_rows() -> dict[str, object]:
     rows = []
@@ -91,6 +115,28 @@ def _precomputed_covariance_rows() -> dict[str, object]:
     return {
         "status": "test_precomputed_covariance_rows",
         "rows": rows,
+        "skipped_sessions": [],
+        "read_fallbacks": [],
+    }
+
+
+def _precomputed_covariance_rows_with_extra_channel() -> dict[str, object]:
+    rows = _precomputed_covariance_rows()["rows"]
+    expanded = []
+    for index, row in enumerate(rows):
+        item = dict(row)
+        if index % 2 == 0:
+            item["covariance"] = [
+                [1.0, 0.02, 0.01, 0.0],
+                [0.02, 1.1, 0.03, 0.0],
+                [0.01, 0.03, 0.9, 0.0],
+                [0.0, 0.0, 0.0, 0.8],
+            ]
+            item["channel_names"] = ["C1", "C2", "C3", "EXTRA"]
+        expanded.append(item)
+    return {
+        "status": "test_precomputed_covariance_rows_with_extra_channel",
+        "rows": expanded,
         "skipped_sessions": [],
         "read_fallbacks": [],
     }
