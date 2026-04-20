@@ -92,6 +92,8 @@ def build_parser() -> argparse.ArgumentParser:
     phase1_gap_review.add_argument("--a2-a2b-run")
     phase1_gap_review.add_argument("--a2c-run")
     phase1_gap_review.add_argument("--a2d-run")
+    phase1_gap_review.add_argument("--a3-run")
+    phase1_gap_review.add_argument("--a4-run")
 
     for phase in ("phase05_real", "phase1_real", "phase2_real", "phase3_real"):
         phase_parser = subparsers.add_parser(phase, help=f"Guarded {phase} command")
@@ -245,6 +247,8 @@ def main(argv: list[str] | None = None) -> int:
                     "A2_A2b": args.a2_a2b_run,
                     "A2c_CORAL": args.a2c_run,
                     "A2d_riemannian": args.a2d_run,
+                    "A3_distillation": args.a3_run,
+                    "A4_privileged": args.a4_run,
                 },
             )
             print(f"Phase 1 comparator-suite gap review complete: {result.output_dir}")

@@ -56,7 +56,7 @@ Muc tieu: khoa ban do giua bo tai lieu V5.5 va source code hien co, de moi thay 
 | Spatial permutation control | `configs/phase05/estimators.json`, `src/phase05/estimators.py` | Phase 0.5 | Implemented as rowwise spatial permutation control. |
 | ICA robustness control | `configs/phase05/estimators.json`, `src/phase05/estimators.py` | Phase 0.5 | Implemented with configured target sampling, max components and robustness ratio. |
 | Calibration/influence package | `src/phase1/smoke.py`, `src/phase1/model_smoke.py` | Phase 1 | Smoke artifacts are shells or implementation diagnostics, not final claim-evaluable reports. |
-| Comparator-suite gap review | `src/phase1/gap_review.py` | Phase 1 governance before A3/A4/full run | Records remaining A3/A4/control/calibration/influence/reporting blockers and keeps `claim_ready=false`. |
+| Comparator-suite gap review | `src/phase1/gap_review.py` | Phase 1 governance before full claim-bearing run | Records completed A2/A2b/A2c/A2d/A3/A4 non-claim smoke reviews while keeping final comparator/control/calibration/influence/reporting blockers and `claim_ready=false`. |
 
 ## Prereg and artifact contract
 

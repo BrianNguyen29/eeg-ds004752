@@ -52,6 +52,14 @@ EXPECTED_REVIEW_NOTES = {
         "filename": "phase1_a2d_riemannian_smoke_review_note.json",
         "status": "phase1_a2d_riemannian_smoke_review_pass_non_claim",
     },
+    "A3_distillation": {
+        "filename": "phase1_a3_distillation_smoke_review_note.json",
+        "status": "phase1_a3_distillation_smoke_review_pass_non_claim",
+    },
+    "A4_privileged": {
+        "filename": "phase1_a4_privileged_smoke_review_note.json",
+        "status": "phase1_a4_privileged_smoke_review_pass_non_claim",
+    },
 }
 
 
@@ -106,7 +114,10 @@ def run_phase1_gap_review(
         "claim_ready": False,
         "headline_phase1_claim_open": False,
         "full_phase1_claim_bearing_run_allowed": False,
-        "reason": "Required A3/A4 final comparator implementations, full controls, calibration, influence and reporting package are not complete.",
+        "reason": (
+            "A3/A4 smoke reviews may be complete, but final claim-bearing comparator implementations, "
+            "full controls, calibration, influence and reporting package are not complete."
+        ),
         "not_ok_to_claim": [
             "decoder efficacy",
             "A3 distillation efficacy",
@@ -138,7 +149,7 @@ def run_phase1_gap_review(
         "claim_ready": False,
         "headline_phase1_claim_open": False,
         "scientific_limit": "Gap review only; it does not train models or estimate comparator efficacy.",
-        "next_step": "implement_and_test_A3_A4_and_full_control_calibration_influence_package_under_revision_policy",
+        "next_step": "implement_full_control_calibration_influence_reporting_package_and_final_comparator_readiness_under_revision_policy",
     }
 
     inputs_path = output_dir / "phase1_comparator_suite_gap_review_inputs.json"
@@ -284,8 +295,8 @@ def _build_backlog(
             item["comparator_id"] for item in smoke_review["items"] if item["review_passed"]
         ],
         "next_engineering_items": [
-            "Implement A3 distillation smoke/final runner with training-only teacher outputs and tests.",
-            "Implement A4 privileged train-time-only runner with scalp-only inference and tests.",
+            "Keep A3/A4 smoke reviews non-claim; do not promote smoke proxy metrics to final comparator evidence.",
+            "Define or refreeze final A3/A4 claim-bearing comparator specifications before any substantive claim run.",
             "Promote control suite from draft to executable Phase 1 controls.",
             "Implement full calibration package, not just smoke-logit diagnostics.",
             "Implement full influence package and leave-one-subject-out claim-state checks.",
@@ -339,7 +350,7 @@ def _render_report(
             "",
             "- This review does not train models.",
             "- It does not estimate A3, A4, decoder, or privileged-transfer efficacy.",
-            "- Completed A2/A2b/A2c/A2d smoke metrics remain implementation diagnostics only.",
+            "- Completed A2/A2b/A2c/A2d/A3/A4 smoke metrics remain implementation diagnostics only.",
             "- Headline claims remain blocked until the full comparator suite, controls, calibration, influence and reporting package are implemented and run under prereg/revision policy.",
         ]
     )

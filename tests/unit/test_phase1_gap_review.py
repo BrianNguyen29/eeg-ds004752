@@ -19,12 +19,16 @@ class Phase1GapReviewTests(unittest.TestCase):
             a2 = root / "a2"
             a2c = root / "a2c"
             a2d = root / "a2d"
+            a3 = root / "a3"
+            a4 = root / "a4"
             _write_gate0(gate0)
             _write_prereg(prereg, gate0)
             _write_readiness(readiness, gate0, prereg)
             _write_review(a2, "phase1_a2_a2b_model_smoke_review_note.json", "phase1_a2_a2b_model_smoke_review_pass_non_claim")
             _write_review(a2c, "phase1_a2c_coral_smoke_review_note.json", "phase1_a2c_coral_smoke_review_pass_non_claim")
             _write_review(a2d, "phase1_a2d_riemannian_smoke_review_note.json", "phase1_a2d_riemannian_smoke_review_pass_non_claim")
+            _write_review(a3, "phase1_a3_distillation_smoke_review_note.json", "phase1_a3_distillation_smoke_review_pass_non_claim")
+            _write_review(a4, "phase1_a4_privileged_smoke_review_note.json", "phase1_a4_privileged_smoke_review_pass_non_claim")
 
             result = run_phase1_gap_review(
                 prereg_bundle=prereg,
@@ -35,6 +39,8 @@ class Phase1GapReviewTests(unittest.TestCase):
                     "A2_A2b": a2,
                     "A2c_CORAL": a2c,
                     "A2d_riemannian": a2d,
+                    "A3_distillation": a3,
+                    "A4_privileged": a4,
                 },
             )
 
@@ -52,8 +58,11 @@ class Phase1GapReviewTests(unittest.TestCase):
             self.assertIn("A2_A2b", summary["completed_non_claim_smoke_reviews"])
             self.assertIn("A2c_CORAL", summary["completed_non_claim_smoke_reviews"])
             self.assertIn("A2d_riemannian", summary["completed_non_claim_smoke_reviews"])
+            self.assertIn("A3_distillation", summary["completed_non_claim_smoke_reviews"])
+            self.assertIn("A4_privileged", summary["completed_non_claim_smoke_reviews"])
             self.assertIn("a3_a4_final_comparator_configs_or_runners_missing", summary["blockers"])
             self.assertIn("phase1_control_claim_metric_inference_surfaces_still_draft", summary["blockers"])
+            self.assertNotIn("required_non_claim_smoke_reviews_not_all_passed", summary["blockers"])
             self.assertIn("controls", {item["surface"] for item in summary["draft_governance_surfaces"]})
             self.assertIn(
                 "A3_distillation",
@@ -67,6 +76,7 @@ class Phase1GapReviewTests(unittest.TestCase):
             blockers = json.loads((result.output_dir / "claim_readiness_blockers.json").read_text(encoding="utf-8"))
             self.assertEqual(blockers["status"], "phase1_claim_readiness_blocked")
             self.assertFalse(blockers["claim_state"]["full_phase1_claim_bearing_run_allowed"])
+            self.assertFalse(blockers["claim_state"]["headline_phase1_claim_open"])
 
     def test_cli_gap_review_runs(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -77,12 +87,16 @@ class Phase1GapReviewTests(unittest.TestCase):
             a2 = root / "a2"
             a2c = root / "a2c"
             a2d = root / "a2d"
+            a3 = root / "a3"
+            a4 = root / "a4"
             _write_gate0(gate0)
             _write_prereg(prereg, gate0)
             _write_readiness(readiness, gate0, prereg)
             _write_review(a2, "phase1_a2_a2b_model_smoke_review_note.json", "phase1_a2_a2b_model_smoke_review_pass_non_claim")
             _write_review(a2c, "phase1_a2c_coral_smoke_review_note.json", "phase1_a2c_coral_smoke_review_pass_non_claim")
             _write_review(a2d, "phase1_a2d_riemannian_smoke_review_note.json", "phase1_a2d_riemannian_smoke_review_pass_non_claim")
+            _write_review(a3, "phase1_a3_distillation_smoke_review_note.json", "phase1_a3_distillation_smoke_review_pass_non_claim")
+            _write_review(a4, "phase1_a4_privileged_smoke_review_note.json", "phase1_a4_privileged_smoke_review_pass_non_claim")
 
             exit_code = main(
                 [
@@ -99,6 +113,10 @@ class Phase1GapReviewTests(unittest.TestCase):
                     str(a2c),
                     "--a2d-run",
                     str(a2d),
+                    "--a3-run",
+                    str(a3),
+                    "--a4-run",
+                    str(a4),
                 ]
             )
 

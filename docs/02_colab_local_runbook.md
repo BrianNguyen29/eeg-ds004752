@@ -307,6 +307,23 @@ python -m src.cli phase1_real \
 
 A4 smoke is non-claim. It validates scalp feature extraction, training-only normalization, training-only gate/weight fitting, training-only privileged proxy fitting, privileged-output generation for training rows only, student fitting, scalp-only inference, split isolation and artifact writing. The smoke privileged path is an internal proxy, not final iEEG privileged evidence and not privileged-transfer efficacy evidence.
 
+Phase 1 post-A4 gap review after A3/A4 smoke review notes exist:
+
+```bash
+python -m src.cli phase1_gap_review \
+  --profile t4_safe \
+  --config artifacts/prereg/<prereg_run>/prereg_bundle.json \
+  --readiness-run artifacts/phase1_readiness/<readiness_run> \
+  --output-root artifacts/phase1_gap_review \
+  --a2-a2b-run artifacts/phase1_model_smoke/<a2_a2b_run> \
+  --a2c-run artifacts/phase1_a2c_smoke/<a2c_run> \
+  --a2d-run artifacts/phase1_a2d_smoke/<a2d_run> \
+  --a3-run artifacts/phase1_a3_smoke/<a3_run> \
+  --a4-run artifacts/phase1_a4_smoke/<a4_run>
+```
+
+Post-A4 gap review is still non-claim. It records A2/A2b, A2c, A2d, A3 and A4 as completed non-claim smoke reviews, while keeping `claim_ready=false` until final comparator readiness, executable controls, calibration, influence and reporting are complete.
+
 ## Conditions for opening real phases
 
 Real phases may be opened only when all conditions are true:
