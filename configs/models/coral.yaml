@@ -1,3 +1,38 @@
 model_id: coral
-status: placeholder_until_prereg
+status: implemented_for_non_claim_smoke_post_prereg_revision
+
+phase1_comparator_id: A2c_CORAL
+smoke_runner: src.phase1.a2c_smoke.run_phase1_a2c_smoke
+smoke_config: configs/phase1/a2c_smoke.json
+smoke_backend: internal_numpy_coral_alignment_smoke_proxy
+
+intended_final_objective:
+  task_loss: binary_load_4_vs_8_decoder_loss
+  coral_loss: "L_CORAL = mean_domain_pair ||C_s - C_t||_F^2 / (4 d^2)"
+  combined_loss: "L_A2c = L_task + beta * L_CORAL"
+  beta_policy: tune_only_inside_inner_cv_for_claim_bearing_final_run
+
+non_claim_smoke_revision_note:
+  date_utc: "2026-04-20"
+  scope: "Engineering smoke path only; added after locked prereg to validate A2c artifact and split-discipline mechanics."
+  implementation_limit: "The smoke runner uses an internal NumPy scalp-feature CORAL alignment proxy and a small logistic probe. It is not the final neural CORAL comparator estimate."
+  claim_policy:
+    claim_ready: false
+    final_a2c_comparator: false
+    not_ok_to_claim:
+      - decoder_efficacy
+      - A2c_final_comparator_performance
+      - A2c_superiority_or_inferiority_against_other_comparators
+      - privileged_transfer_efficacy
+      - full_phase1_neural_comparator_performance
+
+split_discipline:
+  outer_test_subject_exclusion:
+    - normalization_fit
+    - domain_covariance_statistics_fit
+    - beta_selection
+    - classifier_fit
+    - calibration_fit
+    - thresholds_or_tuned_qc
+  smoke_beta_selection: fixed_predeclared_smoke_value_no_outer_test_selection
 

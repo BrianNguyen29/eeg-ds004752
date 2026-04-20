@@ -41,6 +41,7 @@ Muc tieu: khoa ban do giua bo tai lieu V5.5 va source code hien co, de moi thay 
 | Comparator family | Config/module | Freeze path | Current status |
 |---|---|---|---|
 | A2/A2b scalp-only smoke | `src/phase1/model_smoke.py`, `configs/phase1/model_smoke.json` | Phase 1 model-smoke artifacts | Implementation smoke only; standard-library fold runner supports precomputed rows without `mne`. |
+| A2c CORAL | `src/phase1/a2c_smoke.py`, `configs/phase1/a2c_smoke.json`, `configs/models/coral.yaml` | Gate 2.5 comparator card plus post-prereg smoke revision note | Non-claim implementation smoke is available with internal NumPy CORAL alignment proxy; not the final neural CORAL comparator estimate. |
 | A2d Riemannian | `src/phase1/a2d_smoke.py`, `configs/phase1/a2d_smoke.json`, `configs/models/riemannian_a2d.yaml` | Gate 2.5 comparator card plus post-prereg smoke revision note | Non-claim implementation smoke is available with internal NumPy log-Euclidean/tangent backend; not the final A2d comparator estimate. |
 | A3 distillation | `configs/models/distill_a3.yaml` | Gate 2.5 comparator card | Required comparator config hash in prereg assembly. |
 | A4 privileged | `configs/models/privileged_a4.yaml` | Gate 2.5 comparator card | Must remain train-time privileged only; scalp-only at test time. |

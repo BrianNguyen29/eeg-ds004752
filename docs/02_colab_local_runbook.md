@@ -15,7 +15,7 @@ Use the bundled Python in this desktop workspace, or any Python 3.10+ environmen
 Expected baseline after the current fix:
 
 ```text
-Ran 36 tests
+Ran 42 tests
 OK
 ```
 
@@ -246,6 +246,21 @@ python -m src.cli phase1_real \
 ```
 
 A2d smoke is non-claim. It validates covariance extraction, training-only tangent reference fitting, split isolation and artifact writing. It is not the final A2d comparator estimate.
+
+Phase 1 A2c CORAL smoke:
+
+```bash
+python -m src.cli phase1_real \
+  --profile t4_safe \
+  --config artifacts/prereg/<prereg_run>/prereg_bundle.json \
+  --readiness-run artifacts/phase1_readiness/<readiness_run> \
+  --dataset-root /content/drive/MyDrive/eeg-ds004752/data/ds004752 \
+  --a2c-smoke \
+  --phase-config configs/phase1/a2c_smoke.json \
+  --max-outer-folds 2
+```
+
+A2c smoke is non-claim. It validates scalp feature extraction, training-only normalization, training-domain CORAL covariance diagnostics, fixed smoke beta handling, split isolation and artifact writing. It is not the final neural CORAL comparator estimate.
 
 ## Conditions for opening real phases
 

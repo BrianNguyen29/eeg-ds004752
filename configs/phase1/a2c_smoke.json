@@ -1,0 +1,38 @@
+{
+  "phase_id": "phase1_real",
+  "workflow": "a2c_coral_comparator_smoke",
+  "status": "phase1_a2c_smoke_config",
+  "backend": "internal_numpy_coral_alignment_smoke_proxy",
+  "signal_windows_sec": {
+    "task_maintenance": [2.25, 4.75]
+  },
+  "frequency_bands_hz": {
+    "theta": [4.0, 8.0],
+    "alpha": [8.0, 13.0],
+    "beta": [13.0, 30.0]
+  },
+  "default_max_outer_folds": 2,
+  "default_max_trials_per_session": 24,
+  "domain_key": "subject",
+  "coral": {
+    "beta": 0.1,
+    "beta_selection_policy": "fixed_predeclared_smoke_value_no_outer_test_selection",
+    "pairing_rule": "all_training_domain_pairs",
+    "diagonal_loading": 0.000001,
+    "min_rows_per_domain": 2,
+    "alignment_interpolation": true
+  },
+  "logistic_probe": {
+    "learning_rate": 0.05,
+    "n_steps": 160,
+    "l2": 0.001,
+    "subject_balanced": true
+  },
+  "scientific_scope": [
+    "This is a Phase 1 A2c CORAL comparator implementation smoke only.",
+    "The smoke checks scalp feature extraction, training-only normalization, training-domain CORAL covariance diagnostics, fixed smoke beta handling, logits, metrics and artifact writing.",
+    "The backend is an internal NumPy CORAL alignment smoke proxy, not the final neural CORAL comparator package.",
+    "No held-out outer-test subject may participate in normalization, domain covariance, beta selection, classifier, calibration, threshold or tuned QC fitting.",
+    "No headline claim is permitted from this smoke output."
+  ]
+}
