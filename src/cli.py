@@ -11,6 +11,7 @@ from .config import load_config
 from .guards import GuardError, assert_real_phase_allowed
 from .phase1.a2c_smoke import Phase1A2cSmokeError, run_phase1_a2c_smoke
 from .phase1.a2d_smoke import Phase1A2dSmokeError, run_phase1_a2d_smoke
+from .phase1.gap_review import Phase1GapReviewError, run_phase1_gap_review
 from .phase1.model_smoke import Phase1ModelSmokeError, run_phase1_model_smoke
 from .phase1.smoke import Phase1SmokeError, run_phase1_smoke
 from .phase05.estimators import Phase05EstimatorError, run_phase05_estimators
@@ -77,6 +78,18 @@ def build_parser() -> argparse.ArgumentParser:
     phase05_estimators.add_argument("--max-sessions", type=int)
     phase05_estimators.add_argument("--max-trials-per-session", type=int)
     phase05_estimators.add_argument("--n-permutations", type=int)
+
+    phase1_gap_review = subparsers.add_parser(
+        "phase1_gap_review",
+        help="Review remaining Phase 1 comparator/control gaps without launching training",
+    )
+    phase1_gap_review.add_argument("--profile", default="t4_safe")
+    phase1_gap_review.add_argument("--config", required=True)
+    phase1_gap_review.add_argument("--readiness-run", required=True)
+    phase1_gap_review.add_argument("--output-root", default="artifacts/phase1_gap_review")
+    phase1_gap_review.add_argument("--a2-a2b-run")
+    phase1_gap_review.add_argument("--a2c-run")
+    phase1_gap_review.add_argument("--a2d-run")
 
     for phase in ("phase05_real", "phase1_real", "phase2_real", "phase3_real"):
         phase_parser = subparsers.add_parser(phase, help=f"Guarded {phase} command")
@@ -218,6 +231,23 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Report: {result.report_path}")
             return 0
 
+        if args.command == "phase1_gap_review":
+            result = run_phase1_gap_review(
+                prereg_bundle=args.config,
+                readiness_run=args.readiness_run,
+                output_root=args.output_root,
+                repo_root=Path.cwd(),
+                reviewed_runs={
+                    "A2_A2b": args.a2_a2b_run,
+                    "A2c_CORAL": args.a2c_run,
+                    "A2d_riemannian": args.a2d_run,
+                },
+            )
+            print(f"Phase 1 comparator-suite gap review complete: {result.output_dir}")
+            print(f"Summary: {result.summary_path}")
+            print(f"Report: {result.report_path}")
+            return 0
+
         if args.command == "phase1_real" and sum(
             bool(flag) for flag in [args.smoke, args.model_smoke, args.a2c_smoke, args.a2d_smoke]
         ) > 1:
@@ -345,6 +375,7 @@ def main(argv: list[str] | None = None) -> int:
         Phase05EstimatorError,
         Phase1SmokeError,
         Phase1ModelSmokeError,
+        Phase1GapReviewError,
         Phase1A2cSmokeError,
         Phase1A2dSmokeError,
     ) as exc:

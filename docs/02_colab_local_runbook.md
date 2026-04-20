@@ -15,7 +15,7 @@ Use the bundled Python in this desktop workspace, or any Python 3.10+ environmen
 Expected baseline after the current fix:
 
 ```text
-Ran 42 tests
+Ran 44 tests
 OK
 ```
 
@@ -261,6 +261,21 @@ python -m src.cli phase1_real \
 ```
 
 A2c smoke is non-claim. It validates scalp feature extraction, training-only normalization, training-domain CORAL covariance diagnostics, fixed smoke beta handling, split isolation and artifact writing. It is not the final neural CORAL comparator estimate.
+
+Phase 1 comparator-suite gap review after A2/A2b, A2c and A2d smoke reviews:
+
+```bash
+python -m src.cli phase1_gap_review \
+  --profile t4_safe \
+  --config artifacts/prereg/<prereg_run>/prereg_bundle.json \
+  --readiness-run artifacts/phase1_readiness/<readiness_run> \
+  --output-root artifacts/phase1_gap_review \
+  --a2-a2b-run artifacts/phase1_model_smoke/<a2_a2b_run> \
+  --a2c-run artifacts/phase1_a2c_smoke/<a2c_run> \
+  --a2d-run artifacts/phase1_a2d_smoke/<a2d_run>
+```
+
+Gap review is non-claim. It does not train models; it records remaining A3/A4/final-control/calibration/influence/reporting blockers before any claim-bearing Phase 1 run can be considered.
 
 ## Conditions for opening real phases
 

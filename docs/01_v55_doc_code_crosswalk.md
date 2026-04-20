@@ -25,7 +25,7 @@ Muc tieu: khoa ban do giua bo tai lieu V5.5 va source code hien co, de moi thay 
 | Gate 2.5 prereg bundle | Annex, Master Artifact Dossier | `src/prereg/bundle.py` | `configs/prereg/prereg_assembly.json` | `tests/unit/test_prereg.py` | Must hash-link Gate 0/1/2 artifacts, comparator configs, registry configs and environment lock. Only locked bundle can satisfy release blocker. |
 | Real phase guard | Technical Spec, Annex | `src/guards.py`, `src/cli.py` | `configs/prereg/prereg_bundle.json` | `tests/unit/test_guards.py` | `phase05_real`, `phase1_real`, `phase2_real`, `phase3_real` are blocked unless bundle status is `locked` and artifact hashes exist. |
 | Phase 0.5 observability | Technical Spec, Annex | `src/phase05/observability.py`, `src/phase05/estimators.py` | `configs/phase05/*.json` | `tests/unit/test_phase05.py`, `tests/unit/test_phase05_estimators.py` | Predecoder observability only. No Phase 1 decoder claim. Smoke runs with low permutations are not final inference. |
-| Phase 1 smoke/model smoke | Blueprint, Technical Spec, Annex | `src/phase1/smoke.py`, `src/phase1/model_smoke.py` | `configs/phase1/model_smoke.json` | `tests/unit/test_phase1_smoke.py`, `tests/unit/test_phase1_model_smoke.py` | Contract/model-smoke only. A2/A2b smoke can compute implementation metrics but cannot support privileged-transfer efficacy claims. |
+| Phase 1 smoke/model smoke | Blueprint, Technical Spec, Annex | `src/phase1/smoke.py`, `src/phase1/model_smoke.py`, `src/phase1/gap_review.py` | `configs/phase1/model_smoke.json` | `tests/unit/test_phase1_smoke.py`, `tests/unit/test_phase1_model_smoke.py`, `tests/unit/test_phase1_gap_review.py` | Contract/model-smoke/gap-review only. A2/A2b/A2c/A2d smoke can compute implementation metrics but cannot support privileged-transfer efficacy claims. |
 
 ## Threshold and decision rules
 
@@ -56,6 +56,7 @@ Muc tieu: khoa ban do giua bo tai lieu V5.5 va source code hien co, de moi thay 
 | Spatial permutation control | `configs/phase05/estimators.json`, `src/phase05/estimators.py` | Phase 0.5 | Implemented as rowwise spatial permutation control. |
 | ICA robustness control | `configs/phase05/estimators.json`, `src/phase05/estimators.py` | Phase 0.5 | Implemented with configured target sampling, max components and robustness ratio. |
 | Calibration/influence package | `src/phase1/smoke.py`, `src/phase1/model_smoke.py` | Phase 1 | Smoke artifacts are shells or implementation diagnostics, not final claim-evaluable reports. |
+| Comparator-suite gap review | `src/phase1/gap_review.py` | Phase 1 governance before A3/A4/full run | Records remaining A3/A4/control/calibration/influence/reporting blockers and keeps `claim_ready=false`. |
 
 ## Prereg and artifact contract
 
