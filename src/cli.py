@@ -12,6 +12,7 @@ from .guards import GuardError, assert_real_phase_allowed
 from .phase1.a2c_smoke import Phase1A2cSmokeError, run_phase1_a2c_smoke
 from .phase1.a2d_smoke import Phase1A2dSmokeError, run_phase1_a2d_smoke
 from .phase1.a3_smoke import Phase1A3SmokeError, run_phase1_a3_smoke
+from .phase1.a4_smoke import Phase1A4SmokeError, run_phase1_a4_smoke
 from .phase1.gap_review import Phase1GapReviewError, run_phase1_gap_review
 from .phase1.model_smoke import Phase1ModelSmokeError, run_phase1_model_smoke
 from .phase1.smoke import Phase1SmokeError, run_phase1_smoke
@@ -105,6 +106,7 @@ def build_parser() -> argparse.ArgumentParser:
         phase_parser.add_argument("--a2c-smoke", action="store_true")
         phase_parser.add_argument("--a2d-smoke", action="store_true")
         phase_parser.add_argument("--a3-smoke", action="store_true")
+        phase_parser.add_argument("--a4-smoke", action="store_true")
         phase_parser.add_argument("--comparators", nargs="*")
         phase_parser.add_argument("--max-outer-folds", type=int, default=2)
         phase_parser.add_argument("--outer-test-subjects", nargs="*")
@@ -251,11 +253,37 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         if args.command == "phase1_real" and sum(
-            bool(flag) for flag in [args.smoke, args.model_smoke, args.a2c_smoke, args.a2d_smoke, args.a3_smoke]
+            bool(flag)
+            for flag in [args.smoke, args.model_smoke, args.a2c_smoke, args.a2d_smoke, args.a3_smoke, args.a4_smoke]
         ) > 1:
             raise ValueError(
-                "phase1_real can use only one of --smoke, --model-smoke, --a2c-smoke, --a2d-smoke or --a3-smoke"
+                "phase1_real can use only one of --smoke, --model-smoke, --a2c-smoke, --a2d-smoke, --a3-smoke or --a4-smoke"
             )
+
+        if args.command == "phase1_real" and args.a4_smoke:
+            if not args.readiness_run:
+                raise ValueError("phase1_real --a4-smoke requires --readiness-run")
+            if not args.dataset_root:
+                raise ValueError("phase1_real --a4-smoke requires --dataset-root")
+            phase_config_path = args.phase_config
+            if phase_config_path == "configs/phase05/observability.json":
+                phase_config_path = "configs/phase1/a4_smoke.json"
+            a4_config = load_config(phase_config_path)
+            result = run_phase1_a4_smoke(
+                prereg_bundle=args.config,
+                readiness_run=args.readiness_run,
+                dataset_root=args.dataset_root,
+                output_root=args.output_root,
+                config=a4_config,
+                repo_root=Path.cwd(),
+                max_outer_folds=args.max_outer_folds,
+                outer_test_subjects=args.outer_test_subjects,
+                max_trials_per_session=args.max_trials_per_session,
+            )
+            print(f"Phase 1 A4 privileged smoke complete: {result.output_dir}")
+            print(f"Summary: {result.summary_path}")
+            print(f"Report: {result.report_path}")
+            return 0
 
         if args.command == "phase1_real" and args.a3_smoke:
             if not args.readiness_run:
@@ -408,6 +436,7 @@ def main(argv: list[str] | None = None) -> int:
         Phase1A2cSmokeError,
         Phase1A2dSmokeError,
         Phase1A3SmokeError,
+        Phase1A4SmokeError,
     ) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2

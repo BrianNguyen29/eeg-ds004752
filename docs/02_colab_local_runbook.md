@@ -292,6 +292,21 @@ python -m src.cli phase1_real \
 
 A3 smoke is non-claim. It validates scalp feature extraction, training-only normalization, training-only teacher proxy fitting, teacher-output generation for training rows only, student distillation fitting, split isolation and artifact writing. The smoke teacher is an internal scalp-feature proxy, not a final iEEG teacher and not privileged-transfer evidence.
 
+Phase 1 A4 privileged train-time-only smoke:
+
+```bash
+python -m src.cli phase1_real \
+  --profile t4_safe \
+  --config artifacts/prereg/<prereg_run>/prereg_bundle.json \
+  --readiness-run artifacts/phase1_readiness/<readiness_run> \
+  --dataset-root /content/drive/MyDrive/eeg-ds004752/data/ds004752 \
+  --a4-smoke \
+  --phase-config configs/phase1/a4_smoke.json \
+  --max-outer-folds 2
+```
+
+A4 smoke is non-claim. It validates scalp feature extraction, training-only normalization, training-only gate/weight fitting, training-only privileged proxy fitting, privileged-output generation for training rows only, student fitting, scalp-only inference, split isolation and artifact writing. The smoke privileged path is an internal proxy, not final iEEG privileged evidence and not privileged-transfer efficacy evidence.
+
 ## Conditions for opening real phases
 
 Real phases may be opened only when all conditions are true:

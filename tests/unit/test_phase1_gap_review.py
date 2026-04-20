@@ -59,6 +59,10 @@ class Phase1GapReviewTests(unittest.TestCase):
                 "A3_distillation",
                 {item["comparator"] for item in summary["missing_or_not_final_comparators"]},
             )
+            self.assertIn(
+                "A4_privileged",
+                {item["comparator"] for item in summary["missing_or_not_final_comparators"]},
+            )
 
             blockers = json.loads((result.output_dir / "claim_readiness_blockers.json").read_text(encoding="utf-8"))
             self.assertEqual(blockers["status"], "phase1_claim_readiness_blocked")
