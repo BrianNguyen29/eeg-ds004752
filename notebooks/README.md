@@ -14,7 +14,7 @@ Recommended Colab sequence:
 7. `06_colab_phase1_input_freeze_and_decoder_readiness.ipynb`: hash-link Gate 0/1/2/2.5 and Phase 0.5 sources, freeze Phase 1 split/teacher/comparator readiness, and run guard smoke without training a decoder.
 8. `07_colab_phase1_decoder_smoke.ipynb`: run the guarded Phase 1 smoke contract on 1-2 outer folds, producing fold/comparator/calibration/control/influence artifact shells without claiming model efficacy.
 9. `08_colab_phase1_model_smoke_a2_a2b.ipynb`: prepare and, when manually enabled, run the first guarded real model implementation smoke for A2/A2b scalp-only comparators, hash-linking prior sources and writing an explicit blocker if the CLI-backed model runner is unavailable.
-10. `09_colab_phase1_a2d_riemannian_smoke.ipynb`: prepare the next mandatory A2d Riemannian comparator smoke/readiness plan, hash-linking the reviewed sources and writing a blocker until an A2d runner exists in `src/` with CLI exposure and tests.
+10. `09_colab_phase1_a2d_riemannian_smoke.ipynb`: prepare the next mandatory A2d Riemannian comparator smoke/readiness plan, hash-link the reviewed sources, and use a manual hold before launching the CLI-backed non-claim A2d smoke runner.
 11. Full real decoder phases only after locked prereg, required Phase 0.5 controls, Phase 1 readiness checks, Phase 1 smoke contract review pass, real model-smoke artifacts are reviewed, and the required comparator/control package is implemented.
 
 Notebook integrity rules:

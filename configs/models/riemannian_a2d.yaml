@@ -1,3 +1,28 @@
 model_id: riemannian_a2d
-status: placeholder_until_prereg
-
+status: implemented_for_non_claim_smoke_post_prereg_revision
+backend: internal_numpy_logeuclidean_tangent_smoke
+primary_pipeline_recommended_by_spec:
+  - covariance_estimation
+  - training_only_domain_centering_or_alignment
+  - tangent_space_projection
+  - l2_logistic_classifier
+smoke_implementation:
+  module: src.phase1.a2d_smoke
+  phase_config: configs/phase1/a2d_smoke.json
+  comparator_id: A2d_riemannian
+  final_comparator_estimate: false
+  claim_ready: false
+split_discipline:
+  outer_test_subject_excluded_from:
+    - covariance_reference_fit
+    - alignment_fit
+    - tangent_reference_fit
+    - classifier_fit
+    - calibration_fit
+    - thresholds
+    - tuned_qc
+revision_policy_note: >
+  This replaces the placeholder config for a non-claim implementation smoke.
+  Any claim-affecting A2d configuration used for substantive Phase 1 must be
+  revision-logged and refrozen/rerun or treated as post-hoc under the locked
+  preregistration policy.

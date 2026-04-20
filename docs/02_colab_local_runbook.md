@@ -232,6 +232,21 @@ python -m src.cli phase1_real \
   --max-outer-folds 2
 ```
 
+Phase 1 A2d Riemannian smoke:
+
+```bash
+python -m src.cli phase1_real \
+  --profile t4_safe \
+  --config artifacts/prereg/<prereg_run>/prereg_bundle.json \
+  --readiness-run artifacts/phase1_readiness/<readiness_run> \
+  --dataset-root /content/drive/MyDrive/eeg-ds004752/data/ds004752 \
+  --a2d-smoke \
+  --phase-config configs/phase1/a2d_smoke.json \
+  --max-outer-folds 2
+```
+
+A2d smoke is non-claim. It validates covariance extraction, training-only tangent reference fitting, split isolation and artifact writing. It is not the final A2d comparator estimate.
+
 ## Conditions for opening real phases
 
 Real phases may be opened only when all conditions are true:
