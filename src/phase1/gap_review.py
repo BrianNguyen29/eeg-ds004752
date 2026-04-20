@@ -204,7 +204,7 @@ def _review_configs(repo_root: Path, config_paths: dict[str, str | Path]) -> dic
         path = repo_root / Path(relative)
         data = load_config(path)
         configs[key] = {"path": str(path), "data": data}
-        status = str(data.get("status") or data.get(f"{key}_status") or "")
+        status = _config_status(data, key)
         if key in {"a3", "a4"} and "placeholder" in status:
             missing_or_not_final.append(
                 {
@@ -225,6 +225,16 @@ def _review_configs(repo_root: Path, config_paths: dict[str, str | Path]) -> dic
             "gate2_config": configs["gate2"]["path"],
         },
     }
+
+
+def _config_status(data: dict[str, Any], key: str) -> str:
+    status_keys = {
+        "controls": "control_suite_status",
+        "claim_mapping": "claim_mapping_status",
+        "metrics": "metrics_status",
+        "inference": "inference_status",
+    }
+    return str(data.get("status") or data.get(status_keys.get(key, f"{key}_status")) or "")
 
 
 def _review_source_surface(repo_root: Path) -> dict[str, Any]:
