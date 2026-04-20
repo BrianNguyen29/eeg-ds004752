@@ -1,0 +1,42 @@
+{
+  "phase_id": "phase1_real",
+  "workflow": "a3_distillation_comparator_smoke",
+  "status": "phase1_a3_smoke_config",
+  "backend": "internal_numpy_blind_teacher_distillation_smoke_proxy",
+  "signal_windows_sec": {
+    "task_maintenance": [2.25, 4.75]
+  },
+  "frequency_bands_hz": {
+    "theta": [4.0, 8.0],
+    "alpha": [8.0, 13.0],
+    "beta": [13.0, 30.0]
+  },
+  "default_max_outer_folds": 2,
+  "default_max_trials_per_session": 24,
+  "teacher_proxy": {
+    "source": "training_scalp_features_only",
+    "real_ieeg_teacher_used": false,
+    "privileged_features_used": false,
+    "temperature": 2.0,
+    "soft_label_clip": 0.02,
+    "learning_rate": 0.05,
+    "n_steps": 180,
+    "l2": 0.001,
+    "subject_balanced": true
+  },
+  "student_probe": {
+    "distillation_alpha_hard_label": 0.5,
+    "learning_rate": 0.05,
+    "n_steps": 180,
+    "l2": 0.001,
+    "subject_balanced": true
+  },
+  "scientific_scope": [
+    "This is a Phase 1 A3 distillation comparator implementation smoke only.",
+    "The smoke checks scalp feature extraction, training-only normalization, training-only teacher proxy fitting, teacher-output generation for training rows, student distillation fitting, logits, metrics and artifact writing.",
+    "The smoke teacher is an internal scalp-feature proxy, not a final iEEG teacher and not privileged-transfer evidence.",
+    "No held-out outer-test subject may participate in normalization, teacher fit, teacher outputs for student fit, student fit, calibration, threshold or tuned QC fitting.",
+    "Student inference uses scalp features only and does not consume teacher outputs at test time.",
+    "No headline claim is permitted from this smoke output."
+  ]
+}

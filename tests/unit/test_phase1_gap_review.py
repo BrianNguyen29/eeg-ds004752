@@ -55,6 +55,10 @@ class Phase1GapReviewTests(unittest.TestCase):
             self.assertIn("a3_a4_final_comparator_configs_or_runners_missing", summary["blockers"])
             self.assertIn("phase1_control_claim_metric_inference_surfaces_still_draft", summary["blockers"])
             self.assertIn("controls", {item["surface"] for item in summary["draft_governance_surfaces"]})
+            self.assertIn(
+                "A3_distillation",
+                {item["comparator"] for item in summary["missing_or_not_final_comparators"]},
+            )
 
             blockers = json.loads((result.output_dir / "claim_readiness_blockers.json").read_text(encoding="utf-8"))
             self.assertEqual(blockers["status"], "phase1_claim_readiness_blocked")

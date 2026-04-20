@@ -17,7 +17,8 @@ Recommended Colab sequence:
 10. `09_colab_phase1_a2d_riemannian_smoke.ipynb`: prepare the next mandatory A2d Riemannian comparator smoke/readiness plan, hash-link the reviewed sources, and use a manual hold before launching the CLI-backed non-claim A2d smoke runner.
 11. `10_colab_phase1_a2c_coral_smoke.ipynb`: prepare the mandatory A2c CORAL comparator smoke/readiness plan, hash-link the reviewed A2/A2b and A2d non-claim sources, and use a manual hold before launching the CLI-backed non-claim A2c smoke runner.
 12. `11_colab_phase1_comparator_suite_gap_review.ipynb`: run the CLI-backed non-claim gap review that records remaining A3/A4/control/calibration/influence/reporting blockers.
-13. Full real decoder phases only after locked prereg, required Phase 0.5 controls, Phase 1 readiness checks, Phase 1 smoke contract review pass, real model-smoke artifacts are reviewed, gap review blockers are resolved, and the required comparator/control package is implemented.
+13. `12_colab_phase1_a3_distillation_smoke.ipynb`: prepare the A3 distillation smoke/readiness plan, hash-link reviewed A2/A2b, A2c, A2d and gap-review sources, and use a manual hold before launching the CLI-backed non-claim A3 smoke runner.
+14. Full real decoder phases only after locked prereg, required Phase 0.5 controls, Phase 1 readiness checks, Phase 1 smoke contract review pass, real model-smoke artifacts are reviewed, gap review blockers are resolved, and the required comparator/control package is implemented.
 
 Notebook integrity rules:
 

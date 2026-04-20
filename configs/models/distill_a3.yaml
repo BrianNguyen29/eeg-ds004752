@@ -1,3 +1,13 @@
 model_id: distill_a3
-status: placeholder_until_prereg
-
+status: smoke_revision_non_claim
+revision_note: "A bounded A3 distillation smoke is implemented for post-prereg engineering validation only. The smoke uses an internal training-scalp-feature teacher proxy to validate split discipline, teacher-output handling, student distillation fitting and artifact writing. It is not the final A3 blind/full teacher distillation comparator and cannot support decoder efficacy, A3 efficacy or privileged-transfer claims."
+claim_scope: non_claim_implementation_smoke_only
+final_comparator_ready: false
+smoke_config: configs/phase1/a3_smoke.json
+leakage_guards:
+  normalization_fit_scope: training_subjects_only
+  teacher_fit_scope: training_subjects_only
+  teacher_outputs_for_student_fit_scope: training_subjects_only
+  student_fit_scope: training_subjects_only
+  inference_teacher_outputs_allowed: false
+  outer_test_subject_in_any_fit_allowed: false

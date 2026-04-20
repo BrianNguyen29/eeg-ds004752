@@ -205,13 +205,13 @@ def _review_configs(repo_root: Path, config_paths: dict[str, str | Path]) -> dic
         data = load_config(path)
         configs[key] = {"path": str(path), "data": data}
         status = _config_status(data, key)
-        if key in {"a3", "a4"} and "placeholder" in status:
+        if key in {"a3", "a4"} and ("placeholder" in status or data.get("final_comparator_ready") is False):
             missing_or_not_final.append(
                 {
                     "comparator": "A3_distillation" if key == "a3" else "A4_privileged",
                     "config": str(path),
                     "status": status,
-                    "reason": "Comparator config is still placeholder and no final runner is exposed.",
+                    "reason": "Comparator config is placeholder or explicitly marked not final; smoke runners do not clear final comparator readiness.",
                 }
             )
         if key in {"controls", "claim_mapping", "metrics", "inference"} and "draft" in status:

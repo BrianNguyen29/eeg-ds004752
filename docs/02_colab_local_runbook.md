@@ -277,6 +277,21 @@ python -m src.cli phase1_gap_review \
 
 Gap review is non-claim. It does not train models; it records remaining A3/A4/final-control/calibration/influence/reporting blockers before any claim-bearing Phase 1 run can be considered.
 
+Phase 1 A3 distillation smoke:
+
+```bash
+python -m src.cli phase1_real \
+  --profile t4_safe \
+  --config artifacts/prereg/<prereg_run>/prereg_bundle.json \
+  --readiness-run artifacts/phase1_readiness/<readiness_run> \
+  --dataset-root /content/drive/MyDrive/eeg-ds004752/data/ds004752 \
+  --a3-smoke \
+  --phase-config configs/phase1/a3_smoke.json \
+  --max-outer-folds 2
+```
+
+A3 smoke is non-claim. It validates scalp feature extraction, training-only normalization, training-only teacher proxy fitting, teacher-output generation for training rows only, student distillation fitting, split isolation and artifact writing. The smoke teacher is an internal scalp-feature proxy, not a final iEEG teacher and not privileged-transfer evidence.
+
 ## Conditions for opening real phases
 
 Real phases may be opened only when all conditions are true:
