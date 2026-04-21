@@ -363,6 +363,20 @@ python -m src.cli phase1_final_comparator_artifact_plan \
 
 Final comparator artifact planning is non-claim. It records the required fold log, metric, logit, split, feature and leakage-audit schema for A2/A2b/A2c/A2d/A3/A4. Smoke outputs must remain non-evidentiary and cannot satisfy this contract.
 
+Phase 1 final split/feature/leakage readiness after final comparator artifact planning:
+
+```bash
+python -m src.cli phase1_final_split_feature_leakage_plan \
+  --profile t4_safe \
+  --config artifacts/prereg/<prereg_run>/prereg_bundle.json \
+  --comparator-artifact-run artifacts/phase1_final_comparator_artifact_plan/<comparator_artifact_plan_run> \
+  --output-root artifacts/phase1_final_split_feature_leakage_plan \
+  --readiness-config configs/phase1/final_split_feature_leakage.json \
+  --artifact-config configs/phase1/final_comparator_artifacts.json
+```
+
+Final split/feature/leakage readiness is non-claim. It records the LOSO split, feature provenance and leakage-audit manifest contract required before final comparator runners. It does not create final folds, extract final features or run leakage audits.
+
 ## Conditions for opening real phases
 
 Real phases may be opened only when all conditions are true:
@@ -378,6 +392,7 @@ Real phases may be opened only when all conditions are true:
 - Phase 1 headline claims additionally require final comparator readiness plus executable controls, calibration, influence and reporting artifacts that pass the locked thresholds.
 - The final claim-package plan must be reviewed as a contract before any claim-bearing runner is implemented.
 - Final comparator artifact manifests must exist before controls, calibration, influence or final reporting can be claim-evaluable.
+- Final split, feature and leakage-audit manifests must exist before final comparator outputs can be claim-evaluable.
 
 ## Current local status
 

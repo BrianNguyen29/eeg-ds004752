@@ -1,0 +1,59 @@
+{
+  "readiness_id": "phase1_final_split_feature_leakage_v1",
+  "status": "planning_non_claim",
+  "claim_scope": "final_split_feature_leakage_manifest_contract_only",
+  "scientific_integrity_rule": "This specification records final split, feature provenance and leakage audit readiness. It does not create final comparator outputs, run models, or convert smoke artifacts into evidence.",
+  "source_contract": "configs/phase1/final_comparator_artifacts.json",
+  "split_config": "configs/split/loso_subject.yaml",
+  "required_manifests": [
+    "final_split_manifest",
+    "final_feature_manifest",
+    "final_leakage_audit"
+  ],
+  "split_manifest_schema": {
+    "split_id": "loso_subject",
+    "unit": "participant_id",
+    "folds": "list",
+    "outer_test_subject": "one_subject_per_fold",
+    "train_subjects": "all_eligible_subjects_except_outer_test_subject",
+    "no_subject_overlap_between_train_and_test": true,
+    "source_gate0_manifest": "path",
+    "source_cohort_lock": "path",
+    "source_prereg_bundle": "path"
+  },
+  "feature_manifest_schema": {
+    "feature_set_id": "string",
+    "source_dataset_root": "path",
+    "source_gate0_run": "path",
+    "feature_names": "list",
+    "feature_count": "integer",
+    "feature_extraction_policy": "training_fit_objects_must_exclude_outer_test_subject",
+    "payload_materialization_required_for_final": true,
+    "smoke_feature_rows_allowed_as_final": false
+  },
+  "leakage_audit_schema": {
+    "outer_test_subject_in_preprocessing_fit_allowed": false,
+    "outer_test_subject_in_normalization_fit_allowed": false,
+    "outer_test_subject_in_alignment_fit_allowed": false,
+    "outer_test_subject_in_teacher_fit_allowed": false,
+    "outer_test_subject_in_privileged_fit_allowed": false,
+    "outer_test_subject_in_gate_or_weight_fit_allowed": false,
+    "outer_test_subject_in_calibration_fit_allowed": false,
+    "test_time_privileged_or_teacher_outputs_allowed": false,
+    "must_record_fit_subjects_per_stage": true,
+    "must_record_transform_subjects_per_stage": true
+  },
+  "required_source_links": [
+    "locked_prereg_bundle",
+    "gate0_manifest",
+    "cohort_lock",
+    "final_claim_package_plan",
+    "final_comparator_artifact_plan"
+  ],
+  "blocking_if_missing": [
+    "final_split_manifest",
+    "final_feature_manifest",
+    "final_leakage_audit",
+    "materialized_payload_signal_audit_for_final_scope"
+  ]
+}
