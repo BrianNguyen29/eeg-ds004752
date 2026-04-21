@@ -25,7 +25,8 @@ Muc tieu: khoa ban do giua bo tai lieu V5.5 va source code hien co, de moi thay 
 | Gate 2.5 prereg bundle | Annex, Master Artifact Dossier | `src/prereg/bundle.py` | `configs/prereg/prereg_assembly.json` | `tests/unit/test_prereg.py` | Must hash-link Gate 0/1/2 artifacts, comparator configs, registry configs and environment lock. Only locked bundle can satisfy release blocker. |
 | Real phase guard | Technical Spec, Annex | `src/guards.py`, `src/cli.py` | `configs/prereg/prereg_bundle.json` | `tests/unit/test_guards.py` | `phase05_real`, `phase1_real`, `phase2_real`, `phase3_real` are blocked unless bundle status is `locked` and artifact hashes exist. |
 | Phase 0.5 observability | Technical Spec, Annex | `src/phase05/observability.py`, `src/phase05/estimators.py` | `configs/phase05/*.json` | `tests/unit/test_phase05.py`, `tests/unit/test_phase05_estimators.py` | Predecoder observability only. No Phase 1 decoder claim. Smoke runs with low permutations are not final inference. |
-| Phase 1 smoke/model smoke | Blueprint, Technical Spec, Annex | `src/phase1/smoke.py`, `src/phase1/model_smoke.py`, `src/phase1/gap_review.py` | `configs/phase1/model_smoke.json` | `tests/unit/test_phase1_smoke.py`, `tests/unit/test_phase1_model_smoke.py`, `tests/unit/test_phase1_gap_review.py` | Contract/model-smoke/gap-review only. A2/A2b/A2c/A2d smoke can compute implementation metrics but cannot support privileged-transfer efficacy claims. |
+| Phase 1 smoke/model smoke | Blueprint, Technical Spec, Annex | `src/phase1/smoke.py`, `src/phase1/model_smoke.py`, `src/phase1/gap_review.py` | `configs/phase1/model_smoke.json` | `tests/unit/test_phase1_smoke.py`, `tests/unit/test_phase1_model_smoke.py`, `tests/unit/test_phase1_gap_review.py` | Contract/model-smoke/gap-review only. A2/A2b/A2c/A2d/A3/A4 smoke can compute implementation metrics but cannot support privileged-transfer efficacy claims. |
+| Phase 1 governance readiness | Technical Spec, Annex, Dossier | `src/phase1/controls.py`, `src/phase1/calibration.py`, `src/phase1/influence.py`, `src/phase1/claim_state.py` | `configs/controls/*.yaml`, `configs/eval/*.yaml`, `configs/gate1/decision_simulation.json`, `configs/gate2/synthetic_validation.json` | `tests/unit/test_phase1_governance_readiness.py` | Fail-closed readiness package. Records that controls/calibration/influence/reporting are not claim-evaluable until final artifacts exist; keeps `claim_ready=false`. |
 
 ## Threshold and decision rules
 
@@ -55,8 +56,9 @@ Muc tieu: khoa ban do giua bo tai lieu V5.5 va source code hien co, de moi thay 
 | Nuisance shared control | `configs/gate2/synthetic_validation.json`, `configs/controls/nuisance_block_spec.yaml` | Gate 2 and Phase 0.5 | Synthetic nuisance profile must be vetoed; Phase 0.5 estimators include nuisance-only control. |
 | Spatial permutation control | `configs/phase05/estimators.json`, `src/phase05/estimators.py` | Phase 0.5 | Implemented as rowwise spatial permutation control. |
 | ICA robustness control | `configs/phase05/estimators.json`, `src/phase05/estimators.py` | Phase 0.5 | Implemented with configured target sampling, max components and robustness ratio. |
-| Calibration/influence package | `src/phase1/smoke.py`, `src/phase1/model_smoke.py` | Phase 1 | Smoke artifacts are shells or implementation diagnostics, not final claim-evaluable reports. |
+| Calibration/influence package | `src/phase1/calibration.py`, `src/phase1/influence.py`, `src/phase1/claim_state.py`, plus smoke runners | Phase 1 | Governance readiness artifacts are fail-closed. Smoke artifacts are shells or implementation diagnostics, not final claim-evaluable reports. |
 | Comparator-suite gap review | `src/phase1/gap_review.py` | Phase 1 governance before full claim-bearing run | Records completed A2/A2b/A2c/A2d/A3/A4 non-claim smoke reviews while keeping final comparator/control/calibration/influence/reporting blockers and `claim_ready=false`. |
+| Governance readiness package | `src/phase1/controls.py`, `src/phase1/calibration.py`, `src/phase1/influence.py`, `src/phase1/claim_state.py` | Phase 1 governance before final reporting | Aggregates post-A4 gap review, control-suite readiness, calibration readiness, influence readiness and reporting readiness. It does not execute missing final packages or open claims. |
 
 ## Prereg and artifact contract
 
@@ -65,6 +67,7 @@ Muc tieu: khoa ban do giua bo tai lieu V5.5 va source code hien co, de moi thay 
 | Gate 0 | `run_gate0_audit` | `manifest.json`, `cohort_lock.json`, `audit_report.md`, `override_log.md`, `bridge_availability.json`, `materialization_report.json` |
 | Gate 1 | `run_gate1_decision` | `gate1_inputs.json`, `gate1_input_integrity.json`, `n_eff_statement.json`, `simulation_registry.json`, `sesoi_registry.json`, `influence_rule.json`, `decision_memo.md`, `gate1_summary.json` |
 | Gate 2 | `run_gate2_synthetic_validation` | `synthetic_generator_spec.json`, `synthetic_recovery_report.json`, `synthetic_recovery_report.md`, `gate_threshold_registry.json`, `gate2_summary.json` |
+| Phase 1 governance readiness | `run_phase1_governance_readiness` | `phase1_governance_readiness_inputs.json`, `phase1_governance_readiness_summary.json`, `phase1_governance_readiness_report.md`, `phase1_control_suite_status.json`, `phase1_calibration_package_status.json`, `phase1_influence_status.json`, `phase1_reporting_readiness.json`, `phase1_claim_state.json` |
 | Gate 2.5 | `run_prereg_assembly` | `prereg_bundle.json`, `environment_lock.json`, `prereg_validation_report.md`, `revision_policy.md`, comparator cards, `gate25_summary.json` |
 
 ## Notebook rule

@@ -20,7 +20,8 @@ Recommended Colab sequence:
 13. `12_colab_phase1_a3_distillation_smoke.ipynb`: prepare the A3 distillation smoke/readiness plan, hash-link reviewed A2/A2b, A2c, A2d and gap-review sources, and use a manual hold before launching the CLI-backed non-claim A3 smoke runner.
 14. `13_colab_phase1_a4_privileged_smoke.ipynb`: prepare the A4 privileged train-time-only smoke/readiness plan, hash-link reviewed A2/A2b, A2c, A2d, A3 and gap-review sources, and use a manual hold before launching the CLI-backed non-claim A4 smoke runner.
 15. `14_colab_phase1_post_a4_gap_review.ipynb`: refresh the CLI-backed non-claim gap review after A3/A4 smoke review notes, recording all comparator smoke reviews while keeping headline claims closed.
-16. Full real decoder phases only after locked prereg, required Phase 0.5 controls, Phase 1 readiness checks, Phase 1 smoke contract review pass, real model-smoke artifacts are reviewed, gap review blockers are resolved, and the required comparator/control package is implemented.
+16. `15_colab_phase1_governance_readiness.ipynb`: run the CLI-backed governance readiness package for controls, calibration, influence, reporting and claim-state surfaces; expected current result is blocked/non-claim.
+17. Full real decoder phases only after locked prereg, required Phase 0.5 controls, Phase 1 readiness checks, Phase 1 smoke contract review pass, real model-smoke artifacts are reviewed, gap review blockers are resolved, and the required comparator/control/calibration/influence/reporting package is implemented.
 
 Notebook integrity rules:
 

@@ -13,6 +13,7 @@ from .phase1.a2c_smoke import Phase1A2cSmokeError, run_phase1_a2c_smoke
 from .phase1.a2d_smoke import Phase1A2dSmokeError, run_phase1_a2d_smoke
 from .phase1.a3_smoke import Phase1A3SmokeError, run_phase1_a3_smoke
 from .phase1.a4_smoke import Phase1A4SmokeError, run_phase1_a4_smoke
+from .phase1.claim_state import Phase1GovernanceReadinessError, run_phase1_governance_readiness
 from .phase1.gap_review import Phase1GapReviewError, run_phase1_gap_review
 from .phase1.model_smoke import Phase1ModelSmokeError, run_phase1_model_smoke
 from .phase1.smoke import Phase1SmokeError, run_phase1_smoke
@@ -94,6 +95,15 @@ def build_parser() -> argparse.ArgumentParser:
     phase1_gap_review.add_argument("--a2d-run")
     phase1_gap_review.add_argument("--a3-run")
     phase1_gap_review.add_argument("--a4-run")
+
+    phase1_governance = subparsers.add_parser(
+        "phase1_governance_readiness",
+        help="Aggregate Phase 1 controls/calibration/influence/reporting readiness without opening claims",
+    )
+    phase1_governance.add_argument("--profile", default="t4_safe")
+    phase1_governance.add_argument("--config", required=True)
+    phase1_governance.add_argument("--gap-review-run", required=True)
+    phase1_governance.add_argument("--output-root", default="artifacts/phase1_governance_readiness")
 
     for phase in ("phase05_real", "phase1_real", "phase2_real", "phase3_real"):
         phase_parser = subparsers.add_parser(phase, help=f"Guarded {phase} command")
@@ -252,6 +262,18 @@ def main(argv: list[str] | None = None) -> int:
                 },
             )
             print(f"Phase 1 comparator-suite gap review complete: {result.output_dir}")
+            print(f"Summary: {result.summary_path}")
+            print(f"Report: {result.report_path}")
+            return 0
+
+        if args.command == "phase1_governance_readiness":
+            result = run_phase1_governance_readiness(
+                prereg_bundle=args.config,
+                gap_review_run=args.gap_review_run,
+                output_root=args.output_root,
+                repo_root=Path.cwd(),
+            )
+            print(f"Phase 1 governance readiness package complete: {result.output_dir}")
             print(f"Summary: {result.summary_path}")
             print(f"Report: {result.report_path}")
             return 0
@@ -441,6 +463,7 @@ def main(argv: list[str] | None = None) -> int:
         Phase1A2dSmokeError,
         Phase1A3SmokeError,
         Phase1A4SmokeError,
+        Phase1GovernanceReadinessError,
     ) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2

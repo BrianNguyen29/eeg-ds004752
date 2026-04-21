@@ -324,6 +324,18 @@ python -m src.cli phase1_gap_review \
 
 Post-A4 gap review is still non-claim. It records A2/A2b, A2c, A2d, A3 and A4 as completed non-claim smoke reviews, while keeping `claim_ready=false` until final comparator readiness, executable controls, calibration, influence and reporting are complete.
 
+Phase 1 governance readiness after post-A4 gap review:
+
+```bash
+python -m src.cli phase1_governance_readiness \
+  --profile t4_safe \
+  --config artifacts/prereg/<prereg_run>/prereg_bundle.json \
+  --gap-review-run artifacts/phase1_gap_review/<post_a4_gap_review_run> \
+  --output-root artifacts/phase1_governance_readiness
+```
+
+Governance readiness is non-claim. It aggregates the post-A4 gap review with control-suite, calibration, influence and reporting readiness surfaces. It must remain fail-closed while final control results, final calibration artifacts, final influence artifacts and final reporting artifacts are missing.
+
 ## Conditions for opening real phases
 
 Real phases may be opened only when all conditions are true:
@@ -336,6 +348,7 @@ Real phases may be opened only when all conditions are true:
 - Gate 2.5 prereg bundle has `status: locked`.
 - The real phase command uses that exact locked prereg bundle.
 - Any post-prereg claim-affecting change has a revision log and is refrozen/rerun or demoted to post-hoc.
+- Phase 1 headline claims additionally require final comparator readiness plus executable controls, calibration, influence and reporting artifacts that pass the locked thresholds.
 
 ## Current local status
 
