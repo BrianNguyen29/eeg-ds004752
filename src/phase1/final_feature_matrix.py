@@ -158,6 +158,10 @@ def run_phase1_final_feature_matrix(
         "invalid_window_rows_count": len(extracted.get("invalid_window_rows", [])),
         "nonfinite_feature_values": validation.get("nonfinite_feature_values", 0),
         "nonfinite_feature_examples": validation.get("nonfinite_feature_examples", []),
+        "missing_source_channels": validation.get("missing_source_channels", []),
+        "missing_source_channels_count": validation.get("missing_source_channels_count", 0),
+        "nonfinite_signal_rows_count": validation.get("nonfinite_signal_rows_count", 0),
+        "bandpower_nonfinite_feature_count": len(validation.get("bandpower_nonfinite_counts", {})),
         "matrix_path": str(matrix_path) if matrix_ready else None,
         "feature_matrix_blockers": validation["blockers"],
         "claim_blockers": claim_state["blockers"],
@@ -395,8 +399,14 @@ def _extract_or_block(
             "sessions": [],
             "skipped_sessions": [{"reason": str(exc)}],
             "read_fallbacks": [],
+            "channel_aliases": [],
             "blockers": ["feature_matrix_extraction_failed"],
             "error": str(exc),
+            "invalid_window_rows": [],
+            "missing_source_channels": [],
+            "missing_feature_counts": {},
+            "nonfinite_signal_rows": [],
+            "bandpower_nonfinite_counts": {},
         }
 
 
@@ -438,7 +448,10 @@ def _coerce_precomputed_rows(
         matrix_config=matrix_config,
         channel_aliases=[],
         invalid_window_rows=[],
+        missing_source_channels=[],
         missing_feature_counts={},
+        nonfinite_signal_rows=[],
+        bandpower_nonfinite_counts={},
     )
 
 
@@ -461,6 +474,9 @@ def _extract_rows_from_signal(
     read_fallbacks = []
     channel_alias_records = []
     invalid_window_rows = []
+    missing_source_channels = []
+    nonfinite_signal_rows = []
+    bandpower_nonfinite_counts: dict[str, int] = {}
     missing_feature_counts: dict[str, int] = {}
     row_index = 1
     for session_label in manifest.get("sessions", []):
@@ -521,6 +537,16 @@ def _extract_rows_from_signal(
             for expected_channel in expected_channels:
                 raw_channel = channel_aliases.get(expected_channel)
                 if raw_channel is None:
+                    missing_source_channels.append(
+                        {
+                            "row_id": f"row_{row_index:06d}",
+                            "participant_id": subject,
+                            "session_id": session,
+                            "trial_id": str(event.get("nTrial", row_index)),
+                            "expected_channel": expected_channel,
+                            "available_raw_channels": channel_names,
+                        }
+                    )
                     for band_name in bands:
                         missing_feature_counts[f"{expected_channel}:{band_name}"] = (
                             missing_feature_counts.get(f"{expected_channel}:{band_name}", 0) + 1
@@ -531,12 +557,37 @@ def _extract_rows_from_signal(
                     if invalid_window or segment is None:
                         feature_map[feature_name] = float("nan")
                     else:
-                        feature_map[feature_name] = _band_log_power(
-                            np,
-                            segment[raw_index_by_channel[raw_channel]],
-                            sfreq,
-                            band,
-                        )
+                        signal = segment[raw_index_by_channel[raw_channel]]
+                        nonfinite_samples = _nonfinite_sample_count(np, signal)
+                        if nonfinite_samples:
+                            if not any(
+                                item.get("row_id") == f"row_{row_index:06d}"
+                                and item.get("expected_channel") == expected_channel
+                                for item in nonfinite_signal_rows
+                            ):
+                                nonfinite_signal_rows.append(
+                                    {
+                                        "row_id": f"row_{row_index:06d}",
+                                        "participant_id": subject,
+                                        "session_id": session,
+                                        "trial_id": str(event.get("nTrial", row_index)),
+                                        "expected_channel": expected_channel,
+                                        "raw_channel": raw_channel,
+                                        "nonfinite_samples": nonfinite_samples,
+                                        "window_start_sample": window_start,
+                                        "window_stop_sample": window_stop,
+                                        "event_onset_sample": trial_start,
+                                        "source_eeg_file": eeg_path.relative_to(dataset_root).as_posix(),
+                                    }
+                                )
+                            feature_map[feature_name] = float("nan")
+                        else:
+                            value = _band_log_power(np, signal, sfreq, band)
+                            if not math.isfinite(float(value)):
+                                bandpower_nonfinite_counts[feature_name] = (
+                                    bandpower_nonfinite_counts.get(feature_name, 0) + 1
+                                )
+                            feature_map[feature_name] = value
             set_size = int(float(event["SetSize"]))
             feature_values = [feature_map.get(name, float("nan")) for name in feature_names]
             for name, value in zip(feature_names, feature_values):
@@ -568,7 +619,10 @@ def _extract_rows_from_signal(
         matrix_config=matrix_config,
         channel_aliases=channel_alias_records,
         invalid_window_rows=invalid_window_rows,
+        missing_source_channels=missing_source_channels,
         missing_feature_counts=missing_feature_counts,
+        nonfinite_signal_rows=nonfinite_signal_rows,
+        bandpower_nonfinite_counts=bandpower_nonfinite_counts,
     )
 
 
@@ -582,7 +636,10 @@ def _finalize_extracted_rows(
     matrix_config: dict[str, Any],
     channel_aliases: list[dict[str, Any]] | None = None,
     invalid_window_rows: list[dict[str, Any]] | None = None,
+    missing_source_channels: list[dict[str, Any]] | None = None,
     missing_feature_counts: dict[str, int] | None = None,
+    nonfinite_signal_rows: list[dict[str, Any]] | None = None,
+    bandpower_nonfinite_counts: dict[str, int] | None = None,
 ) -> dict[str, Any]:
     subjects = sorted({row["participant_id"] for row in rows})
     sessions = sorted({f"{row['participant_id']}/{row['session_id']}" for row in rows})
@@ -598,7 +655,10 @@ def _finalize_extracted_rows(
         "read_fallbacks": read_fallbacks,
         "channel_aliases": channel_aliases or [],
         "invalid_window_rows": invalid_window_rows or [],
+        "missing_source_channels": missing_source_channels or [],
         "missing_feature_counts": missing_feature_counts or {},
+        "nonfinite_signal_rows": nonfinite_signal_rows or [],
+        "bandpower_nonfinite_counts": bandpower_nonfinite_counts or {},
         "blockers": [],
         "scientific_limit": "Extracted rows are feature values and labels only; no model outputs or metrics are included.",
     }
@@ -619,6 +679,11 @@ def _load_binary_load_events(events_path: Path, feature_manifest: dict[str, Any]
     return selected
 
 
+def _nonfinite_sample_count(np: Any, signal: Any) -> int:
+    values = np.asarray(signal, dtype=float)
+    return int(values.size - int(np.isfinite(values).sum()))
+
+
 def _validate_matrix(
     *,
     extracted: dict[str, Any],
@@ -635,6 +700,9 @@ def _validate_matrix(
     expected_features = list(manifest.get("feature_names", []))
     nonfinite_examples = _nonfinite_feature_examples(rows, feature_names, max_examples=25)
     nonfinite = sum(row.get("nonfinite_feature_count", 0) for row in rows)
+    missing_source_channels = extracted.get("missing_source_channels", [])
+    nonfinite_signal_rows = extracted.get("nonfinite_signal_rows", [])
+    bandpower_nonfinite_counts = extracted.get("bandpower_nonfinite_counts", {})
     labels = {row.get("label") for row in rows}
     if rules.get("row_count_must_match_final_feature_manifest_planned_event_rows") and len(rows) != expected_rows:
         blockers.append("row_count_does_not_match_final_feature_manifest")
@@ -646,6 +714,12 @@ def _validate_matrix(
         blockers.append("non_binary_labels_present")
     if rules.get("all_feature_values_must_be_finite") and nonfinite:
         blockers.append("nonfinite_feature_values_present")
+    if missing_source_channels:
+        blockers.append("source_channels_missing_for_feature_manifest")
+    if nonfinite_signal_rows:
+        blockers.append("nonfinite_signal_samples_present")
+    if bandpower_nonfinite_counts:
+        blockers.append("bandpower_feature_extraction_returned_nonfinite")
     if rules.get("all_eeg_payloads_must_be_readable") and extracted.get("skipped_sessions"):
         blockers.append("one_or_more_sessions_skipped")
     if not rows:
@@ -663,7 +737,12 @@ def _validate_matrix(
         "labels": sorted(labels),
         "nonfinite_feature_values": nonfinite,
         "nonfinite_feature_examples": nonfinite_examples,
+        "missing_source_channels_count": len(missing_source_channels),
+        "missing_source_channels": missing_source_channels[:50],
         "missing_feature_counts": extracted.get("missing_feature_counts", {}),
+        "nonfinite_signal_rows_count": len(nonfinite_signal_rows),
+        "nonfinite_signal_rows": nonfinite_signal_rows[:100],
+        "bandpower_nonfinite_counts": bandpower_nonfinite_counts,
         "invalid_window_rows": extracted.get("invalid_window_rows", []),
         "skipped_sessions": extracted.get("skipped_sessions", []),
         "read_fallbacks": extracted.get("read_fallbacks", []),
@@ -819,7 +898,10 @@ def _build_blocked_record(extracted: dict[str, Any], validation: dict[str, Any])
         "candidate_rows": len(extracted.get("rows", [])),
         "skipped_sessions": extracted.get("skipped_sessions", []),
         "invalid_window_rows": extracted.get("invalid_window_rows", []),
+        "missing_source_channels": extracted.get("missing_source_channels", [])[:100],
         "missing_feature_counts": extracted.get("missing_feature_counts", {}),
+        "nonfinite_signal_rows": extracted.get("nonfinite_signal_rows", [])[:100],
+        "bandpower_nonfinite_counts": extracted.get("bandpower_nonfinite_counts", {}),
         "blockers": validation["blockers"],
         "scientific_limit": "Blocked record is not a feature matrix and must not be used by final comparator runners.",
     }
@@ -844,6 +926,9 @@ def _render_report(summary: dict[str, Any], validation: dict[str, Any], claim_st
         f"- Read fallbacks: `{summary['read_fallbacks_count']}`",
         f"- Invalid window rows: `{summary['invalid_window_rows_count']}`",
         f"- Non-finite feature values: `{summary['nonfinite_feature_values']}`",
+        f"- Missing source channel records: `{summary.get('missing_source_channels_count', 0)}`",
+        f"- Rows with non-finite signal samples: `{summary.get('nonfinite_signal_rows_count', 0)}`",
+        f"- Bandpower non-finite feature groups: `{summary.get('bandpower_nonfinite_feature_count', 0)}`",
         "",
         "## Validation",
         "",

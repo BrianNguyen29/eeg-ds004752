@@ -11,6 +11,7 @@ from src.cli import main
 from src.phase1.final_feature_matrix import (
     Phase1FinalFeatureMatrixError,
     _feature_aliases_for_raw_channels,
+    _validate_matrix,
     run_phase1_final_feature_matrix,
 )
 
@@ -126,6 +127,65 @@ class Phase1FinalFeatureMatrixTests(unittest.TestCase):
             validation = _read_json(result.output_dir / "phase1_final_feature_matrix_validation.json")
             self.assertGreater(validation["nonfinite_feature_values"], 0)
             self.assertEqual(validation["nonfinite_feature_examples"][0]["feature_name"], "Fz:theta")
+            self.assertEqual(validation["nonfinite_signal_rows_count"], 0)
+
+    def test_final_feature_matrix_classifies_source_signal_blockers(self) -> None:
+        validation = _validate_matrix(
+            extracted={
+                "rows": [
+                    {
+                        "row_id": "row_000001",
+                        "participant_id": "sub-01",
+                        "label": 0,
+                        "features": [float("nan"), float("nan")],
+                        "nonfinite_feature_count": 2,
+                    }
+                ],
+                "feature_names": ["Fz:theta", "Cz:theta"],
+                "subjects": ["sub-01"],
+                "skipped_sessions": [],
+                "invalid_window_rows": [],
+                "missing_source_channels": [
+                    {"row_id": "row_000001", "expected_channel": "Fz", "available_raw_channels": ["Cz"]}
+                ],
+                "missing_feature_counts": {"Fz:theta": 1},
+                "nonfinite_signal_rows": [
+                    {
+                        "row_id": "row_000001",
+                        "expected_channel": "Cz",
+                        "raw_channel": "Cz",
+                        "nonfinite_samples": 4,
+                    }
+                ],
+                "bandpower_nonfinite_counts": {"Cz:theta": 1},
+            },
+            feature={
+                "manifest": {
+                    "n_event_rows_planned": 1,
+                    "feature_names": ["Fz:theta", "Cz:theta"],
+                    "feature_count": 2,
+                    "subjects": ["sub-01"],
+                }
+            },
+            matrix_config={
+                "validation_rules": {
+                    "row_count_must_match_final_feature_manifest_planned_event_rows": True,
+                    "subjects_must_match_final_feature_manifest_subjects": True,
+                    "feature_names_must_match_final_feature_manifest": True,
+                    "all_rows_must_have_binary_labels": True,
+                    "all_feature_values_must_be_finite": True,
+                    "all_eeg_payloads_must_be_readable": True,
+                }
+            },
+            input_blockers=[],
+        )
+
+        self.assertFalse(validation["feature_matrix_ready"])
+        self.assertIn("source_channels_missing_for_feature_manifest", validation["blockers"])
+        self.assertIn("nonfinite_signal_samples_present", validation["blockers"])
+        self.assertIn("bandpower_feature_extraction_returned_nonfinite", validation["blockers"])
+        self.assertEqual(validation["missing_source_channels_count"], 1)
+        self.assertEqual(validation["nonfinite_signal_rows_count"], 1)
 
     def test_final_feature_matrix_channel_aliases_normalize_common_edf_labels(self) -> None:
         aliases = _feature_aliases_for_raw_channels(
