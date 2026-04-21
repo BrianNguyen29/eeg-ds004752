@@ -438,6 +438,23 @@ python -m src.cli phase1_final_comparator_runner_readiness \
 
 The final comparator runner readiness package is non-claim. It links reviewed final split, feature and manifest-level leakage artifacts to the required output contract for A2/A2b/A2c/A2d/A3/A4, then records final fold logs, logits, subject-level metrics, runtime leakage logs and comparator output manifests as missing. It must not be interpreted as model evidence, and it must not feed controls, calibration, influence or reporting until final comparator runners write real outputs and runtime leakage logs.
 
+Phase 1 final feature matrix materialization after final comparator runner readiness:
+
+```bash
+python -m src.cli phase1_final_feature_matrix \
+  --profile t4_safe \
+  --config artifacts/prereg/<prereg_run>/prereg_bundle.json \
+  --final-split-run artifacts/phase1_final_split_manifest/<final_split_manifest_run> \
+  --final-feature-run artifacts/phase1_final_feature_manifest/<final_feature_manifest_run> \
+  --final-leakage-run artifacts/phase1_final_leakage_audit/<final_leakage_audit_run> \
+  --runner-readiness-run artifacts/phase1_final_comparator_runner_readiness/<runner_readiness_run> \
+  --dataset-root data/ds004752 \
+  --output-root artifacts/phase1_final_feature_matrix \
+  --matrix-config configs/phase1/final_feature_matrix.json
+```
+
+The final feature matrix materializer is non-claim and fail-closed. It requires signal extras and real EDF payloads. It writes `final_feature_matrix.csv` only when the extracted row count matches the final feature manifest, feature names match the reviewed schema, every feature value is finite, and no source session is skipped. The matrix contains row identity, labels and scalp EEG feature values only; it must not contain logits, metrics, model outputs, controls, calibration, influence or runtime leakage logs.
+
 ## Conditions for opening real phases
 
 Real phases may be opened only when all conditions are true:
@@ -455,6 +472,7 @@ Real phases may be opened only when all conditions are true:
 - Final comparator artifact manifests must exist before controls, calibration, influence or final reporting can be claim-evaluable.
 - Final split, feature and leakage-audit manifests must exist before final comparator outputs can be claim-evaluable.
 - Final comparator runner/output-manifest readiness must be reviewed before final comparator runner implementation, but it does not make comparator outputs claim-evaluable.
+- The final feature matrix may be used as final comparator runner input only after materialization validation passes; by itself it is not model evidence and does not open claims.
 
 ## Current local status
 

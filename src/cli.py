@@ -28,6 +28,7 @@ from .phase1.final_split_feature_leakage import (
     run_phase1_final_split_feature_leakage_plan,
 )
 from .phase1.final_feature_manifest import Phase1FinalFeatureManifestError, run_phase1_final_feature_manifest
+from .phase1.final_feature_matrix import Phase1FinalFeatureMatrixError, run_phase1_final_feature_matrix
 from .phase1.final_leakage_audit import Phase1FinalLeakageAuditError, run_phase1_final_leakage_audit
 from .phase1.final_split_manifest import Phase1FinalSplitManifestError, run_phase1_final_split_manifest
 from .phase1.gap_review import Phase1GapReviewError, run_phase1_gap_review
@@ -254,6 +255,26 @@ def build_parser() -> argparse.ArgumentParser:
     phase1_final_comparator_runner.add_argument(
         "--artifact-config",
         default="configs/phase1/final_comparator_artifacts.json",
+    )
+
+    phase1_final_feature_matrix = subparsers.add_parser(
+        "phase1_final_feature_matrix",
+        help="Materialize the final Phase 1 feature matrix without opening claims",
+    )
+    phase1_final_feature_matrix.add_argument("--profile", default="t4_safe")
+    phase1_final_feature_matrix.add_argument("--config", required=True)
+    phase1_final_feature_matrix.add_argument("--final-split-run", required=True)
+    phase1_final_feature_matrix.add_argument("--final-feature-run", required=True)
+    phase1_final_feature_matrix.add_argument("--final-leakage-run", required=True)
+    phase1_final_feature_matrix.add_argument("--runner-readiness-run", required=True)
+    phase1_final_feature_matrix.add_argument("--dataset-root", required=True)
+    phase1_final_feature_matrix.add_argument(
+        "--output-root",
+        default="artifacts/phase1_final_feature_matrix",
+    )
+    phase1_final_feature_matrix.add_argument(
+        "--matrix-config",
+        default="configs/phase1/final_feature_matrix.json",
     )
 
     for phase in ("phase05_real", "phase1_real", "phase2_real", "phase3_real"):
@@ -543,6 +564,23 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Report: {result.report_path}")
             return 0
 
+        if args.command == "phase1_final_feature_matrix":
+            result = run_phase1_final_feature_matrix(
+                prereg_bundle=args.config,
+                final_split_run=args.final_split_run,
+                final_feature_run=args.final_feature_run,
+                final_leakage_run=args.final_leakage_run,
+                runner_readiness_run=args.runner_readiness_run,
+                dataset_root=args.dataset_root,
+                output_root=args.output_root,
+                repo_root=Path.cwd(),
+                config_paths={"matrix": args.matrix_config},
+            )
+            print(f"Phase 1 final feature matrix materialization complete: {result.output_dir}")
+            print(f"Summary: {result.summary_path}")
+            print(f"Report: {result.report_path}")
+            return 0
+
         if args.command == "phase1_real" and sum(
             bool(flag)
             for flag in [args.smoke, args.model_smoke, args.a2c_smoke, args.a2d_smoke, args.a3_smoke, args.a4_smoke]
@@ -734,6 +772,7 @@ def main(argv: list[str] | None = None) -> int:
         Phase1FinalComparatorRunnerReadinessError,
         Phase1FinalSplitFeatureLeakageError,
         Phase1FinalFeatureManifestError,
+        Phase1FinalFeatureMatrixError,
         Phase1FinalLeakageAuditError,
         Phase1FinalSplitManifestError,
     ) as exc:

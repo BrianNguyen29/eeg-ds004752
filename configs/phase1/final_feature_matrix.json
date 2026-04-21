@@ -1,0 +1,70 @@
+{
+  "matrix_id": "phase1_final_feature_matrix_v1",
+  "status": "materializer_non_claim",
+  "claim_scope": "final_feature_matrix_materialization_only",
+  "scientific_integrity_rule": "This materializer writes final scalp EEG feature values from the reviewed final feature manifest and final LOSO split. It does not train models, compute comparator metrics, create logits, run controls/calibration/influence, audit runtime comparator logs, or authorize claims.",
+  "source_contracts": {
+    "final_split_manifest": "configs/phase1/final_split_manifest.json",
+    "final_feature_manifest": "configs/phase1/final_feature_manifest.json",
+    "final_leakage_audit": "configs/phase1/final_leakage_audit.json",
+    "final_comparator_runner_readiness": "configs/phase1/final_comparator_runner_readiness.json"
+  },
+  "required_inputs": {
+    "final_split_manifest_ready": true,
+    "final_feature_manifest_ready": true,
+    "final_leakage_audit_ready": true,
+    "final_comparator_runner_upstream_manifests_ready": true,
+    "dataset_root_exists": true,
+    "feature_manifest_contains_feature_matrix": false,
+    "feature_manifest_contains_model_outputs": false,
+    "feature_manifest_contains_metrics": false,
+    "manifest_level_outer_test_subject_used_in_any_fit": false,
+    "test_time_privileged_or_teacher_outputs_allowed": false,
+    "runtime_comparator_logs_audited": false,
+    "smoke_artifacts_promoted": false
+  },
+  "output_files": [
+    "final_feature_matrix.csv",
+    "final_feature_matrix_schema.json",
+    "final_feature_row_index.json",
+    "phase1_final_feature_matrix_validation.json",
+    "phase1_final_feature_matrix_source_links.json",
+    "phase1_final_feature_matrix_claim_state.json"
+  ],
+  "row_identity_columns": [
+    "row_id",
+    "participant_id",
+    "session_id",
+    "trial_id",
+    "label",
+    "set_size",
+    "event_onset_sample",
+    "event_onset_sec",
+    "source_eeg_file",
+    "source_events_file"
+  ],
+  "matrix_boundary": {
+    "contains_feature_values": true,
+    "contains_model_outputs": false,
+    "contains_logits": false,
+    "contains_metrics": false,
+    "contains_labels": true,
+    "standalone_claim_ready": false,
+    "smoke_feature_rows_allowed_as_final": false
+  },
+  "validation_rules": {
+    "row_count_must_match_final_feature_manifest_planned_event_rows": true,
+    "subjects_must_match_final_feature_manifest_subjects": true,
+    "feature_names_must_match_final_feature_manifest": true,
+    "all_rows_must_have_binary_labels": true,
+    "all_feature_values_must_be_finite": true,
+    "all_eeg_payloads_must_be_readable": true,
+    "no_model_outputs_or_metrics_allowed": true
+  },
+  "claim_blockers_after_success": [
+    "final_comparator_outputs_missing",
+    "runtime_comparator_leakage_logs_missing_until_final_runners_execute",
+    "controls_calibration_influence_reporting_missing",
+    "headline_claim_blocked_until_full_package_passes"
+  ]
+}
