@@ -1,0 +1,54 @@
+{
+  "manifest_id": "phase1_final_feature_manifest_v1",
+  "status": "generator_non_claim",
+  "claim_scope": "final_feature_schema_and_provenance_manifest_only",
+  "scientific_integrity_rule": "This generator records the final scalp feature schema and provenance required by final comparators. It does not write a feature matrix, train models, compute metrics, run leakage audits, or open claims.",
+  "source_readiness_contract": "configs/phase1/final_split_feature_leakage.json",
+  "source_split_manifest_contract": "configs/phase1/final_split_manifest.json",
+  "feature_set_id": "phase1_final_scalp_task_bandpower_v1",
+  "feature_family": "scalp_eeg_log_bandpower",
+  "feature_name_template": "{channel}:{band}",
+  "channel_source": "BIDS eeg channels.tsv files for final split eligible subjects",
+  "event_source": "BIDS eeg events.tsv files for final split eligible subjects",
+  "trial_filter": {
+    "artifact_values_allowed": ["0", "0.0", "", null],
+    "set_size_values_allowed": [4, 8],
+    "label_rule": "SetSize 8 -> 1; SetSize 4 -> 0"
+  },
+  "signal_windows_sec": {
+    "task_maintenance": [2.25, 4.75]
+  },
+  "frequency_bands_hz": {
+    "theta": [4.0, 8.0],
+    "alpha": [8.0, 13.0],
+    "beta": [13.0, 30.0]
+  },
+  "required_inputs": {
+    "final_split_manifest_ready": true,
+    "gate0_manifest_status": "signal_audit_ready",
+    "cohort_lock_status": "signal_audit_ready",
+    "materialization_status": "complete",
+    "dataset_root_exists": true
+  },
+  "feature_extraction_policy": {
+    "final_comparator_training_fit_objects_must_exclude_outer_test_subject": true,
+    "normalization_fit_scope": "training_subjects_only_per_fold",
+    "alignment_fit_scope": "training_subjects_only_per_fold",
+    "teacher_fit_scope": "training_subjects_only_per_fold",
+    "privileged_fit_scope": "training_subjects_only_per_fold",
+    "calibration_fit_scope": "training_subjects_only_per_fold_or_nested_training_only",
+    "test_time_inference_policy": "scalp_only"
+  },
+  "manifest_boundary": {
+    "contains_feature_matrix": false,
+    "contains_model_outputs": false,
+    "contains_metrics": false,
+    "smoke_feature_rows_allowed_as_final": false,
+    "standalone_claim_ready": false
+  },
+  "remaining_required_manifests_after_feature": [
+    "final_leakage_audit",
+    "final_comparator_outputs",
+    "final_control_calibration_influence_reporting_package"
+  ]
+}

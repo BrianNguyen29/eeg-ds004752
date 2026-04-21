@@ -25,7 +25,8 @@ Recommended Colab sequence:
 18. `17_colab_phase1_final_comparator_artifact_plan.ipynb`: record the CLI-backed final comparator manifest schema and missing artifact inventory before final comparator runner implementation.
 19. `18_colab_phase1_final_split_feature_leakage_plan.ipynb`: record the CLI-backed final split, feature provenance and leakage-audit readiness contract before final comparator runner implementation.
 20. `19_colab_phase1_final_split_manifest.ipynb`: generate the final LOSO split manifest only if Gate 0 has a signal-ready cohort lock; otherwise record a blocked non-claim artifact.
-21. Full real decoder phases only after locked prereg, required Phase 0.5 controls, Phase 1 readiness checks, Phase 1 smoke contract review pass, real model-smoke artifacts are reviewed, gap review blockers are resolved, final claim-package plan, final comparator artifact plan, final split/feature/leakage plan and final split manifest are reviewed, and the required feature/leakage/comparator/control/calibration/influence/reporting package is implemented.
+21. `20_colab_phase1_final_feature_manifest.ipynb`: generate the final scalp feature schema/provenance manifest only if final split, Gate 0, materialization and dataset sidecar/event prerequisites pass; otherwise record a blocked non-claim artifact.
+22. Full real decoder phases only after locked prereg, required Phase 0.5 controls, Phase 1 readiness checks, Phase 1 smoke contract review pass, real model-smoke artifacts are reviewed, gap review blockers are resolved, final claim-package plan, final comparator artifact plan, final split/feature/leakage plan, final split manifest and final feature manifest are reviewed, and the required leakage/comparator/control/calibration/influence/reporting package is implemented.
 
 Notebook integrity rules:
 

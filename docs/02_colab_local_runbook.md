@@ -392,6 +392,21 @@ python -m src.cli phase1_final_split_manifest \
 
 The final split manifest runner is fail-closed. It writes `final_split_manifest.json` only when Gate 0 `manifest_status` and `cohort_lock_status` are both `signal_audit_ready`, Gate 0 blockers are empty, and primary eligible subjects are explicit. If those conditions are not met, it writes `phase1_final_split_manifest_blocked.json` and must not be used by final comparator runners.
 
+Phase 1 final feature schema/provenance manifest after final LOSO split manifest:
+
+```bash
+python -m src.cli phase1_final_feature_manifest \
+  --profile t4_safe \
+  --config artifacts/prereg/<prereg_run>/prereg_bundle.json \
+  --final-split-run artifacts/phase1_final_split_manifest/<final_split_manifest_run> \
+  --dataset-root data/ds004752 \
+  --output-root artifacts/phase1_final_feature_manifest \
+  --feature-config configs/phase1/final_feature_manifest.json \
+  --readiness-config configs/phase1/final_split_feature_leakage.json
+```
+
+The final feature manifest runner is non-claim and fail-closed. It records feature schema/provenance only: feature set ID, scalp channel/band feature names, task window, trial filter, dataset sidecar/event inventory and source hashes. It does not write feature matrices, train comparators, compute metrics or run leakage audits. If split, Gate 0, materialization or dataset sidecar prerequisites are missing, it writes `phase1_final_feature_manifest_blocked.json`.
+
 ## Conditions for opening real phases
 
 Real phases may be opened only when all conditions are true:
