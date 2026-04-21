@@ -469,6 +469,24 @@ python -m src.cli phase1_final_comparator_runner \
 
 The final comparator runner is claim-closed. It consumes `final_feature_matrix.csv` and writes comparator logits, subject-level metrics, output manifests and runtime leakage logs for comparator implementations that are valid from that matrix. It must not promote smoke artifacts. A2d Riemannian must remain blocked unless a valid final covariance/tangent input path exists; the runner must not approximate A2d from bandpower features.
 
+Phase 1 final A2d covariance/tangent runner after the feature-matrix comparator runner records the A2d blocker:
+
+```bash
+python -m src.cli phase1_final_a2d_runner \
+  --profile t4_safe \
+  --config artifacts/prereg/<prereg_run>/prereg_bundle.json \
+  --final-split-run artifacts/phase1_final_split_manifest/<final_split_manifest_run> \
+  --final-feature-run artifacts/phase1_final_feature_manifest/<final_feature_manifest_run> \
+  --final-leakage-run artifacts/phase1_final_leakage_audit/<final_leakage_audit_run> \
+  --feature-matrix-run artifacts/phase1_final_feature_matrix/<feature_matrix_run> \
+  --feature-matrix-comparator-run artifacts/phase1_final_comparator_runner/<feature_matrix_comparator_run> \
+  --dataset-root data/ds004752 \
+  --output-root artifacts/phase1_final_a2d_runner \
+  --runner-config configs/phase1/final_a2d_runner.json
+```
+
+The final A2d runner is claim-closed. It uses the final feature matrix row index as row/provenance contract but extracts covariance matrices directly from EDF payloads, fits the log-Euclidean reference and tangent projection on training subjects only per LOSO fold, and writes A2d logits, subject-level diagnostics, output manifest and runtime leakage log. It can resolve the A2d missing-output engineering blocker for downstream reconciliation, but it does not make A2d or Phase 1 claim-evaluable without controls, calibration, influence and reporting.
+
 ## Conditions for opening real phases
 
 Real phases may be opened only when all conditions are true:
@@ -488,6 +506,7 @@ Real phases may be opened only when all conditions are true:
 - Final comparator runner/output-manifest readiness must be reviewed before final comparator runner implementation, but it does not make comparator outputs claim-evaluable.
 - The final feature matrix may be used as final comparator runner input only after materialization validation passes; by itself it is not model evidence and does not open claims.
 - Final comparator runner outputs may feed downstream controls/calibration/influence/reporting only after runtime leakage logs are reviewed; partial output packages with blocked comparators remain non-claim.
+- Final A2d covariance/tangent outputs may clear the A2d missing-output blocker only after their runtime leakage log passes and downstream comparator-package reconciliation links the A2d run with the feature-matrix comparator run.
 
 ## Current local status
 

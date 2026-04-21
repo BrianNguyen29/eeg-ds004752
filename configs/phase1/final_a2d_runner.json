@@ -1,0 +1,48 @@
+{
+  "runner_id": "phase1_final_a2d_covariance_tangent_runner_v1",
+  "status": "implementation_claim_closed",
+  "claim_scope": "final_a2d_covariance_tangent_outputs_and_runtime_leakage_logs",
+  "scientific_integrity_rule": "This runner uses the reviewed final feature matrix row index only as row/provenance contract, then extracts covariance matrices directly from the final EDF payloads. It does not approximate A2d from bandpower features, does not use smoke artifacts, and does not open claims.",
+  "required_inputs": {
+    "final_split_manifest_ready": true,
+    "final_feature_manifest_ready": true,
+    "final_leakage_audit_ready": true,
+    "final_feature_matrix_ready": true,
+    "feature_matrix_contains_model_outputs": false,
+    "feature_matrix_contains_logits": false,
+    "feature_matrix_contains_metrics": false,
+    "manifest_level_outer_test_subject_used_in_any_fit": false,
+    "manifest_level_runtime_comparator_logs_audited": false,
+    "smoke_artifacts_promoted": false
+  },
+  "comparator_id": "A2d_riemannian",
+  "backend": "internal_numpy_logeuclidean_tangent_final_claim_closed",
+  "signal_windows_sec": {
+    "task_maintenance": [2.25, 4.75]
+  },
+  "covariance": {
+    "diagonal_loading": 0.000001,
+    "trace_normalize": true,
+    "min_window_samples": 8,
+    "channel_policy": "use_final_feature_manifest_common_scalp_channels"
+  },
+  "logistic_probe": {
+    "learning_rate": 0.05,
+    "n_steps": 220,
+    "l2": 0.001,
+    "subject_balanced": true
+  },
+  "fit_scope_rules": {
+    "outer_test_subject_in_covariance_reference_fit_allowed": false,
+    "outer_test_subject_in_tangent_reference_fit_allowed": false,
+    "outer_test_subject_in_normalization_fit_allowed": false,
+    "outer_test_subject_in_classifier_fit_allowed": false,
+    "outer_test_subject_in_calibration_fit_allowed": false,
+    "test_time_privileged_or_teacher_outputs_allowed": false
+  },
+  "claim_blockers_after_success": [
+    "controls_calibration_influence_reporting_missing",
+    "headline_claim_blocked_until_full_package_passes",
+    "final_comparator_package_must_be_reconciled_after_a2d_runner"
+  ]
+}

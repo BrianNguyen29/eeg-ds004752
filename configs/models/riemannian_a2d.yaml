@@ -12,6 +12,15 @@ smoke_implementation:
   comparator_id: A2d_riemannian
   final_comparator_estimate: false
   claim_ready: false
+final_claim_closed_runner:
+  module: src.phase1.final_a2d_runner
+  phase_config: configs/phase1/final_a2d_runner.json
+  comparator_id: A2d_riemannian
+  input_policy: final_feature_matrix_row_index_plus_edf_covariance_extraction
+  uses_bandpower_feature_matrix_as_a2d_input: false
+  writes_final_a2d_output_manifest: true
+  claim_ready: false
+  claim_evaluable_until_full_governance_package: false
 split_discipline:
   outer_test_subject_excluded_from:
     - covariance_reference_fit

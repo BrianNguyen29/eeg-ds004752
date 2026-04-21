@@ -26,6 +26,7 @@ from .phase1.final_comparator_runner import (
     Phase1FinalComparatorRunnerError,
     run_phase1_final_comparator_runner,
 )
+from .phase1.final_a2d_runner import Phase1FinalA2dRunnerError, run_phase1_final_a2d_runner
 from .phase1.final_claim_package import Phase1FinalClaimPackageError, run_phase1_final_claim_package_plan
 from .phase1.final_split_feature_leakage import (
     Phase1FinalSplitFeatureLeakageError,
@@ -299,6 +300,28 @@ def build_parser() -> argparse.ArgumentParser:
     )
     phase1_final_comparator_run.add_argument("--comparators", nargs="*")
     phase1_final_comparator_run.add_argument("--max-outer-folds", type=int)
+
+    phase1_final_a2d_run = subparsers.add_parser(
+        "phase1_final_a2d_runner",
+        help="Run claim-closed final A2d covariance/tangent comparator outputs",
+    )
+    phase1_final_a2d_run.add_argument("--profile", default="t4_safe")
+    phase1_final_a2d_run.add_argument("--config", required=True)
+    phase1_final_a2d_run.add_argument("--final-split-run", required=True)
+    phase1_final_a2d_run.add_argument("--final-feature-run", required=True)
+    phase1_final_a2d_run.add_argument("--final-leakage-run", required=True)
+    phase1_final_a2d_run.add_argument("--feature-matrix-run", required=True)
+    phase1_final_a2d_run.add_argument("--dataset-root", required=True)
+    phase1_final_a2d_run.add_argument("--feature-matrix-comparator-run")
+    phase1_final_a2d_run.add_argument(
+        "--output-root",
+        default="artifacts/phase1_final_a2d_runner",
+    )
+    phase1_final_a2d_run.add_argument(
+        "--runner-config",
+        default="configs/phase1/final_a2d_runner.json",
+    )
+    phase1_final_a2d_run.add_argument("--max-outer-folds", type=int)
 
     for phase in ("phase05_real", "phase1_real", "phase2_real", "phase3_real"):
         phase_parser = subparsers.add_parser(phase, help=f"Guarded {phase} command")
@@ -620,6 +643,25 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Report: {result.report_path}")
             return 0
 
+        if args.command == "phase1_final_a2d_runner":
+            result = run_phase1_final_a2d_runner(
+                prereg_bundle=args.config,
+                final_split_run=args.final_split_run,
+                final_feature_run=args.final_feature_run,
+                final_leakage_run=args.final_leakage_run,
+                feature_matrix_run=args.feature_matrix_run,
+                feature_matrix_comparator_run=args.feature_matrix_comparator_run,
+                dataset_root=args.dataset_root,
+                output_root=args.output_root,
+                repo_root=Path.cwd(),
+                config_paths={"runner": args.runner_config},
+                max_outer_folds=args.max_outer_folds,
+            )
+            print(f"Phase 1 final A2d covariance/tangent runner complete: {result.output_dir}")
+            print(f"Summary: {result.summary_path}")
+            print(f"Report: {result.report_path}")
+            return 0
+
         if args.command == "phase1_real" and sum(
             bool(flag)
             for flag in [args.smoke, args.model_smoke, args.a2c_smoke, args.a2d_smoke, args.a3_smoke, args.a4_smoke]
@@ -810,6 +852,7 @@ def main(argv: list[str] | None = None) -> int:
         Phase1FinalComparatorArtifactError,
         Phase1FinalComparatorRunnerReadinessError,
         Phase1FinalComparatorRunnerError,
+        Phase1FinalA2dRunnerError,
         Phase1FinalSplitFeatureLeakageError,
         Phase1FinalFeatureManifestError,
         Phase1FinalFeatureMatrixError,
