@@ -1,0 +1,86 @@
+{
+  "package_id": "phase1_final_claim_package_v1",
+  "status": "planning_non_claim",
+  "claim_scope": "readiness_contract_only",
+  "scientific_integrity_rule": "This specification records the final Phase 1 claim-package contract. It does not authorize claims, run models, execute controls, estimate calibration, estimate influence, or convert smoke metrics into efficacy evidence.",
+  "primary_endpoint": {
+    "task": "memory_load_4_vs_8",
+    "split": "nested_leave_one_subject_out",
+    "primary_metric": "balanced_accuracy",
+    "unit_of_inference": "subject_level_outer_fold"
+  },
+  "required_final_comparators": [
+    "A2",
+    "A2b",
+    "A2c_CORAL",
+    "A2d_riemannian",
+    "A3_distillation",
+    "A4_privileged"
+  ],
+  "required_non_claim_smoke_reviews": [
+    "A2_A2b",
+    "A2c_CORAL",
+    "A2d_riemannian",
+    "A3_distillation",
+    "A4_privileged"
+  ],
+  "required_final_comparator_artifacts": [
+    "final_fold_logs",
+    "final_subject_level_metrics",
+    "final_logits",
+    "final_comparator_completeness_table",
+    "final_split_manifest",
+    "final_feature_manifest",
+    "final_leakage_audit"
+  ],
+  "required_final_control_results": [
+    "scalp_only_baseline",
+    "grouped_permutation",
+    "nuisance_shared_control",
+    "spatial_control",
+    "transfer_consistency",
+    "shuffled_labels",
+    "shuffled_teacher",
+    "time_shifted_teacher"
+  ],
+  "required_final_calibration_artifacts": [
+    "final_comparator_logits",
+    "pooled_ece_10_bins",
+    "subject_level_ece",
+    "brier_score",
+    "negative_log_likelihood",
+    "reliability_table",
+    "reliability_diagram",
+    "risk_coverage_curve",
+    "calibration_delta_vs_baseline"
+  ],
+  "required_final_influence_artifacts": [
+    "subject_level_fold_metrics",
+    "leave_one_subject_out_deltas",
+    "max_single_subject_contribution_share",
+    "claim_state_leave_one_subject_out",
+    "influence_veto_decision"
+  ],
+  "required_final_reporting_artifacts": [
+    "final_comparator_completeness_table",
+    "negative_controls_report",
+    "calibration_package_report",
+    "influence_package_report",
+    "final_fold_logs",
+    "claim_state_report",
+    "main_phase1_report"
+  ],
+  "claim_opening_rules": {
+    "all_required_comparators_final": true,
+    "a4_must_exceed_all_strong_scalp_comparators": true,
+    "controls_must_pass": true,
+    "calibration_must_not_worsen_beyond_locked_delta_ece": true,
+    "influence_must_not_exceed_locked_ceiling_or_flip_claim_state": true,
+    "reporting_package_must_be_complete": true,
+    "smoke_metrics_allowed_as_claim_evidence": false
+  },
+  "threshold_sources": {
+    "sesoi_and_calibration": "configs/gate1/decision_simulation.json",
+    "negative_controls_and_influence_defaults": "configs/gate2/synthetic_validation.json"
+  }
+}

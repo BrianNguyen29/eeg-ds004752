@@ -336,6 +336,19 @@ python -m src.cli phase1_governance_readiness \
 
 Governance readiness is non-claim. It aggregates the post-A4 gap review with control-suite, calibration, influence and reporting readiness surfaces. It must remain fail-closed while final control results, final calibration artifacts, final influence artifacts and final reporting artifacts are missing.
 
+Phase 1 final claim-package plan after governance readiness:
+
+```bash
+python -m src.cli phase1_final_claim_package_plan \
+  --profile t4_safe \
+  --config artifacts/prereg/<prereg_run>/prereg_bundle.json \
+  --governance-run artifacts/phase1_governance_readiness/<governance_run> \
+  --output-root artifacts/phase1_final_claim_package_plan \
+  --package-config configs/phase1/final_claim_package.json
+```
+
+Final claim-package planning is non-claim. It records the machine-readable contract for final comparator, control, calibration, influence and reporting artifacts. It must not be interpreted as evidence and must keep `claim_ready=false` until the final package is implemented and passes locked rules.
+
 ## Conditions for opening real phases
 
 Real phases may be opened only when all conditions are true:
@@ -349,6 +362,7 @@ Real phases may be opened only when all conditions are true:
 - The real phase command uses that exact locked prereg bundle.
 - Any post-prereg claim-affecting change has a revision log and is refrozen/rerun or demoted to post-hoc.
 - Phase 1 headline claims additionally require final comparator readiness plus executable controls, calibration, influence and reporting artifacts that pass the locked thresholds.
+- The final claim-package plan must be reviewed as a contract before any claim-bearing runner is implemented.
 
 ## Current local status
 
