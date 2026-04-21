@@ -422,6 +422,22 @@ python -m src.cli phase1_final_leakage_audit \
 
 The final leakage audit runner is non-claim and manifest-level. It records fit and transform subjects for preprocessing, normalization, alignment, teacher, privileged, gate/weight and calibration stages for every LOSO fold. It must show that the outer-test subject is not in any fit scope and that test-time privileged/teacher outputs are disallowed. It does not audit final comparator runtime logs, because final comparator runners have not executed yet.
 
+Phase 1 final comparator runner/output-manifest readiness after final split, feature and manifest-level leakage artifacts:
+
+```bash
+python -m src.cli phase1_final_comparator_runner_readiness \
+  --profile t4_safe \
+  --config artifacts/prereg/<prereg_run>/prereg_bundle.json \
+  --final-split-run artifacts/phase1_final_split_manifest/<final_split_manifest_run> \
+  --final-feature-run artifacts/phase1_final_feature_manifest/<final_feature_manifest_run> \
+  --final-leakage-run artifacts/phase1_final_leakage_audit/<final_leakage_audit_run> \
+  --output-root artifacts/phase1_final_comparator_runner_readiness \
+  --runner-config configs/phase1/final_comparator_runner_readiness.json \
+  --artifact-config configs/phase1/final_comparator_artifacts.json
+```
+
+The final comparator runner readiness package is non-claim. It links reviewed final split, feature and manifest-level leakage artifacts to the required output contract for A2/A2b/A2c/A2d/A3/A4, then records final fold logs, logits, subject-level metrics, runtime leakage logs and comparator output manifests as missing. It must not be interpreted as model evidence, and it must not feed controls, calibration, influence or reporting until final comparator runners write real outputs and runtime leakage logs.
+
 ## Conditions for opening real phases
 
 Real phases may be opened only when all conditions are true:
@@ -438,6 +454,7 @@ Real phases may be opened only when all conditions are true:
 - The final claim-package plan must be reviewed as a contract before any claim-bearing runner is implemented.
 - Final comparator artifact manifests must exist before controls, calibration, influence or final reporting can be claim-evaluable.
 - Final split, feature and leakage-audit manifests must exist before final comparator outputs can be claim-evaluable.
+- Final comparator runner/output-manifest readiness must be reviewed before final comparator runner implementation, but it does not make comparator outputs claim-evaluable.
 
 ## Current local status
 

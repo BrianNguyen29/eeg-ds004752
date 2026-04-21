@@ -18,6 +18,10 @@ from .phase1.final_comparator_artifacts import (
     Phase1FinalComparatorArtifactError,
     run_phase1_final_comparator_artifact_plan,
 )
+from .phase1.final_comparator_runner_readiness import (
+    Phase1FinalComparatorRunnerReadinessError,
+    run_phase1_final_comparator_runner_readiness,
+)
 from .phase1.final_claim_package import Phase1FinalClaimPackageError, run_phase1_final_claim_package_plan
 from .phase1.final_split_feature_leakage import (
     Phase1FinalSplitFeatureLeakageError,
@@ -228,6 +232,28 @@ def build_parser() -> argparse.ArgumentParser:
     phase1_final_leakage_audit.add_argument(
         "--readiness-config",
         default="configs/phase1/final_split_feature_leakage.json",
+    )
+
+    phase1_final_comparator_runner = subparsers.add_parser(
+        "phase1_final_comparator_runner_readiness",
+        help="Record final comparator runner/output-manifest readiness without opening claims",
+    )
+    phase1_final_comparator_runner.add_argument("--profile", default="t4_safe")
+    phase1_final_comparator_runner.add_argument("--config", required=True)
+    phase1_final_comparator_runner.add_argument("--final-split-run", required=True)
+    phase1_final_comparator_runner.add_argument("--final-feature-run", required=True)
+    phase1_final_comparator_runner.add_argument("--final-leakage-run", required=True)
+    phase1_final_comparator_runner.add_argument(
+        "--output-root",
+        default="artifacts/phase1_final_comparator_runner_readiness",
+    )
+    phase1_final_comparator_runner.add_argument(
+        "--runner-config",
+        default="configs/phase1/final_comparator_runner_readiness.json",
+    )
+    phase1_final_comparator_runner.add_argument(
+        "--artifact-config",
+        default="configs/phase1/final_comparator_artifacts.json",
     )
 
     for phase in ("phase05_real", "phase1_real", "phase2_real", "phase3_real"):
@@ -499,6 +525,24 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Report: {result.report_path}")
             return 0
 
+        if args.command == "phase1_final_comparator_runner_readiness":
+            result = run_phase1_final_comparator_runner_readiness(
+                prereg_bundle=args.config,
+                final_split_run=args.final_split_run,
+                final_feature_run=args.final_feature_run,
+                final_leakage_run=args.final_leakage_run,
+                output_root=args.output_root,
+                repo_root=Path.cwd(),
+                config_paths={
+                    "runner": args.runner_config,
+                    "artifact": args.artifact_config,
+                },
+            )
+            print(f"Phase 1 final comparator runner readiness complete: {result.output_dir}")
+            print(f"Summary: {result.summary_path}")
+            print(f"Report: {result.report_path}")
+            return 0
+
         if args.command == "phase1_real" and sum(
             bool(flag)
             for flag in [args.smoke, args.model_smoke, args.a2c_smoke, args.a2d_smoke, args.a3_smoke, args.a4_smoke]
@@ -687,6 +731,7 @@ def main(argv: list[str] | None = None) -> int:
         Phase1GovernanceReadinessError,
         Phase1FinalClaimPackageError,
         Phase1FinalComparatorArtifactError,
+        Phase1FinalComparatorRunnerReadinessError,
         Phase1FinalSplitFeatureLeakageError,
         Phase1FinalFeatureManifestError,
         Phase1FinalLeakageAuditError,
