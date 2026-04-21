@@ -23,6 +23,7 @@ from .phase1.final_split_feature_leakage import (
     Phase1FinalSplitFeatureLeakageError,
     run_phase1_final_split_feature_leakage_plan,
 )
+from .phase1.final_split_manifest import Phase1FinalSplitManifestError, run_phase1_final_split_manifest
 from .phase1.gap_review import Phase1GapReviewError, run_phase1_gap_review
 from .phase1.model_smoke import Phase1ModelSmokeError, run_phase1_model_smoke
 from .phase1.smoke import Phase1SmokeError, run_phase1_smoke
@@ -162,6 +163,27 @@ def build_parser() -> argparse.ArgumentParser:
     phase1_final_sfl.add_argument(
         "--artifact-config",
         default="configs/phase1/final_comparator_artifacts.json",
+    )
+
+    phase1_final_split_manifest = subparsers.add_parser(
+        "phase1_final_split_manifest",
+        help="Generate or block the final Phase 1 LOSO split manifest without opening claims",
+    )
+    phase1_final_split_manifest.add_argument("--profile", default="t4_safe")
+    phase1_final_split_manifest.add_argument("--config", required=True)
+    phase1_final_split_manifest.add_argument("--split-feature-leakage-run", required=True)
+    phase1_final_split_manifest.add_argument("--gate0-run", required=True)
+    phase1_final_split_manifest.add_argument(
+        "--output-root",
+        default="artifacts/phase1_final_split_manifest",
+    )
+    phase1_final_split_manifest.add_argument(
+        "--manifest-config",
+        default="configs/phase1/final_split_manifest.json",
+    )
+    phase1_final_split_manifest.add_argument(
+        "--readiness-config",
+        default="configs/phase1/final_split_feature_leakage.json",
     )
 
     for phase in ("phase05_real", "phase1_real", "phase2_real", "phase3_real"):
@@ -382,6 +404,23 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Report: {result.report_path}")
             return 0
 
+        if args.command == "phase1_final_split_manifest":
+            result = run_phase1_final_split_manifest(
+                prereg_bundle=args.config,
+                split_feature_leakage_run=args.split_feature_leakage_run,
+                gate0_run=args.gate0_run,
+                output_root=args.output_root,
+                repo_root=Path.cwd(),
+                config_paths={
+                    "manifest": args.manifest_config,
+                    "readiness": args.readiness_config,
+                },
+            )
+            print(f"Phase 1 final split manifest complete: {result.output_dir}")
+            print(f"Summary: {result.summary_path}")
+            print(f"Report: {result.report_path}")
+            return 0
+
         if args.command == "phase1_real" and sum(
             bool(flag)
             for flag in [args.smoke, args.model_smoke, args.a2c_smoke, args.a2d_smoke, args.a3_smoke, args.a4_smoke]
@@ -571,6 +610,7 @@ def main(argv: list[str] | None = None) -> int:
         Phase1FinalClaimPackageError,
         Phase1FinalComparatorArtifactError,
         Phase1FinalSplitFeatureLeakageError,
+        Phase1FinalSplitManifestError,
     ) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2

@@ -1,0 +1,39 @@
+{
+  "manifest_id": "phase1_final_split_manifest_v1",
+  "status": "generator_non_claim",
+  "claim_scope": "final_loso_split_manifest_only",
+  "scientific_integrity_rule": "This generator may write the final LOSO split manifest only from a locked Gate 0 cohort. It does not extract features, run leakage audits, train models, compute metrics, or open claims.",
+  "source_readiness_contract": "configs/phase1/final_split_feature_leakage.json",
+  "split_config": "configs/split/loso_subject.yaml",
+  "split_id": "loso_subject",
+  "group_key": "participant_id",
+  "leakage_policy": "no_subject_overlap_between_train_and_test",
+  "minimum_eligible_subjects": 2,
+  "require_gate0_manifest_status": "signal_audit_ready",
+  "require_cohort_lock_status": "signal_audit_ready",
+  "require_no_gate0_blockers": true,
+  "require_primary_eligible_true": true,
+  "fold_policy": {
+    "outer_test_subjects": "all_primary_eligible_subjects_once",
+    "train_subjects": "all_primary_eligible_subjects_except_outer_test_subject",
+    "test_subjects": "outer_test_subject_only",
+    "deterministic_order": "lexicographic_participant_id"
+  },
+  "fit_scope_rules": {
+    "outer_test_subject_in_preprocessing_fit_allowed": false,
+    "outer_test_subject_in_normalization_fit_allowed": false,
+    "outer_test_subject_in_alignment_fit_allowed": false,
+    "outer_test_subject_in_teacher_fit_allowed": false,
+    "outer_test_subject_in_privileged_fit_allowed": false,
+    "outer_test_subject_in_gate_or_weight_fit_allowed": false,
+    "outer_test_subject_in_calibration_fit_allowed": false,
+    "test_time_privileged_or_teacher_outputs_allowed": false
+  },
+  "standalone_claim_ready": false,
+  "remaining_required_manifests_after_split": [
+    "final_feature_manifest",
+    "final_leakage_audit",
+    "final_comparator_outputs",
+    "final_control_calibration_influence_reporting_package"
+  ]
+}

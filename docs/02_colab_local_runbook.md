@@ -377,6 +377,21 @@ python -m src.cli phase1_final_split_feature_leakage_plan \
 
 Final split/feature/leakage readiness is non-claim. It records the LOSO split, feature provenance and leakage-audit manifest contract required before final comparator runners. It does not create final folds, extract final features or run leakage audits.
 
+Phase 1 final LOSO split manifest after split/feature/leakage readiness:
+
+```bash
+python -m src.cli phase1_final_split_manifest \
+  --profile t4_safe \
+  --config artifacts/prereg/<prereg_run>/prereg_bundle.json \
+  --split-feature-leakage-run artifacts/phase1_final_split_feature_leakage_plan/<split_feature_leakage_plan_run> \
+  --gate0-run artifacts/gate0/<gate0_signal_ready_run> \
+  --output-root artifacts/phase1_final_split_manifest \
+  --manifest-config configs/phase1/final_split_manifest.json \
+  --readiness-config configs/phase1/final_split_feature_leakage.json
+```
+
+The final split manifest runner is fail-closed. It writes `final_split_manifest.json` only when Gate 0 `manifest_status` and `cohort_lock_status` are both `signal_audit_ready`, Gate 0 blockers are empty, and primary eligible subjects are explicit. If those conditions are not met, it writes `phase1_final_split_manifest_blocked.json` and must not be used by final comparator runners.
+
 ## Conditions for opening real phases
 
 Real phases may be opened only when all conditions are true:
