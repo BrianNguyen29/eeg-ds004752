@@ -349,6 +349,20 @@ python -m src.cli phase1_final_claim_package_plan \
 
 Final claim-package planning is non-claim. It records the machine-readable contract for final comparator, control, calibration, influence and reporting artifacts. It must not be interpreted as evidence and must keep `claim_ready=false` until the final package is implemented and passes locked rules.
 
+Phase 1 final comparator artifact plan after final claim-package planning:
+
+```bash
+python -m src.cli phase1_final_comparator_artifact_plan \
+  --profile t4_safe \
+  --config artifacts/prereg/<prereg_run>/prereg_bundle.json \
+  --claim-package-run artifacts/phase1_final_claim_package_plan/<claim_package_plan_run> \
+  --output-root artifacts/phase1_final_comparator_artifact_plan \
+  --artifact-config configs/phase1/final_comparator_artifacts.json \
+  --claim-package-config configs/phase1/final_claim_package.json
+```
+
+Final comparator artifact planning is non-claim. It records the required fold log, metric, logit, split, feature and leakage-audit schema for A2/A2b/A2c/A2d/A3/A4. Smoke outputs must remain non-evidentiary and cannot satisfy this contract.
+
 ## Conditions for opening real phases
 
 Real phases may be opened only when all conditions are true:
@@ -363,6 +377,7 @@ Real phases may be opened only when all conditions are true:
 - Any post-prereg claim-affecting change has a revision log and is refrozen/rerun or demoted to post-hoc.
 - Phase 1 headline claims additionally require final comparator readiness plus executable controls, calibration, influence and reporting artifacts that pass the locked thresholds.
 - The final claim-package plan must be reviewed as a contract before any claim-bearing runner is implemented.
+- Final comparator artifact manifests must exist before controls, calibration, influence or final reporting can be claim-evaluable.
 
 ## Current local status
 

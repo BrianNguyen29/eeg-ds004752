@@ -1,0 +1,61 @@
+{
+  "artifact_plan_id": "phase1_final_comparator_artifacts_v1",
+  "status": "planning_non_claim",
+  "claim_scope": "final_comparator_artifact_manifest_contract_only",
+  "scientific_integrity_rule": "This specification records the required final comparator artifact schema. It does not run final comparators, authorize claims, or promote smoke metrics into evidence.",
+  "source_contract": "configs/phase1/final_claim_package.json",
+  "required_final_comparators": [
+    "A2",
+    "A2b",
+    "A2c_CORAL",
+    "A2d_riemannian",
+    "A3_distillation",
+    "A4_privileged"
+  ],
+  "required_artifacts_per_comparator": [
+    "final_fold_logs",
+    "final_subject_level_metrics",
+    "final_logits",
+    "final_split_manifest",
+    "final_feature_manifest",
+    "final_leakage_audit"
+  ],
+  "shared_artifacts": [
+    "final_comparator_completeness_table"
+  ],
+  "manifest_schema": {
+    "comparator_id": "string",
+    "status": "final_comparator_manifest_recorded_or_missing",
+    "claim_evaluable": "boolean",
+    "source_prereg_bundle": "path",
+    "source_final_claim_package_plan": "path",
+    "source_final_claim_package_contract": "path",
+    "fold_logs": "path_or_missing",
+    "subject_level_metrics": "path_or_missing",
+    "logits": "path_or_missing",
+    "split_manifest": "path_or_missing",
+    "feature_manifest": "path_or_missing",
+    "leakage_audit": "path_or_missing",
+    "outer_test_subject_policy": "no_outer_test_subject_in_any_fit",
+    "inference_policy": "scalp_only_for_all_test_time_comparators",
+    "smoke_metrics_promoted": false
+  },
+  "leakage_requirements": {
+    "outer_test_subject_in_preprocessing_fit_allowed": false,
+    "outer_test_subject_in_normalization_fit_allowed": false,
+    "outer_test_subject_in_alignment_fit_allowed": false,
+    "outer_test_subject_in_teacher_fit_allowed": false,
+    "outer_test_subject_in_privileged_fit_allowed": false,
+    "outer_test_subject_in_gate_or_weight_fit_allowed": false,
+    "outer_test_subject_in_calibration_fit_allowed": false,
+    "test_time_privileged_or_teacher_outputs_allowed": false
+  },
+  "comparator_notes": {
+    "A2": "Final scalp-only baseline comparator; smoke outputs are not final evidence.",
+    "A2b": "Final scalp-only strong baseline comparator; smoke outputs are not final evidence.",
+    "A2c_CORAL": "Final CORAL comparator requires final artifact manifests; A2c smoke is not final evidence.",
+    "A2d_riemannian": "Final Riemannian comparator requires final artifact manifests; A2d smoke is not final evidence.",
+    "A3_distillation": "Final distillation comparator requires final teacher/student contract; A3 smoke uses an internal scalp proxy only.",
+    "A4_privileged": "Final privileged comparator requires train-time-only privileged contract and scalp-only inference; A4 smoke uses an internal proxy only."
+  }
+}

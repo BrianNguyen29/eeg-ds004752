@@ -14,6 +14,10 @@ from .phase1.a2d_smoke import Phase1A2dSmokeError, run_phase1_a2d_smoke
 from .phase1.a3_smoke import Phase1A3SmokeError, run_phase1_a3_smoke
 from .phase1.a4_smoke import Phase1A4SmokeError, run_phase1_a4_smoke
 from .phase1.claim_state import Phase1GovernanceReadinessError, run_phase1_governance_readiness
+from .phase1.final_comparator_artifacts import (
+    Phase1FinalComparatorArtifactError,
+    run_phase1_final_comparator_artifact_plan,
+)
 from .phase1.final_claim_package import Phase1FinalClaimPackageError, run_phase1_final_claim_package_plan
 from .phase1.gap_review import Phase1GapReviewError, run_phase1_gap_review
 from .phase1.model_smoke import Phase1ModelSmokeError, run_phase1_model_smoke
@@ -115,6 +119,26 @@ def build_parser() -> argparse.ArgumentParser:
     phase1_final_claim.add_argument("--governance-run", required=True)
     phase1_final_claim.add_argument("--output-root", default="artifacts/phase1_final_claim_package_plan")
     phase1_final_claim.add_argument("--package-config", default="configs/phase1/final_claim_package.json")
+
+    phase1_final_comparator_artifact = subparsers.add_parser(
+        "phase1_final_comparator_artifact_plan",
+        help="Record final Phase 1 comparator artifact schema and missing manifests without opening claims",
+    )
+    phase1_final_comparator_artifact.add_argument("--profile", default="t4_safe")
+    phase1_final_comparator_artifact.add_argument("--config", required=True)
+    phase1_final_comparator_artifact.add_argument("--claim-package-run", required=True)
+    phase1_final_comparator_artifact.add_argument(
+        "--output-root",
+        default="artifacts/phase1_final_comparator_artifact_plan",
+    )
+    phase1_final_comparator_artifact.add_argument(
+        "--artifact-config",
+        default="configs/phase1/final_comparator_artifacts.json",
+    )
+    phase1_final_comparator_artifact.add_argument(
+        "--claim-package-config",
+        default="configs/phase1/final_claim_package.json",
+    )
 
     for phase in ("phase05_real", "phase1_real", "phase2_real", "phase3_real"):
         phase_parser = subparsers.add_parser(phase, help=f"Guarded {phase} command")
@@ -298,6 +322,22 @@ def main(argv: list[str] | None = None) -> int:
                 config_paths={"package": args.package_config},
             )
             print(f"Phase 1 final claim-package plan complete: {result.output_dir}")
+            print(f"Summary: {result.summary_path}")
+            print(f"Report: {result.report_path}")
+            return 0
+
+        if args.command == "phase1_final_comparator_artifact_plan":
+            result = run_phase1_final_comparator_artifact_plan(
+                prereg_bundle=args.config,
+                claim_package_run=args.claim_package_run,
+                output_root=args.output_root,
+                repo_root=Path.cwd(),
+                config_paths={
+                    "artifact": args.artifact_config,
+                    "claim_package": args.claim_package_config,
+                },
+            )
+            print(f"Phase 1 final comparator artifact plan complete: {result.output_dir}")
             print(f"Summary: {result.summary_path}")
             print(f"Report: {result.report_path}")
             return 0
@@ -489,6 +529,7 @@ def main(argv: list[str] | None = None) -> int:
         Phase1A4SmokeError,
         Phase1GovernanceReadinessError,
         Phase1FinalClaimPackageError,
+        Phase1FinalComparatorArtifactError,
     ) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2

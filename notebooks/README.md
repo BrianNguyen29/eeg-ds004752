@@ -22,7 +22,8 @@ Recommended Colab sequence:
 15. `14_colab_phase1_post_a4_gap_review.ipynb`: refresh the CLI-backed non-claim gap review after A3/A4 smoke review notes, recording all comparator smoke reviews while keeping headline claims closed.
 16. `15_colab_phase1_governance_readiness.ipynb`: run the CLI-backed governance readiness package for controls, calibration, influence, reporting and claim-state surfaces; expected current result is blocked/non-claim.
 17. `16_colab_phase1_final_claim_package_plan.ipynb`: record the CLI-backed final claim-package artifact contract and blockers before any claim-bearing runner implementation.
-18. Full real decoder phases only after locked prereg, required Phase 0.5 controls, Phase 1 readiness checks, Phase 1 smoke contract review pass, real model-smoke artifacts are reviewed, gap review blockers are resolved, final claim-package plan is reviewed, and the required comparator/control/calibration/influence/reporting package is implemented.
+18. `17_colab_phase1_final_comparator_artifact_plan.ipynb`: record the CLI-backed final comparator manifest schema and missing artifact inventory before final comparator runner implementation.
+19. Full real decoder phases only after locked prereg, required Phase 0.5 controls, Phase 1 readiness checks, Phase 1 smoke contract review pass, real model-smoke artifacts are reviewed, gap review blockers are resolved, final claim-package plan and final comparator artifact plan are reviewed, and the required comparator/control/calibration/influence/reporting package is implemented.
 
 Notebook integrity rules:
 
