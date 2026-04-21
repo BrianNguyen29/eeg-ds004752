@@ -20,11 +20,11 @@ from ..config import load_config
 from ..guards import assert_real_phase_allowed
 from ..phase05.estimators import (
     Phase05EstimatorError,
+    _band_log_power,
     _optional_signal_imports,
     _read_edf,
     _read_tsv,
     _safe_float,
-    _window_bandpower_features,
 )
 from .smoke import _read_json, _write_json, _write_latest_pointer
 
@@ -155,7 +155,9 @@ def run_phase1_final_feature_matrix(
         "sessions": extracted.get("sessions", []),
         "skipped_sessions_count": len(extracted.get("skipped_sessions", [])),
         "read_fallbacks_count": len(extracted.get("read_fallbacks", [])),
+        "invalid_window_rows_count": len(extracted.get("invalid_window_rows", [])),
         "nonfinite_feature_values": validation.get("nonfinite_feature_values", 0),
+        "nonfinite_feature_examples": validation.get("nonfinite_feature_examples", []),
         "matrix_path": str(matrix_path) if matrix_ready else None,
         "feature_matrix_blockers": validation["blockers"],
         "claim_blockers": claim_state["blockers"],
@@ -424,6 +426,7 @@ def _coerce_precomputed_rows(
                 "source_eeg_file": str(row.get("source_eeg_file", "precomputed")),
                 "source_events_file": str(row.get("source_events_file", "precomputed")),
                 "features": values,
+                "nonfinite_feature_count": sum(1 for value in values if not math.isfinite(float(value))),
             }
         )
     return _finalize_extracted_rows(
@@ -433,6 +436,9 @@ def _coerce_precomputed_rows(
         read_fallbacks=[],
         source="precomputed_rows_test_fixture",
         matrix_config=matrix_config,
+        channel_aliases=[],
+        invalid_window_rows=[],
+        missing_feature_counts={},
     )
 
 
@@ -446,12 +452,16 @@ def _extract_rows_from_signal(
     manifest = feature["manifest"]
     feature_names = list(manifest.get("feature_names", []))
     bands = {name: tuple(values) for name, values in sorted(manifest.get("frequency_bands_hz", {}).items())}
+    expected_channels = _expected_channels_from_feature_names(feature_names)
     task_window = tuple(manifest.get("signal_windows_sec", {}).get("task_maintenance", []))
     if len(task_window) != 2:
         raise Phase1FinalFeatureMatrixError("Final feature manifest must define task_maintenance signal window")
     rows = []
     skipped_sessions = []
     read_fallbacks = []
+    channel_alias_records = []
+    invalid_window_rows = []
+    missing_feature_counts: dict[str, int] = {}
     row_index = 1
     for session_label in manifest.get("sessions", []):
         subject, session = _split_session_label(str(session_label))
@@ -477,20 +487,61 @@ def _extract_rows_from_signal(
         data = raw.get_data()
         sfreq = float(raw.info["sfreq"])
         channel_names = [str(name) for name in raw.ch_names]
+        channel_aliases = _feature_aliases_for_raw_channels(expected_channels, channel_names)
+        channel_alias_records.append(
+            {
+                "subject": subject,
+                "session": session,
+                "raw_channel_count": len(channel_names),
+                "expected_channel_count": len(expected_channels),
+                "aliases": channel_aliases,
+            }
+        )
+        raw_index_by_channel = {name: index for index, name in enumerate(channel_names)}
         for event in events:
             trial_start = max(int(float(event.get("begSample", 1))) - 1, 0)
-            values, names = _window_bandpower_features(
-                np=np,
-                data=data,
-                channel_names=channel_names,
-                sfreq=sfreq,
-                trial_start=trial_start,
-                window_sec=task_window,
-                bands=bands,
-                prefix="",
-            )
-            feature_map = dict(zip(names, [float(value) for value in values.tolist()]))
+            window_start = trial_start + int(round(float(task_window[0]) * sfreq))
+            window_stop = min(trial_start + int(round(float(task_window[1]) * sfreq)), int(data.shape[1]))
+            invalid_window = window_stop <= window_start or (window_stop - window_start) < 4
+            segment = data[:, window_start:window_stop] if not invalid_window else None
+            if invalid_window:
+                invalid_window_rows.append(
+                    {
+                        "row_id": f"row_{row_index:06d}",
+                        "participant_id": subject,
+                        "session_id": session,
+                        "trial_id": str(event.get("nTrial", row_index)),
+                        "event_onset_sample": trial_start,
+                        "window_start_sample": window_start,
+                        "window_stop_sample": window_stop,
+                        "data_n_samples": int(data.shape[1]),
+                    }
+                )
+            feature_map: dict[str, float] = {}
+            for expected_channel in expected_channels:
+                raw_channel = channel_aliases.get(expected_channel)
+                if raw_channel is None:
+                    for band_name in bands:
+                        missing_feature_counts[f"{expected_channel}:{band_name}"] = (
+                            missing_feature_counts.get(f"{expected_channel}:{band_name}", 0) + 1
+                        )
+                    continue
+                for band_name, band in bands.items():
+                    feature_name = f"{expected_channel}:{band_name}"
+                    if invalid_window or segment is None:
+                        feature_map[feature_name] = float("nan")
+                    else:
+                        feature_map[feature_name] = _band_log_power(
+                            np,
+                            segment[raw_index_by_channel[raw_channel]],
+                            sfreq,
+                            band,
+                        )
             set_size = int(float(event["SetSize"]))
+            feature_values = [feature_map.get(name, float("nan")) for name in feature_names]
+            for name, value in zip(feature_names, feature_values):
+                if not math.isfinite(float(value)):
+                    missing_feature_counts[name] = missing_feature_counts.get(name, 0) + 1
             rows.append(
                 {
                     "row_id": f"row_{row_index:06d}",
@@ -503,7 +554,8 @@ def _extract_rows_from_signal(
                     "event_onset_sec": float(trial_start / sfreq),
                     "source_eeg_file": eeg_path.relative_to(dataset_root).as_posix(),
                     "source_events_file": events_path.relative_to(dataset_root).as_posix(),
-                    "features": [feature_map.get(name, float("nan")) for name in feature_names],
+                    "features": feature_values,
+                    "nonfinite_feature_count": sum(1 for value in feature_values if not math.isfinite(float(value))),
                 }
             )
             row_index += 1
@@ -514,6 +566,9 @@ def _extract_rows_from_signal(
         read_fallbacks=read_fallbacks,
         source="edf_signal_payloads",
         matrix_config=matrix_config,
+        channel_aliases=channel_alias_records,
+        invalid_window_rows=invalid_window_rows,
+        missing_feature_counts=missing_feature_counts,
     )
 
 
@@ -525,6 +580,9 @@ def _finalize_extracted_rows(
     read_fallbacks: list[dict[str, Any]],
     source: str,
     matrix_config: dict[str, Any],
+    channel_aliases: list[dict[str, Any]] | None = None,
+    invalid_window_rows: list[dict[str, Any]] | None = None,
+    missing_feature_counts: dict[str, int] | None = None,
 ) -> dict[str, Any]:
     subjects = sorted({row["participant_id"] for row in rows})
     sessions = sorted({f"{row['participant_id']}/{row['session_id']}" for row in rows})
@@ -538,6 +596,9 @@ def _finalize_extracted_rows(
         "sessions": sessions,
         "skipped_sessions": skipped_sessions,
         "read_fallbacks": read_fallbacks,
+        "channel_aliases": channel_aliases or [],
+        "invalid_window_rows": invalid_window_rows or [],
+        "missing_feature_counts": missing_feature_counts or {},
         "blockers": [],
         "scientific_limit": "Extracted rows are feature values and labels only; no model outputs or metrics are included.",
     }
@@ -572,7 +633,8 @@ def _validate_matrix(
     rules = matrix_config.get("validation_rules", {})
     expected_rows = int(manifest.get("n_event_rows_planned", 0))
     expected_features = list(manifest.get("feature_names", []))
-    nonfinite = _count_nonfinite(rows)
+    nonfinite_examples = _nonfinite_feature_examples(rows, feature_names, max_examples=25)
+    nonfinite = sum(row.get("nonfinite_feature_count", 0) for row in rows)
     labels = {row.get("label") for row in rows}
     if rules.get("row_count_must_match_final_feature_manifest_planned_event_rows") and len(rows) != expected_rows:
         blockers.append("row_count_does_not_match_final_feature_manifest")
@@ -600,6 +662,9 @@ def _validate_matrix(
         "feature_names_match_manifest": feature_names == expected_features,
         "labels": sorted(labels),
         "nonfinite_feature_values": nonfinite,
+        "nonfinite_feature_examples": nonfinite_examples,
+        "missing_feature_counts": extracted.get("missing_feature_counts", {}),
+        "invalid_window_rows": extracted.get("invalid_window_rows", []),
         "skipped_sessions": extracted.get("skipped_sessions", []),
         "read_fallbacks": extracted.get("read_fallbacks", []),
         "contains_model_outputs": False,
@@ -753,6 +818,8 @@ def _build_blocked_record(extracted: dict[str, Any], validation: dict[str, Any])
         "extraction_status": extracted.get("status"),
         "candidate_rows": len(extracted.get("rows", [])),
         "skipped_sessions": extracted.get("skipped_sessions", []),
+        "invalid_window_rows": extracted.get("invalid_window_rows", []),
+        "missing_feature_counts": extracted.get("missing_feature_counts", {}),
         "blockers": validation["blockers"],
         "scientific_limit": "Blocked record is not a feature matrix and must not be used by final comparator runners.",
     }
@@ -775,6 +842,7 @@ def _render_report(summary: dict[str, Any], validation: dict[str, Any], claim_st
         f"- Expected features: `{summary['n_expected_features']}`",
         f"- Skipped sessions: `{summary['skipped_sessions_count']}`",
         f"- Read fallbacks: `{summary['read_fallbacks_count']}`",
+        f"- Invalid window rows: `{summary['invalid_window_rows_count']}`",
         f"- Non-finite feature values: `{summary['nonfinite_feature_values']}`",
         "",
         "## Validation",
@@ -807,13 +875,63 @@ def _split_session_label(label: str) -> tuple[str, str]:
     return parts[0], parts[1]
 
 
-def _count_nonfinite(rows: list[dict[str, Any]]) -> int:
-    total = 0
+def _expected_channels_from_feature_names(feature_names: list[str]) -> list[str]:
+    channels = []
+    for name in feature_names:
+        if ":" not in name:
+            raise Phase1FinalFeatureMatrixError(f"Feature name does not follow channel:band format: {name}")
+        channel = name.split(":", 1)[0]
+        if channel not in channels:
+            channels.append(channel)
+    return channels
+
+
+def _feature_aliases_for_raw_channels(expected_channels: list[str], raw_channels: list[str]) -> dict[str, str | None]:
+    normalized_raw: dict[str, list[str]] = {}
+    for channel in raw_channels:
+        normalized_raw.setdefault(_normalize_channel_name(channel), []).append(channel)
+    aliases: dict[str, str | None] = {}
+    for expected in expected_channels:
+        candidates = normalized_raw.get(_normalize_channel_name(expected), [])
+        aliases[expected] = candidates[0] if len(candidates) == 1 else None
+    return aliases
+
+
+def _normalize_channel_name(name: str) -> str:
+    value = str(name).strip().lower()
+    for prefix in ("eeg ", "eeg_", "eeg-"):
+        if value.startswith(prefix):
+            value = value[len(prefix) :]
+    for suffix in ("-ref", "_ref", " ref", "-avg", "_avg", " avg"):
+        if value.endswith(suffix):
+            value = value[: -len(suffix)]
+    return "".join(char for char in value if char.isalnum())
+
+
+def _nonfinite_feature_examples(
+    rows: list[dict[str, Any]],
+    feature_names: list[str],
+    *,
+    max_examples: int,
+) -> list[dict[str, Any]]:
+    examples = []
     for row in rows:
-        for value in row.get("features", []):
+        for feature_name, value in zip(feature_names, row.get("features", [])):
             if not math.isfinite(float(value)):
-                total += 1
-    return total
+                examples.append(
+                    {
+                        "row_id": row.get("row_id"),
+                        "participant_id": row.get("participant_id"),
+                        "session_id": row.get("session_id"),
+                        "trial_id": row.get("trial_id"),
+                        "feature_name": feature_name,
+                        "event_onset_sample": row.get("event_onset_sample"),
+                        "source_eeg_file": row.get("source_eeg_file"),
+                    }
+                )
+                if len(examples) >= max_examples:
+                    return examples
+    return examples
 
 
 def _sha256(path: Path) -> str:

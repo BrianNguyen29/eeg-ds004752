@@ -8,7 +8,11 @@ import unittest
 from pathlib import Path
 
 from src.cli import main
-from src.phase1.final_feature_matrix import Phase1FinalFeatureMatrixError, run_phase1_final_feature_matrix
+from src.phase1.final_feature_matrix import (
+    Phase1FinalFeatureMatrixError,
+    _feature_aliases_for_raw_channels,
+    run_phase1_final_feature_matrix,
+)
 
 
 class Phase1FinalFeatureMatrixTests(unittest.TestCase):
@@ -119,6 +123,19 @@ class Phase1FinalFeatureMatrixTests(unittest.TestCase):
             self.assertEqual(summary["status"], "phase1_final_feature_matrix_blocked")
             self.assertFalse(summary["feature_matrix_ready"])
             self.assertIn("nonfinite_feature_values_present", summary["feature_matrix_blockers"])
+            validation = _read_json(result.output_dir / "phase1_final_feature_matrix_validation.json")
+            self.assertGreater(validation["nonfinite_feature_values"], 0)
+            self.assertEqual(validation["nonfinite_feature_examples"][0]["feature_name"], "Fz:theta")
+
+    def test_final_feature_matrix_channel_aliases_normalize_common_edf_labels(self) -> None:
+        aliases = _feature_aliases_for_raw_channels(
+            ["Fz", "Cz", "Pz"],
+            ["EEG Fz-Ref", "Cz", "EEG_Pz_REF"],
+        )
+
+        self.assertEqual(aliases["Fz"], "EEG Fz-Ref")
+        self.assertEqual(aliases["Cz"], "Cz")
+        self.assertEqual(aliases["Pz"], "EEG_Pz_REF")
 
     def test_final_feature_matrix_rejects_feature_manifest_with_outputs(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
