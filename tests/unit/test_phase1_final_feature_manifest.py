@@ -45,6 +45,8 @@ class Phase1FinalFeatureManifestTests(unittest.TestCase):
             self.assertEqual(summary["materialization_status"], "complete")
             self.assertEqual(summary["n_subjects"], 2)
             self.assertEqual(summary["n_features"], 6)
+            self.assertEqual(summary["n_all_discovered_channels"], 2)
+            self.assertEqual(summary["n_excluded_non_common_channels"], 0)
             self.assertEqual(summary["feature_manifest_blockers"], [])
 
             manifest = _read_json(result.output_dir / "final_feature_manifest.json")
@@ -61,6 +63,8 @@ class Phase1FinalFeatureManifestTests(unittest.TestCase):
             self.assertFalse(manifest["claim_ready"])
             self.assertFalse(manifest["smoke_feature_rows_allowed_as_final"])
             self.assertEqual(manifest["n_event_rows_planned"], 4)
+            self.assertEqual(manifest["channel_selection_policy"], "intersection_across_final_sessions")
+            self.assertEqual(manifest["excluded_non_common_channels"], [])
 
             validation = _read_json(result.output_dir / "phase1_final_feature_manifest_validation.json")
             self.assertEqual(validation["status"], "phase1_final_feature_manifest_validation_passed")
@@ -74,6 +78,40 @@ class Phase1FinalFeatureManifestTests(unittest.TestCase):
             self.assertFalse(claim_state["claim_ready"])
             self.assertIn("final_leakage_audit_missing", claim_state["blockers"])
             self.assertIn("final_comparator_outputs_not_claim_evaluable", claim_state["blockers"])
+
+    def test_final_feature_manifest_excludes_non_common_channels_from_matrix_schema(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            prereg = root / "prereg_bundle.json"
+            dataset_root = root / "ds004752"
+            gate0_run = root / "gate0" / "run"
+            split_run = root / "phase1_final_split_manifest" / "run"
+            _write_prereg(prereg)
+            _write_dataset(dataset_root, extra_sub02_channels=["Oz"])
+            _write_gate0_run(gate0_run, materialized=True)
+            _write_split_run(split_run, gate0_run)
+
+            result = run_phase1_final_feature_manifest(
+                prereg_bundle=prereg,
+                final_split_run=split_run,
+                dataset_root=dataset_root,
+                output_root=root / "phase1_final_feature_manifest",
+                repo_root=Path.cwd(),
+            )
+
+            manifest = _read_json(result.output_dir / "final_feature_manifest.json")
+            inventory = _read_json(result.output_dir / "phase1_final_feature_inventory.json")
+            summary = _read_json(result.summary_path)
+
+            self.assertEqual(manifest["channels"], ["Cz", "Fz"])
+            self.assertEqual(manifest["excluded_non_common_channels"], ["Oz"])
+            self.assertEqual(manifest["feature_count"], 6)
+            self.assertNotIn("Oz:theta", manifest["feature_names"])
+            self.assertEqual(inventory["channel_selection_policy"], "intersection_across_final_sessions")
+            self.assertEqual(inventory["channel_availability"]["Oz"], ["sub-02/ses-01"])
+            self.assertEqual(summary["n_all_discovered_channels"], 3)
+            self.assertEqual(summary["n_excluded_non_common_channels"], 1)
+            self.assertTrue(summary["feature_manifest_ready"])
 
     def test_final_feature_manifest_blocks_when_materialization_incomplete(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -150,12 +188,16 @@ def _write_prereg(prereg: Path) -> None:
     )
 
 
-def _write_dataset(dataset_root: Path) -> None:
+def _write_dataset(dataset_root: Path, *, extra_sub02_channels: list[str] | None = None) -> None:
     for subject in ["sub-01", "sub-02"]:
         eeg = dataset_root / subject / "ses-01" / "eeg"
         eeg.mkdir(parents=True, exist_ok=True)
+        channels = ["Fz", "Cz"]
+        if subject == "sub-02":
+            channels.extend(extra_sub02_channels or [])
         (eeg / f"{subject}_ses-01_task-verbalWM_run-01_channels.tsv").write_text(
-            "name\ttype\tsampling_frequency\nFz\tEEG\t500\nCz\tEEG\t500\n",
+            "name\ttype\tsampling_frequency\n"
+            + "".join(f"{channel}\tEEG\t500\n" for channel in channels),
             encoding="utf-8",
         )
         (eeg / f"{subject}_ses-01_task-verbalWM_run-01_events.tsv").write_text(

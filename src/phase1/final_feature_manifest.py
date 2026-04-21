@@ -134,6 +134,8 @@ def run_phase1_final_feature_manifest(
         "n_sessions": len(inventory["sessions"]),
         "n_event_rows_planned": inventory["n_event_rows_planned"],
         "n_channels": len(inventory["channels"]),
+        "n_all_discovered_channels": len(inventory["all_discovered_channels"]),
+        "n_excluded_non_common_channels": len(inventory["excluded_non_common_channels"]),
         "n_features": len(inventory["feature_names"]),
         "feature_manifest_path": str(output_dir / "final_feature_manifest.json") if final_feature_manifest else None,
         "feature_manifest_blockers": readiness["blockers"],
@@ -256,7 +258,8 @@ def _build_feature_inventory(
 ) -> dict[str, Any]:
     eligible_subjects = list(split_manifest.get("eligible_subjects", []))
     bands = manifest_config.get("frequency_bands_hz", {})
-    channels: set[str] = set()
+    channel_union: set[str] = set()
+    channel_sets_by_session: dict[str, list[str]] = {}
     sessions: set[str] = set()
     channel_files = []
     events_files = []
@@ -278,10 +281,13 @@ def _build_feature_inventory(
                 missing_channel_files.append(session_id)
             else:
                 channel_files.append(channel_path.relative_to(dataset_root).as_posix())
+                session_channels = []
                 for row in _read_tsv(channel_path):
                     name = str(row.get("name", "")).strip()
                     if name:
-                        channels.add(name)
+                        session_channels.append(name)
+                        channel_union.add(name)
+                channel_sets_by_session[session_id] = sorted(set(session_channels))
             if events_path is None:
                 missing_event_files.append(session_id)
             else:
@@ -290,15 +296,31 @@ def _build_feature_inventory(
                 event_rows_planned += len(selected)
                 event_rows_by_subject[subject] += len(selected)
 
-    channel_list = sorted(channels)
+    if channel_sets_by_session:
+        common_channels = set(next(iter(channel_sets_by_session.values())))
+        for session_channels in channel_sets_by_session.values():
+            common_channels &= set(session_channels)
+    else:
+        common_channels = set()
+    channel_list = sorted(common_channels)
     band_names = sorted(bands)
     feature_names = [manifest_config.get("feature_name_template", "{channel}:{band}").format(channel=channel, band=band) for channel in channel_list for band in band_names]
+    excluded_channels = sorted(channel_union - common_channels)
+    channel_availability = {
+        channel: sorted(session for session, session_channels in channel_sets_by_session.items() if channel in session_channels)
+        for channel in sorted(channel_union)
+    }
     return {
         "status": "phase1_final_feature_inventory_recorded",
         "dataset_root": str(dataset_root),
         "subjects": eligible_subjects,
         "sessions": sorted(sessions),
         "channels": channel_list,
+        "channel_selection_policy": "intersection_across_final_sessions",
+        "all_discovered_channels": sorted(channel_union),
+        "excluded_non_common_channels": excluded_channels,
+        "channel_availability_by_session": channel_sets_by_session,
+        "channel_availability": channel_availability,
         "frequency_bands_hz": bands,
         "feature_names": feature_names,
         "n_event_rows_planned": event_rows_planned,
@@ -354,8 +376,10 @@ def _validate_feature_manifest_inputs(
         blockers.append("dataset_root_missing")
     if not inventory["subjects"]:
         blockers.append("no_split_subjects_available")
-    if not inventory["channels"]:
+    if not inventory["all_discovered_channels"]:
         blockers.append("no_eeg_channels_discovered")
+    if not inventory["channels"]:
+        blockers.append("no_common_eeg_channels_across_final_sessions")
     if not inventory["feature_names"]:
         blockers.append("no_feature_names_discovered")
     if inventory["missing_channel_files"]:
@@ -378,6 +402,8 @@ def _validate_feature_manifest_inputs(
         "n_subjects": len(inventory["subjects"]),
         "n_sessions": len(inventory["sessions"]),
         "n_channels": len(inventory["channels"]),
+        "n_all_discovered_channels": len(inventory["all_discovered_channels"]),
+        "n_excluded_non_common_channels": len(inventory["excluded_non_common_channels"]),
         "n_features": len(inventory["feature_names"]),
         "n_event_rows_planned": inventory["n_event_rows_planned"],
         "blockers": _unique(blockers),
@@ -410,6 +436,10 @@ def _build_final_feature_manifest(
         "feature_names": inventory["feature_names"],
         "channel_count": len(inventory["channels"]),
         "channels": inventory["channels"],
+        "channel_selection_policy": inventory["channel_selection_policy"],
+        "all_discovered_channels": inventory["all_discovered_channels"],
+        "excluded_non_common_channels": inventory["excluded_non_common_channels"],
+        "channel_availability": inventory["channel_availability"],
         "frequency_bands_hz": manifest_config.get("frequency_bands_hz", {}),
         "signal_windows_sec": manifest_config.get("signal_windows_sec", {}),
         "trial_filter": manifest_config.get("trial_filter", {}),
@@ -620,7 +650,9 @@ def _render_report(
         f"- Materialization status: `{summary['materialization_status']}`",
         f"- Subjects: `{summary['n_subjects']}`",
         f"- Sessions: `{summary['n_sessions']}`",
-        f"- Channels: `{summary['n_channels']}`",
+        f"- Common channels used: `{summary['n_channels']}`",
+        f"- All discovered channels: `{summary.get('n_all_discovered_channels', 0)}`",
+        f"- Excluded non-common channels: `{summary.get('n_excluded_non_common_channels', 0)}`",
         f"- Features: `{summary['n_features']}`",
         f"- Planned binary load event rows: `{summary['n_event_rows_planned']}`",
         "",

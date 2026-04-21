@@ -83,6 +83,12 @@ def run_phase1_final_feature_matrix(
     _validate_final_feature_boundary(feature)
     _validate_final_leakage_boundary(leakage)
     _validate_runner_readiness_boundary(runner_readiness)
+    _validate_source_chain(
+        final_feature_run=final_feature_run,
+        final_leakage_run=final_leakage_run,
+        leakage=leakage,
+        runner_readiness=runner_readiness,
+    )
 
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
     output_dir = output_root / timestamp
@@ -334,6 +340,34 @@ def _validate_runner_readiness_boundary(readiness: dict[str, Any]) -> None:
         raise Phase1FinalFeatureMatrixError("Runner readiness must not promote smoke artifacts")
     if readiness["summary"].get("claim_ready") is not False or readiness["claim_state"].get("claim_ready") is not False:
         raise Phase1FinalFeatureMatrixError("Runner readiness must keep claim_ready=false")
+
+
+def _validate_source_chain(
+    *,
+    final_feature_run: Path,
+    final_leakage_run: Path,
+    leakage: dict[str, Any],
+    runner_readiness: dict[str, Any],
+) -> None:
+    leakage_feature_run = leakage["summary"].get("final_feature_run")
+    if leakage_feature_run and _path_key(leakage_feature_run) != _path_key(final_feature_run):
+        raise Phase1FinalFeatureMatrixError(
+            "Final leakage audit source does not match selected final feature manifest run"
+        )
+    readiness_feature_run = runner_readiness["summary"].get("final_feature_run")
+    if readiness_feature_run and _path_key(readiness_feature_run) != _path_key(final_feature_run):
+        raise Phase1FinalFeatureMatrixError(
+            "Final comparator runner readiness source does not match selected final feature manifest run"
+        )
+    readiness_leakage_run = runner_readiness["summary"].get("final_leakage_run")
+    if readiness_leakage_run and _path_key(readiness_leakage_run) != _path_key(final_leakage_run):
+        raise Phase1FinalFeatureMatrixError(
+            "Final comparator runner readiness source does not match selected final leakage audit run"
+        )
+
+
+def _path_key(value: str | Path) -> str:
+    return str(Path(value)).replace("\\", "/").rstrip("/")
 
 
 def _validate_inputs(
