@@ -22,6 +22,10 @@ from .phase1.final_comparator_runner_readiness import (
     Phase1FinalComparatorRunnerReadinessError,
     run_phase1_final_comparator_runner_readiness,
 )
+from .phase1.final_comparator_runner import (
+    Phase1FinalComparatorRunnerError,
+    run_phase1_final_comparator_runner,
+)
 from .phase1.final_claim_package import Phase1FinalClaimPackageError, run_phase1_final_claim_package_plan
 from .phase1.final_split_feature_leakage import (
     Phase1FinalSplitFeatureLeakageError,
@@ -276,6 +280,25 @@ def build_parser() -> argparse.ArgumentParser:
         "--matrix-config",
         default="configs/phase1/final_feature_matrix.json",
     )
+
+    phase1_final_comparator_run = subparsers.add_parser(
+        "phase1_final_comparator_runner",
+        help="Run claim-closed final feature-matrix comparators and write output manifests",
+    )
+    phase1_final_comparator_run.add_argument("--profile", default="t4_safe")
+    phase1_final_comparator_run.add_argument("--config", required=True)
+    phase1_final_comparator_run.add_argument("--feature-matrix-run", required=True)
+    phase1_final_comparator_run.add_argument("--runner-readiness-run", required=True)
+    phase1_final_comparator_run.add_argument(
+        "--output-root",
+        default="artifacts/phase1_final_comparator_runner",
+    )
+    phase1_final_comparator_run.add_argument(
+        "--runner-config",
+        default="configs/phase1/final_comparator_runner.json",
+    )
+    phase1_final_comparator_run.add_argument("--comparators", nargs="*")
+    phase1_final_comparator_run.add_argument("--max-outer-folds", type=int)
 
     for phase in ("phase05_real", "phase1_real", "phase2_real", "phase3_real"):
         phase_parser = subparsers.add_parser(phase, help=f"Guarded {phase} command")
@@ -581,6 +604,22 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Report: {result.report_path}")
             return 0
 
+        if args.command == "phase1_final_comparator_runner":
+            result = run_phase1_final_comparator_runner(
+                prereg_bundle=args.config,
+                feature_matrix_run=args.feature_matrix_run,
+                runner_readiness_run=args.runner_readiness_run,
+                output_root=args.output_root,
+                repo_root=Path.cwd(),
+                config_paths={"runner": args.runner_config},
+                comparators=args.comparators,
+                max_outer_folds=args.max_outer_folds,
+            )
+            print(f"Phase 1 final comparator runner complete: {result.output_dir}")
+            print(f"Summary: {result.summary_path}")
+            print(f"Report: {result.report_path}")
+            return 0
+
         if args.command == "phase1_real" and sum(
             bool(flag)
             for flag in [args.smoke, args.model_smoke, args.a2c_smoke, args.a2d_smoke, args.a3_smoke, args.a4_smoke]
@@ -770,6 +809,7 @@ def main(argv: list[str] | None = None) -> int:
         Phase1FinalClaimPackageError,
         Phase1FinalComparatorArtifactError,
         Phase1FinalComparatorRunnerReadinessError,
+        Phase1FinalComparatorRunnerError,
         Phase1FinalSplitFeatureLeakageError,
         Phase1FinalFeatureManifestError,
         Phase1FinalFeatureMatrixError,

@@ -455,6 +455,20 @@ python -m src.cli phase1_final_feature_matrix \
 
 The final feature matrix materializer is non-claim and fail-closed. It requires signal extras and real EDF payloads. It writes `final_feature_matrix.csv` only when the extracted row count matches the final feature manifest, feature names match the reviewed schema, every feature value is finite, and no source session is skipped. The matrix contains row identity, labels and scalp EEG feature values only; it must not contain logits, metrics, model outputs, controls, calibration, influence or runtime leakage logs.
 
+Phase 1 final comparator runner after final feature matrix materialization:
+
+```bash
+python -m src.cli phase1_final_comparator_runner \
+  --profile t4_safe \
+  --config artifacts/prereg/<prereg_run>/prereg_bundle.json \
+  --feature-matrix-run artifacts/phase1_final_feature_matrix/<feature_matrix_run> \
+  --runner-readiness-run artifacts/phase1_final_comparator_runner_readiness/<runner_readiness_run> \
+  --output-root artifacts/phase1_final_comparator_runner \
+  --runner-config configs/phase1/final_comparator_runner.json
+```
+
+The final comparator runner is claim-closed. It consumes `final_feature_matrix.csv` and writes comparator logits, subject-level metrics, output manifests and runtime leakage logs for comparator implementations that are valid from that matrix. It must not promote smoke artifacts. A2d Riemannian must remain blocked unless a valid final covariance/tangent input path exists; the runner must not approximate A2d from bandpower features.
+
 ## Conditions for opening real phases
 
 Real phases may be opened only when all conditions are true:
@@ -473,6 +487,7 @@ Real phases may be opened only when all conditions are true:
 - Final split, feature and leakage-audit manifests must exist before final comparator outputs can be claim-evaluable.
 - Final comparator runner/output-manifest readiness must be reviewed before final comparator runner implementation, but it does not make comparator outputs claim-evaluable.
 - The final feature matrix may be used as final comparator runner input only after materialization validation passes; by itself it is not model evidence and does not open claims.
+- Final comparator runner outputs may feed downstream controls/calibration/influence/reporting only after runtime leakage logs are reviewed; partial output packages with blocked comparators remain non-claim.
 
 ## Current local status
 

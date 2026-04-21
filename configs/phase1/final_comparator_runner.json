@@ -1,0 +1,79 @@
+{
+  "runner_id": "phase1_final_comparator_runner_v1",
+  "status": "implementation_claim_closed",
+  "claim_scope": "final_feature_matrix_comparator_outputs_and_runtime_leakage_logs",
+  "scientific_integrity_rule": "This runner consumes final_feature_matrix.csv and writes deterministic fold logs, logits, subject-level diagnostics and runtime leakage logs. It does not use smoke artifacts, does not use privileged or teacher outputs at test time, and does not open claims. Comparator families that cannot be validly executed from the final feature matrix alone must be marked blocked rather than approximated as final evidence.",
+  "required_inputs": {
+    "final_feature_matrix_ready": true,
+    "feature_matrix_contains_model_outputs": false,
+    "feature_matrix_contains_logits": false,
+    "feature_matrix_contains_metrics": false,
+    "runner_readiness_upstream_manifests_ready": true,
+    "runner_readiness_final_comparator_outputs_present": false,
+    "runner_readiness_runtime_comparator_logs_audited": false,
+    "runner_readiness_smoke_artifacts_promoted": false
+  },
+  "required_final_comparators": [
+    "A2",
+    "A2b",
+    "A2c_CORAL",
+    "A2d_riemannian",
+    "A3_distillation",
+    "A4_privileged"
+  ],
+  "feature_matrix_supported_comparators": [
+    "A2",
+    "A2b",
+    "A2c_CORAL",
+    "A3_distillation",
+    "A4_privileged"
+  ],
+  "blocked_comparator_reasons": {
+    "A2d_riemannian": "A2d Riemannian requires final covariance/tangent inputs; the final bandpower feature matrix is insufficient to compute a scientifically valid final A2d Riemannian comparator output."
+  },
+  "logistic_probe": {
+    "learning_rate": 0.05,
+    "n_steps": 220,
+    "l2": 0.001
+  },
+  "a2c_feature_alignment": {
+    "beta": 0.1,
+    "fit_scope": "training_subjects_only",
+    "test_domain_statistics_used": false
+  },
+  "a3_distillation": {
+    "teacher_source": "training_scalp_feature_matrix_only",
+    "real_ieeg_teacher_used": false,
+    "privileged_features_used": false,
+    "teacher_used_at_inference": false,
+    "temperature": 2.0,
+    "soft_label_clip": 0.02,
+    "distillation_alpha_hard_label": 0.5
+  },
+  "a4_privileged": {
+    "privileged_source": "training_subjects_internal_feature_matrix_proxy_not_real_ieeg",
+    "real_ieeg_privileged_used": false,
+    "privileged_used_at_inference": false,
+    "gate_weight_fit_scope": "training_subjects_only",
+    "feature_weight_floor": 0.35,
+    "feature_weight_ceiling": 1.0,
+    "temperature": 2.0,
+    "soft_label_clip": 0.02,
+    "distillation_alpha_hard_label": 0.45
+  },
+  "fit_scope_rules": {
+    "outer_test_subject_in_preprocessing_fit_allowed": false,
+    "outer_test_subject_in_normalization_fit_allowed": false,
+    "outer_test_subject_in_alignment_fit_allowed": false,
+    "outer_test_subject_in_teacher_fit_allowed": false,
+    "outer_test_subject_in_privileged_fit_allowed": false,
+    "outer_test_subject_in_gate_or_weight_fit_allowed": false,
+    "outer_test_subject_in_calibration_fit_allowed": false,
+    "test_time_privileged_or_teacher_outputs_allowed": false
+  },
+  "claim_blockers_after_run": [
+    "A2d_riemannian_final_covariance_runner_missing",
+    "controls_calibration_influence_reporting_missing",
+    "headline_claim_blocked_until_full_package_passes"
+  ]
+}
