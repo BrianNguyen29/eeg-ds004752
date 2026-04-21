@@ -407,6 +407,21 @@ python -m src.cli phase1_final_feature_manifest \
 
 The final feature manifest runner is non-claim and fail-closed. It records feature schema/provenance only: feature set ID, scalp channel/band feature names, task window, trial filter, dataset sidecar/event inventory and source hashes. It does not write feature matrices, train comparators, compute metrics or run leakage audits. If split, Gate 0, materialization or dataset sidecar prerequisites are missing, it writes `phase1_final_feature_manifest_blocked.json`.
 
+Phase 1 final manifest-level leakage audit after final split and feature manifests:
+
+```bash
+python -m src.cli phase1_final_leakage_audit \
+  --profile t4_safe \
+  --config artifacts/prereg/<prereg_run>/prereg_bundle.json \
+  --final-split-run artifacts/phase1_final_split_manifest/<final_split_manifest_run> \
+  --final-feature-run artifacts/phase1_final_feature_manifest/<final_feature_manifest_run> \
+  --output-root artifacts/phase1_final_leakage_audit \
+  --audit-config configs/phase1/final_leakage_audit.json \
+  --readiness-config configs/phase1/final_split_feature_leakage.json
+```
+
+The final leakage audit runner is non-claim and manifest-level. It records fit and transform subjects for preprocessing, normalization, alignment, teacher, privileged, gate/weight and calibration stages for every LOSO fold. It must show that the outer-test subject is not in any fit scope and that test-time privileged/teacher outputs are disallowed. It does not audit final comparator runtime logs, because final comparator runners have not executed yet.
+
 ## Conditions for opening real phases
 
 Real phases may be opened only when all conditions are true:

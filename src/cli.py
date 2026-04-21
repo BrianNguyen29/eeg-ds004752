@@ -24,6 +24,7 @@ from .phase1.final_split_feature_leakage import (
     run_phase1_final_split_feature_leakage_plan,
 )
 from .phase1.final_feature_manifest import Phase1FinalFeatureManifestError, run_phase1_final_feature_manifest
+from .phase1.final_leakage_audit import Phase1FinalLeakageAuditError, run_phase1_final_leakage_audit
 from .phase1.final_split_manifest import Phase1FinalSplitManifestError, run_phase1_final_split_manifest
 from .phase1.gap_review import Phase1GapReviewError, run_phase1_gap_review
 from .phase1.model_smoke import Phase1ModelSmokeError, run_phase1_model_smoke
@@ -204,6 +205,27 @@ def build_parser() -> argparse.ArgumentParser:
         default="configs/phase1/final_feature_manifest.json",
     )
     phase1_final_feature_manifest.add_argument(
+        "--readiness-config",
+        default="configs/phase1/final_split_feature_leakage.json",
+    )
+
+    phase1_final_leakage_audit = subparsers.add_parser(
+        "phase1_final_leakage_audit",
+        help="Generate the final Phase 1 manifest-level leakage audit without opening claims",
+    )
+    phase1_final_leakage_audit.add_argument("--profile", default="t4_safe")
+    phase1_final_leakage_audit.add_argument("--config", required=True)
+    phase1_final_leakage_audit.add_argument("--final-split-run", required=True)
+    phase1_final_leakage_audit.add_argument("--final-feature-run", required=True)
+    phase1_final_leakage_audit.add_argument(
+        "--output-root",
+        default="artifacts/phase1_final_leakage_audit",
+    )
+    phase1_final_leakage_audit.add_argument(
+        "--audit-config",
+        default="configs/phase1/final_leakage_audit.json",
+    )
+    phase1_final_leakage_audit.add_argument(
         "--readiness-config",
         default="configs/phase1/final_split_feature_leakage.json",
     )
@@ -460,6 +482,23 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Report: {result.report_path}")
             return 0
 
+        if args.command == "phase1_final_leakage_audit":
+            result = run_phase1_final_leakage_audit(
+                prereg_bundle=args.config,
+                final_split_run=args.final_split_run,
+                final_feature_run=args.final_feature_run,
+                output_root=args.output_root,
+                repo_root=Path.cwd(),
+                config_paths={
+                    "audit": args.audit_config,
+                    "readiness": args.readiness_config,
+                },
+            )
+            print(f"Phase 1 final leakage audit complete: {result.output_dir}")
+            print(f"Summary: {result.summary_path}")
+            print(f"Report: {result.report_path}")
+            return 0
+
         if args.command == "phase1_real" and sum(
             bool(flag)
             for flag in [args.smoke, args.model_smoke, args.a2c_smoke, args.a2d_smoke, args.a3_smoke, args.a4_smoke]
@@ -650,6 +689,7 @@ def main(argv: list[str] | None = None) -> int:
         Phase1FinalComparatorArtifactError,
         Phase1FinalSplitFeatureLeakageError,
         Phase1FinalFeatureManifestError,
+        Phase1FinalLeakageAuditError,
         Phase1FinalSplitManifestError,
     ) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)

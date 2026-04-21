@@ -1,0 +1,51 @@
+{
+  "audit_id": "phase1_final_leakage_audit_v1",
+  "status": "generator_non_claim",
+  "claim_scope": "final_manifest_level_leakage_audit_only",
+  "scientific_integrity_rule": "This audit records split/feature manifest-level leakage guards before final comparator execution. It does not train models, inspect final model runtime logs, compute metrics, or open claims.",
+  "source_readiness_contract": "configs/phase1/final_split_feature_leakage.json",
+  "required_inputs": {
+    "final_split_manifest_ready": true,
+    "final_feature_manifest_ready": true,
+    "feature_manifest_contains_feature_matrix": false,
+    "feature_manifest_contains_model_outputs": false,
+    "feature_manifest_contains_metrics": false
+  },
+  "stages": [
+    "preprocessing",
+    "normalization",
+    "alignment",
+    "teacher",
+    "privileged",
+    "gate_or_weight",
+    "calibration"
+  ],
+  "fit_scope_policy": {
+    "fit_subjects": "train_subjects_only_per_fold",
+    "transform_subjects_must_be_recorded": true,
+    "outer_test_subject_in_any_fit_allowed": false,
+    "test_time_privileged_or_teacher_outputs_allowed": false,
+    "test_time_inference_policy": "scalp_only"
+  },
+  "stage_policies": {
+    "preprocessing": "fit_train_only_transform_train_and_test",
+    "normalization": "fit_train_only_transform_train_and_test",
+    "alignment": "fit_train_only_transform_train_and_test",
+    "teacher": "fit_train_only_generate_training_outputs_only",
+    "privileged": "fit_train_only_generate_training_outputs_only",
+    "gate_or_weight": "fit_train_only_apply_scalp_only_at_test_time",
+    "calibration": "fit_train_or_nested_training_only_apply_to_test_logits_later"
+  },
+  "audit_boundary": {
+    "manifest_level_audit": true,
+    "runtime_comparator_logs_audited": false,
+    "contains_model_outputs": false,
+    "contains_metrics": false,
+    "standalone_claim_ready": false
+  },
+  "remaining_required_after_leakage": [
+    "final_comparator_outputs",
+    "runtime_comparator_leakage_logs",
+    "final_control_calibration_influence_reporting_package"
+  ]
+}
