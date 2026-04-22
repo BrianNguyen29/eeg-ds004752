@@ -277,7 +277,15 @@ def _write_complete_manifests(root: Path) -> dict[str, Path]:
     )
     _write_json(
         paths["influence"],
-        {"artifacts": REQUIRED_FINAL_INFLUENCE_ARTIFACTS, "leave_one_subject_out_executed": True},
+        {
+            "status": "phase1_final_influence_manifest_recorded",
+            "artifacts": REQUIRED_FINAL_INFLUENCE_ARTIFACTS,
+            "leave_one_subject_out_executed": True,
+            "influence_package_passed": True,
+            "claim_ready": False,
+            "claim_evaluable": True,
+            "smoke_artifacts_promoted": False,
+        },
     )
     _write_json(paths["reporting"], {"artifacts": REPORTING_ARTIFACTS, "claim_table_ready": True, "claims_opened": False})
     return paths

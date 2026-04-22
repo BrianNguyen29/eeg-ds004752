@@ -38,11 +38,23 @@ def evaluate_influence_package(
     manifest_path = Path(final_influence_manifest_path) if final_influence_manifest_path else None
     manifest = _load_optional_manifest(manifest_path)
     provided_artifacts = sorted(manifest.get("artifacts", [])) if isinstance(manifest.get("artifacts"), list) else []
+    manifest_status = str(manifest.get("status") or "")
+    influence_package_passed = manifest.get("influence_package_passed")
+    smoke_promoted = manifest.get("smoke_artifacts_promoted")
     missing_artifacts = [item for item in REQUIRED_FINAL_INFLUENCE_ARTIFACTS if item not in provided_artifacts]
 
     blockers = []
     if manifest_path is None or not manifest_path.exists():
         blockers.append("final_influence_manifest_missing")
+    elif manifest_status not in {
+        "phase1_final_influence_manifest_recorded",
+        "phase1_final_influence_complete_claim_closed",
+    }:
+        blockers.append("final_influence_manifest_status_not_claim_evaluable")
+    if manifest_path is not None and manifest_path.exists() and influence_package_passed is not True:
+        blockers.append("final_influence_package_not_passed")
+    if smoke_promoted is True:
+        blockers.append("final_influence_manifest_promotes_smoke_artifacts")
     if missing_artifacts:
         blockers.append("final_influence_artifacts_missing")
     if manifest.get("leave_one_subject_out_executed") is not True:
@@ -63,6 +75,9 @@ def evaluate_influence_package(
         "gate1_config_path": str(gate1_config_path),
         "gate2_config_path": str(gate2_config_path),
         "final_influence_manifest_path": str(manifest_path) if manifest_path else None,
+        "final_influence_manifest_status": manifest_status or None,
+        "influence_package_passed": influence_package_passed,
+        "smoke_artifacts_promoted": smoke_promoted if smoke_promoted is not None else False,
         "provided_artifacts": provided_artifacts,
         "required_final_influence_artifacts": REQUIRED_FINAL_INFLUENCE_ARTIFACTS,
         "missing_final_influence_artifacts": missing_artifacts,

@@ -299,7 +299,7 @@ def _build_backlog(
             "Define or refreeze final A3/A4 claim-bearing comparator specifications before any substantive claim run.",
             "Promote control suite from draft to executable Phase 1 controls.",
             "Run and reconcile the final calibration package from final logits; do not treat executable config as evidence.",
-            "Implement full influence package and leave-one-subject-out claim-state checks.",
+            "Run and reconcile the final influence package from final logits; do not treat leave-one-subject-out diagnostics as efficacy evidence.",
             "Implement reporting/claim-state package that refuses headline claims until all blockers clear.",
         ],
         "config_blockers": config_review["missing_or_not_final_comparators"] + config_review["draft_governance_surfaces"],

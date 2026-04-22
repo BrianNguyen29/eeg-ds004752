@@ -532,6 +532,21 @@ python -m src.cli phase1_final_calibration \
 
 The final calibration package is claim-closed. It computes pooled ECE, subject-level ECE, Brier score, negative log-likelihood, reliability-table/diagram data, risk-coverage curves and delta ECE versus the locked baseline from final comparator logits only. It must not recalibrate predictions, retrain comparators, edit logits, fabricate diagrams or promote smoke calibration diagnostics. If the locked delta-ECE threshold fails, the correct result is a blocked final calibration manifest.
 
+Phase 1 final influence package after final comparator reconciliation:
+
+```bash
+python -m src.cli phase1_final_influence \
+  --profile t4_safe \
+  --config artifacts/prereg/<prereg_run>/prereg_bundle.json \
+  --comparator-reconciliation-run artifacts/phase1_final_comparator_reconciliation/<comparator_reconciliation_run> \
+  --output-root artifacts/phase1_final_influence \
+  --influence-config configs/phase1/final_influence.json \
+  --gate1-config configs/gate1/decision_simulation.json \
+  --gate2-config configs/gate2/synthetic_validation.json
+```
+
+The final influence package is claim-closed. It computes subject-level balanced-accuracy diagnostics, leave-one-subject-out delta shifts, and single-subject contribution shares from final comparator logits only. It must not retrain comparators, edit logits, fabricate leave-one-subject-out checks, or promote smoke influence diagnostics. If a single subject exceeds the locked influence ceiling, the correct result is a blocked final influence manifest.
+
 Phase 1 final governance reconciliation after final comparator reconciliation:
 
 ```bash
@@ -577,6 +592,7 @@ Real phases may be opened only when all conditions are true:
 - Final comparator reconciliation may mark all six comparator output manifests present, but it remains non-claim until controls, calibration, influence and reporting are implemented, reconciled and pass the locked governance thresholds.
 - Final controls may use final logits for logit-level diagnostics only. Dedicated nuisance, spatial, shuffled-teacher and time-shifted-teacher reruns cannot be fabricated or inferred from logits and must remain blockers until executed.
 - Final calibration may compute calibration diagnostics from final logits, but it cannot modify predictions or convert calibration pass/fail into decoder efficacy evidence.
+- Final influence may compute leave-one-subject-out diagnostics from final logits, but it cannot convert influence pass/fail into decoder efficacy evidence.
 - Final governance reconciliation may record governance surfaces as ready for review only when final controls, calibration, influence and reporting manifests exist. It still must not open headline claims by itself.
 
 ## Current local status

@@ -1,0 +1,59 @@
+{
+  "runner_id": "phase1_final_influence_v1",
+  "status": "implementation_claim_closed",
+  "claim_scope": "final_influence_package",
+  "scientific_integrity_rule": "This runner may compute subject-level and leave-one-subject-out influence diagnostics only from reconciled final comparator logits. It must not retrain models, edit logits, fabricate leave-one-subject-out checks, promote smoke diagnostics, or open headline claims.",
+  "required_final_influence_artifacts": [
+    "subject_level_fold_metrics",
+    "leave_one_subject_out_deltas",
+    "max_single_subject_contribution_share",
+    "claim_state_leave_one_subject_out",
+    "influence_veto_decision"
+  ],
+  "required_comparators": [
+    "A2",
+    "A2b",
+    "A2c_CORAL",
+    "A2d_riemannian",
+    "A3_distillation",
+    "A4_privileged"
+  ],
+  "primary_metric": "balanced_accuracy",
+  "influence_comparisons": [
+    {
+      "comparison_id": "A2b_minus_A2",
+      "reference": "A2",
+      "target": "A2b"
+    },
+    {
+      "comparison_id": "A2c_CORAL_minus_A2",
+      "reference": "A2",
+      "target": "A2c_CORAL"
+    },
+    {
+      "comparison_id": "A2d_riemannian_minus_A2",
+      "reference": "A2",
+      "target": "A2d_riemannian"
+    },
+    {
+      "comparison_id": "A3_distillation_minus_A2",
+      "reference": "A2",
+      "target": "A3_distillation"
+    },
+    {
+      "comparison_id": "A4_privileged_minus_A3_distillation",
+      "reference": "A3_distillation",
+      "target": "A4_privileged"
+    },
+    {
+      "comparison_id": "A4_privileged_minus_A2",
+      "reference": "A2",
+      "target": "A4_privileged"
+    }
+  ],
+  "threshold_sources": {
+    "gate1_influence_ceiling": "configs/gate1/decision_simulation.json:influence_ceiling",
+    "gate2_frozen_influence_ceiling": "configs/gate2/synthetic_validation.json:frozen_threshold_defaults.influence_ceiling"
+  },
+  "claim_ready": false
+}
