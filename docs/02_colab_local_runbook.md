@@ -254,6 +254,19 @@ python -m src.cli phase1_final_controls \
 
 Passing dedicated controls does not open claims. Failed dedicated controls must remain blockers.
 
+Final claim-state closeout after final governance reconciliation:
+
+```bash
+python -m src.cli phase1_final_claim_state_closeout \
+  --profile t4_safe \
+  --config artifacts/prereg/<prereg_run>/prereg_bundle.json \
+  --governance-reconciliation-run artifacts/phase1_final_governance_reconciliation/<governance_run> \
+  --output-root artifacts/phase1_final_claim_state_closeout \
+  --closeout-config configs/phase1/final_claim_state_closeout.json
+```
+
+This command records the final claim disposition and revision decision memo. It must preserve failed controls, calibration or influence blockers and must not be used to open Phase 1 claims.
+
 Phase 1 A2/A2b model smoke:
 
 ```bash

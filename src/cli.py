@@ -42,6 +42,10 @@ from .phase1.final_dedicated_controls import (
 from .phase1.final_calibration import Phase1FinalCalibrationError, run_phase1_final_calibration
 from .phase1.final_influence import Phase1FinalInfluenceError, run_phase1_final_influence
 from .phase1.final_reporting import Phase1FinalReportingError, run_phase1_final_reporting
+from .phase1.final_claim_state_closeout import (
+    Phase1FinalClaimStateCloseoutError,
+    run_phase1_final_claim_state_closeout,
+)
 from .phase1.final_a2d_runner import Phase1FinalA2dRunnerError, run_phase1_final_a2d_runner
 from .phase1.final_claim_package import Phase1FinalClaimPackageError, run_phase1_final_claim_package_plan
 from .phase1.final_split_feature_leakage import (
@@ -455,6 +459,22 @@ def build_parser() -> argparse.ArgumentParser:
     phase1_final_reporting.add_argument(
         "--governance-config",
         default="configs/phase1/final_governance_reconciliation.json",
+    )
+
+    phase1_final_claim_state_closeout = subparsers.add_parser(
+        "phase1_final_claim_state_closeout",
+        help="Record final Phase 1 fail-closed claim-state disposition from governance reconciliation",
+    )
+    phase1_final_claim_state_closeout.add_argument("--profile", default="t4_safe")
+    phase1_final_claim_state_closeout.add_argument("--config", required=True)
+    phase1_final_claim_state_closeout.add_argument("--governance-reconciliation-run", required=True)
+    phase1_final_claim_state_closeout.add_argument(
+        "--output-root",
+        default="artifacts/phase1_final_claim_state_closeout",
+    )
+    phase1_final_claim_state_closeout.add_argument(
+        "--closeout-config",
+        default="configs/phase1/final_claim_state_closeout.json",
     )
 
     for phase in ("phase05_real", "phase1_real", "phase2_real", "phase3_real"):
@@ -923,6 +943,19 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Report: {result.report_path}")
             return 0
 
+        if args.command == "phase1_final_claim_state_closeout":
+            result = run_phase1_final_claim_state_closeout(
+                prereg_bundle=args.config,
+                final_governance_reconciliation_run=args.governance_reconciliation_run,
+                output_root=args.output_root,
+                repo_root=Path.cwd(),
+                config_paths={"closeout": args.closeout_config},
+            )
+            print(f"Phase 1 final claim-state closeout complete: {result.output_dir}")
+            print(f"Summary: {result.summary_path}")
+            print(f"Report: {result.report_path}")
+            return 0
+
         if args.command == "phase1_real" and sum(
             bool(flag)
             for flag in [args.smoke, args.model_smoke, args.a2c_smoke, args.a2d_smoke, args.a3_smoke, args.a4_smoke]
@@ -1120,6 +1153,7 @@ def main(argv: list[str] | None = None) -> int:
         Phase1FinalCalibrationError,
         Phase1FinalInfluenceError,
         Phase1FinalReportingError,
+        Phase1FinalClaimStateCloseoutError,
         Phase1FinalA2dRunnerError,
         Phase1FinalSplitFeatureLeakageError,
         Phase1FinalFeatureManifestError,

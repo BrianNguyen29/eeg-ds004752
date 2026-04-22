@@ -1,0 +1,26 @@
+{
+  "runner_id": "phase1_final_claim_state_closeout_v1",
+  "status": "implementation_claim_closed",
+  "claim_scope": "final_phase1_claim_disposition_and_revision_decision",
+  "scientific_integrity_rule": "This runner records the final claim-state disposition from a reviewed final governance reconciliation run. It must preserve all observed blockers, must not recalculate model metrics, must not reinterpret failed controls/calibration/influence as pass, and must not open headline claims.",
+  "required_governance_boundary": {
+    "comparator_outputs_complete": true,
+    "runtime_logs_audited_for_all_required_comparators": true,
+    "claim_ready": false,
+    "headline_phase1_claim_open": false,
+    "full_phase1_claim_bearing_run_allowed": false
+  },
+  "claim_disposition_policy": {
+    "claims_opened": false,
+    "closeout_can_record_failure": true,
+    "revision_required_for_remediation": true
+  },
+  "not_ok_to_claim": [
+    "decoder efficacy",
+    "A2d efficacy",
+    "A3 distillation efficacy",
+    "A4 privileged-transfer efficacy",
+    "A4 superiority over A2/A2b/A2c/A2d/A3",
+    "full Phase 1 neural comparator performance"
+  ]
+}
