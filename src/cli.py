@@ -66,6 +66,10 @@ from .phase1.final_controls_metric_formula_decision import (
     Phase1FinalControlsMetricFormulaDecisionError,
     run_phase1_final_controls_metric_formula_decision,
 )
+from .phase1.final_post_formula_decision_governance_update import (
+    Phase1FinalPostFormulaDecisionGovernanceUpdateError,
+    run_phase1_final_post_formula_decision_governance_update,
+)
 from .phase1.final_a2d_runner import Phase1FinalA2dRunnerError, run_phase1_final_a2d_runner
 from .phase1.final_claim_package import Phase1FinalClaimPackageError, run_phase1_final_claim_package_plan
 from .phase1.final_split_feature_leakage import (
@@ -632,6 +636,34 @@ def build_parser() -> argparse.ArgumentParser:
     phase1_final_controls_metric_formula_decision.add_argument(
         "--gate2-config",
         default="configs/gate2/synthetic_validation.json",
+    )
+
+    phase1_final_post_formula_decision_governance_update = subparsers.add_parser(
+        "phase1_final_post_formula_decision_governance_update",
+        help="Record claim-closed governance update after final controls metric-formula decision",
+    )
+    phase1_final_post_formula_decision_governance_update.add_argument("--profile", default="t4_safe")
+    phase1_final_post_formula_decision_governance_update.add_argument("--config", required=True)
+    phase1_final_post_formula_decision_governance_update.add_argument(
+        "--final-governance-reconciliation-run",
+        required=True,
+    )
+    phase1_final_post_formula_decision_governance_update.add_argument("--formula-decision-run", required=True)
+    phase1_final_post_formula_decision_governance_update.add_argument(
+        "--output-root",
+        default="artifacts/phase1_final_post_formula_decision_governance_update",
+    )
+    phase1_final_post_formula_decision_governance_update.add_argument(
+        "--update-config",
+        default="configs/phase1/final_post_formula_decision_governance_update.json",
+    )
+    phase1_final_post_formula_decision_governance_update.add_argument(
+        "--formula-decision-config",
+        default="configs/phase1/final_controls_metric_formula_decision.json",
+    )
+    phase1_final_post_formula_decision_governance_update.add_argument(
+        "--governance-config",
+        default="configs/phase1/final_governance_reconciliation.json",
     )
 
     for phase in ("phase05_real", "phase1_real", "phase2_real", "phase3_real"):
@@ -1203,6 +1235,24 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Report: {result.report_path}")
             return 0
 
+        if args.command == "phase1_final_post_formula_decision_governance_update":
+            result = run_phase1_final_post_formula_decision_governance_update(
+                prereg_bundle=args.config,
+                final_governance_reconciliation_run=args.final_governance_reconciliation_run,
+                formula_decision_run=args.formula_decision_run,
+                output_root=args.output_root,
+                repo_root=Path.cwd(),
+                config_paths={
+                    "update": args.update_config,
+                    "formula_decision": args.formula_decision_config,
+                    "governance": args.governance_config,
+                },
+            )
+            print(f"Phase 1 post-formula-decision governance update complete: {result.output_dir}")
+            print(f"Summary: {result.summary_path}")
+            print(f"Report: {result.report_path}")
+            return 0
+
         if args.command == "phase1_real" and sum(
             bool(flag)
             for flag in [args.smoke, args.model_smoke, args.a2c_smoke, args.a2d_smoke, args.a3_smoke, args.a4_smoke]
@@ -1406,6 +1456,7 @@ def main(argv: list[str] | None = None) -> int:
         Phase1FinalControlsMetricContractAuditError,
         Phase1FinalControlsMetricFormulaRevisionPlanError,
         Phase1FinalControlsMetricFormulaDecisionError,
+        Phase1FinalPostFormulaDecisionGovernanceUpdateError,
         Phase1FinalA2dRunnerError,
         Phase1FinalSplitFeatureLeakageError,
         Phase1FinalFeatureManifestError,

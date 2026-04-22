@@ -1,0 +1,27 @@
+{
+  "runner_id": "phase1_final_post_formula_decision_governance_update_v1",
+  "status": "governance_update_claim_closed",
+  "claim_scope": "post_formula_decision_governance_state_only",
+  "scientific_integrity_rule": "This update links the final governance reconciliation state with the metric-formula decision. It must not rerun controls, change thresholds, edit logits or metrics, reclassify artifacts, remediate code/config, or open Phase 1 claims.",
+  "required_boundary": {
+    "governance_claim_ready": false,
+    "governance_headline_phase1_claim_open": false,
+    "formula_decision_claim_ready": false,
+    "formula_decision_claims_opened": false,
+    "formula_decision_thresholds_changed": false,
+    "formula_decision_controls_rerun_by_runner": false,
+    "formula_decision_logits_or_metrics_edited": false
+  },
+  "standing_claim_blockers": [
+    "controls_calibration_influence_governance_still_not_claim_evaluable",
+    "headline_claim_blocked_until_full_package_passes"
+  ],
+  "not_ok_to_claim": [
+    "decoder efficacy",
+    "A2d efficacy",
+    "A3 distillation efficacy",
+    "A4 privileged-transfer efficacy",
+    "A4 superiority over A2/A2b/A2c/A2d/A3",
+    "full Phase 1 neural comparator performance"
+  ]
+}
