@@ -1,0 +1,52 @@
+{
+  "runner_id": "phase1_final_remediation_plan_v1",
+  "status": "planning_claim_closed",
+  "claim_scope": "post_closeout_remediation_planning_only",
+  "scientific_integrity_rule": "This plan starts only after a fail-closed Phase 1 claim-state closeout. It may classify blockers and define allowed remediation work, but it must not reinterpret failed governance surfaces as pass, change locked thresholds after seeing results, drop subjects post hoc, fabricate missing artifacts, or open Phase 1 claims.",
+  "required_closeout_boundary": {
+    "final_claim_blocked": true,
+    "claims_opened": false,
+    "claim_ready": false,
+    "headline_phase1_claim_open": false,
+    "full_phase1_claim_bearing_run_allowed": false,
+    "revision_required_for_remediation": true
+  },
+  "surface_order": [
+    "controls",
+    "calibration",
+    "influence"
+  ],
+  "allowed_remediation_classes": {
+    "controls": [
+      "audit_control_implementation_against_locked_spec",
+      "audit_dedicated_control_inputs_and_randomization_contract",
+      "if_design_change_is_needed_prepare_revision_not_posthoc_threshold_edit",
+      "rerun_controls_only_after_revised_code_config_and_revision_decision_are_recorded"
+    ],
+    "calibration": [
+      "audit_final_logits_and_reliability_artifacts",
+      "review_locked_delta_ece_failure_without_recalibrating_existing_predictions",
+      "if_calibration_method_changes_prepare_revision_and_rerun_full_eligible_package"
+    ],
+    "influence": [
+      "audit_subject_level_contribution_and_loso_delta_artifacts",
+      "inspect_data_quality_or_subject_dominance_without_posthoc_exclusion",
+      "if_cohort_or_model_scope_changes_prepare_revision_and_rerun_full_eligible_package"
+    ]
+  },
+  "not_allowed_remediation_classes": [
+    "threshold_relaxation_after_observed_failure",
+    "posthoc_subject_exclusion_to_pass_influence",
+    "editing_logits_or_metrics",
+    "promoting_smoke_or_diagnostic_outputs_to_final_evidence",
+    "opening_headline_claims_before governance_passes"
+  ],
+  "not_ok_to_claim": [
+    "decoder efficacy",
+    "A2d efficacy",
+    "A3 distillation efficacy",
+    "A4 privileged-transfer efficacy",
+    "A4 superiority over A2/A2b/A2c/A2d/A3",
+    "full Phase 1 neural comparator performance"
+  ]
+}

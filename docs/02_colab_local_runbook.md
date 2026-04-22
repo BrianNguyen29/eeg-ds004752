@@ -267,6 +267,19 @@ python -m src.cli phase1_final_claim_state_closeout \
 
 This command records the final claim disposition and revision decision memo. It must preserve failed controls, calibration or influence blockers and must not be used to open Phase 1 claims.
 
+Final remediation plan after fail-closed claim-state closeout:
+
+```bash
+python -m src.cli phase1_final_remediation_plan \
+  --profile t4_safe \
+  --config artifacts/prereg/<prereg_run>/prereg_bundle.json \
+  --claim-state-closeout-run artifacts/phase1_final_claim_state_closeout/<closeout_run> \
+  --output-root artifacts/phase1_final_remediation_plan \
+  --remediation-config configs/phase1/final_remediation_plan.json
+```
+
+This command records only a claim-closed remediation workplan. It may classify controls/calibration/influence blockers and revision-policy guardrails, but it must not relax thresholds, edit logits or metrics, drop subjects post hoc, fabricate missing artifacts or open Phase 1 claims.
+
 Phase 1 A2/A2b model smoke:
 
 ```bash
