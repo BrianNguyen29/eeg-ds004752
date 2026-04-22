@@ -1,0 +1,43 @@
+{
+  "runner_id": "phase1_final_controls_remediation_audit_v1",
+  "status": "audit_claim_closed",
+  "claim_scope": "controls_remediation_audit_only",
+  "scientific_integrity_rule": "This audit reads failed final controls and dedicated-control artifacts after fail-closed remediation planning. It may classify control failures and threshold-source consistency, but it must not change thresholds, edit logits or metrics, rerun controls, drop subjects post hoc, reinterpret failed controls as pass, or open Phase 1 claims.",
+  "required_boundary": {
+    "remediation_claims_opened": false,
+    "remediation_final_claim_blocked": true,
+    "final_controls_claim_ready": false,
+    "final_dedicated_controls_claim_ready": false
+  },
+  "required_controls": [
+    "scalp_only_baseline",
+    "grouped_permutation",
+    "nuisance_shared_control",
+    "spatial_control",
+    "transfer_consistency",
+    "shuffled_labels",
+    "shuffled_teacher",
+    "time_shifted_teacher"
+  ],
+  "required_dedicated_controls": [
+    "nuisance_shared_control",
+    "spatial_control",
+    "shuffled_teacher",
+    "time_shifted_teacher"
+  ],
+  "not_allowed_actions": [
+    "threshold_relaxation_after_observed_failure",
+    "editing_control_metrics_or_logits",
+    "dropping_subjects_posthoc_to_pass_controls",
+    "promoting_failed_controls_to_claim_evaluable",
+    "opening_headline_claims_before_governance_passes"
+  ],
+  "not_ok_to_claim": [
+    "decoder efficacy",
+    "A2d efficacy",
+    "A3 distillation efficacy",
+    "A4 privileged-transfer efficacy",
+    "A4 superiority over A2/A2b/A2c/A2d/A3",
+    "full Phase 1 neural comparator performance"
+  ]
+}

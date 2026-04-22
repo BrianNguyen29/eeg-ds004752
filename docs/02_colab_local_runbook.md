@@ -280,6 +280,25 @@ python -m src.cli phase1_final_remediation_plan \
 
 This command records only a claim-closed remediation workplan. It may classify controls/calibration/influence blockers and revision-policy guardrails, but it must not relax thresholds, edit logits or metrics, drop subjects post hoc, fabricate missing artifacts or open Phase 1 claims.
 
+Final controls remediation audit after claim-closed remediation plan:
+
+```bash
+python -m src.cli phase1_final_controls_remediation_audit \
+  --profile t4_safe \
+  --config artifacts/prereg/<prereg_run>/prereg_bundle.json \
+  --final-remediation-plan-run artifacts/phase1_final_remediation_plan/<remediation_plan_run> \
+  --final-controls-run artifacts/phase1_final_controls/<final_controls_run> \
+  --final-dedicated-controls-run artifacts/phase1_final_dedicated_controls/<dedicated_controls_run> \
+  --output-root artifacts/phase1_final_controls_remediation_audit \
+  --audit-config configs/phase1/final_controls_remediation_audit.json \
+  --final-controls-config configs/phase1/final_controls.json \
+  --dedicated-controls-config configs/phase1/final_dedicated_controls.json \
+  --control-suite-config configs/controls/control_suite_spec.yaml \
+  --gate2-config configs/gate2/synthetic_validation.json
+```
+
+This command reads failed controls artifacts and records failure reasons plus threshold-source consistency. It must not rerun controls, edit logits or metrics, relax thresholds, drop subjects post hoc or open Phase 1 claims.
+
 Phase 1 A2/A2b model smoke:
 
 ```bash

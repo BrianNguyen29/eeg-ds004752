@@ -50,6 +50,10 @@ from .phase1.final_remediation_plan import (
     Phase1FinalRemediationPlanError,
     run_phase1_final_remediation_plan,
 )
+from .phase1.final_controls_remediation_audit import (
+    Phase1FinalControlsRemediationAuditError,
+    run_phase1_final_controls_remediation_audit,
+)
 from .phase1.final_a2d_runner import Phase1FinalA2dRunnerError, run_phase1_final_a2d_runner
 from .phase1.final_claim_package import Phase1FinalClaimPackageError, run_phase1_final_claim_package_plan
 from .phase1.final_split_feature_leakage import (
@@ -495,6 +499,40 @@ def build_parser() -> argparse.ArgumentParser:
     phase1_final_remediation_plan.add_argument(
         "--remediation-config",
         default="configs/phase1/final_remediation_plan.json",
+    )
+
+    phase1_final_controls_remediation_audit = subparsers.add_parser(
+        "phase1_final_controls_remediation_audit",
+        help="Audit failed final controls after claim-closed remediation planning",
+    )
+    phase1_final_controls_remediation_audit.add_argument("--profile", default="t4_safe")
+    phase1_final_controls_remediation_audit.add_argument("--config", required=True)
+    phase1_final_controls_remediation_audit.add_argument("--final-remediation-plan-run", required=True)
+    phase1_final_controls_remediation_audit.add_argument("--final-controls-run", required=True)
+    phase1_final_controls_remediation_audit.add_argument("--final-dedicated-controls-run", required=True)
+    phase1_final_controls_remediation_audit.add_argument(
+        "--output-root",
+        default="artifacts/phase1_final_controls_remediation_audit",
+    )
+    phase1_final_controls_remediation_audit.add_argument(
+        "--audit-config",
+        default="configs/phase1/final_controls_remediation_audit.json",
+    )
+    phase1_final_controls_remediation_audit.add_argument(
+        "--final-controls-config",
+        default="configs/phase1/final_controls.json",
+    )
+    phase1_final_controls_remediation_audit.add_argument(
+        "--dedicated-controls-config",
+        default="configs/phase1/final_dedicated_controls.json",
+    )
+    phase1_final_controls_remediation_audit.add_argument(
+        "--control-suite-config",
+        default="configs/controls/control_suite_spec.yaml",
+    )
+    phase1_final_controls_remediation_audit.add_argument(
+        "--gate2-config",
+        default="configs/gate2/synthetic_validation.json",
     )
 
     for phase in ("phase05_real", "phase1_real", "phase2_real", "phase3_real"):
@@ -989,6 +1027,27 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Report: {result.report_path}")
             return 0
 
+        if args.command == "phase1_final_controls_remediation_audit":
+            result = run_phase1_final_controls_remediation_audit(
+                prereg_bundle=args.config,
+                final_remediation_plan_run=args.final_remediation_plan_run,
+                final_controls_run=args.final_controls_run,
+                final_dedicated_controls_run=args.final_dedicated_controls_run,
+                output_root=args.output_root,
+                repo_root=Path.cwd(),
+                config_paths={
+                    "audit": args.audit_config,
+                    "final_controls": args.final_controls_config,
+                    "dedicated_controls": args.dedicated_controls_config,
+                    "control_suite": args.control_suite_config,
+                    "gate2": args.gate2_config,
+                },
+            )
+            print(f"Phase 1 final controls remediation audit complete: {result.output_dir}")
+            print(f"Summary: {result.summary_path}")
+            print(f"Report: {result.report_path}")
+            return 0
+
         if args.command == "phase1_real" and sum(
             bool(flag)
             for flag in [args.smoke, args.model_smoke, args.a2c_smoke, args.a2d_smoke, args.a3_smoke, args.a4_smoke]
@@ -1188,6 +1247,7 @@ def main(argv: list[str] | None = None) -> int:
         Phase1FinalReportingError,
         Phase1FinalClaimStateCloseoutError,
         Phase1FinalRemediationPlanError,
+        Phase1FinalControlsRemediationAuditError,
         Phase1FinalA2dRunnerError,
         Phase1FinalSplitFeatureLeakageError,
         Phase1FinalFeatureManifestError,
