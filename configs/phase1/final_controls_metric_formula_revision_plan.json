@@ -1,0 +1,44 @@
+{
+  "runner_id": "phase1_final_controls_metric_formula_revision_plan_v1",
+  "status": "planning_claim_closed",
+  "claim_scope": "metric_formula_revision_planning_only",
+  "scientific_integrity_rule": "This plan records the revision decision boundary after metric-contract ambiguity. It must not select a formula, change thresholds, edit logits or metrics, rerun controls, drop subjects post hoc, reclassify failed controls, or open Phase 1 claims.",
+  "required_boundary": {
+    "metric_audit_claims_opened": false,
+    "metric_audit_claim_ready": false,
+    "metric_audit_formula_ambiguity_detected": true,
+    "metric_audit_headline_claim_open": false
+  },
+  "candidate_relative_formulas": [
+    "raw_ba_ratio",
+    "gain_over_chance_ratio"
+  ],
+  "required_sources_to_review": [
+    "locked prereg bundle",
+    "Gate 2 synthetic validation threshold registry",
+    "final controls metric-contract audit",
+    "final dedicated controls artifact thresholds",
+    "notebook run logs and decision memos"
+  ],
+  "allowed_revision_outcomes": [
+    "lock raw_ba_ratio and keep existing controls fail-closed",
+    "lock gain_over_chance_ratio then implement a scoped code/config fix with tests before any rerun",
+    "declare metric contract unresolved and keep controls fail-closed"
+  ],
+  "not_allowed_actions": [
+    "selecting_formula_posthoc_to_improve_results",
+    "threshold_relaxation_after_observed_failure",
+    "editing_control_metrics_or_logits",
+    "dropping_subjects_posthoc_to_pass_controls",
+    "rerunning_controls_before_formula_decision",
+    "opening_headline_claims_before_governance_passes"
+  ],
+  "not_ok_to_claim": [
+    "decoder efficacy",
+    "A2d efficacy",
+    "A3 distillation efficacy",
+    "A4 privileged-transfer efficacy",
+    "A4 superiority over A2/A2b/A2c/A2d/A3",
+    "full Phase 1 neural comparator performance"
+  ]
+}
