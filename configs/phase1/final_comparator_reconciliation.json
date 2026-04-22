@@ -1,0 +1,37 @@
+{
+  "runner_id": "phase1_final_comparator_reconciliation_v1",
+  "status": "implementation_claim_closed",
+  "claim_scope": "reconciled_final_comparator_output_manifests_and_runtime_leakage_logs",
+  "scientific_integrity_rule": "This reconciliation package links the feature-matrix final comparator runner outputs with the final A2d covariance/tangent runner outputs. It does not rerun models, alter logits, compute new metrics, promote smoke artifacts, or open claims. It records whether the previously missing A2d output blocker is cleared at the artifact-manifest level only.",
+  "required_final_comparators": [
+    "A2",
+    "A2b",
+    "A2c_CORAL",
+    "A2d_riemannian",
+    "A3_distillation",
+    "A4_privileged"
+  ],
+  "feature_matrix_runner_comparators": [
+    "A2",
+    "A2b",
+    "A2c_CORAL",
+    "A3_distillation",
+    "A4_privileged"
+  ],
+  "a2d_comparator_id": "A2d_riemannian",
+  "required_resolved_a2d_blockers": [
+    "A2d_riemannian_not_executable_from_final_feature_matrix",
+    "A2d_riemannian_final_covariance_runner_missing"
+  ],
+  "required_claim_closed_fields": {
+    "claim_ready": false,
+    "headline_phase1_claim_open": false,
+    "full_phase1_claim_bearing_run_allowed": false,
+    "smoke_artifacts_promoted": false
+  },
+  "claim_blockers_after_reconciliation": [
+    "controls_calibration_influence_reporting_missing",
+    "headline_claim_blocked_until_full_package_passes",
+    "final_controls_calibration_influence_reporting_package_not_reconciled"
+  ]
+}

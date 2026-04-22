@@ -487,6 +487,20 @@ python -m src.cli phase1_final_a2d_runner \
 
 The final A2d runner is claim-closed. It uses the final feature matrix row index as row/provenance contract but extracts covariance matrices directly from EDF payloads, fits the log-Euclidean reference and tangent projection on training subjects only per LOSO fold, and writes A2d logits, subject-level diagnostics, output manifest and runtime leakage log. It can resolve the A2d missing-output engineering blocker for downstream reconciliation, but it does not make A2d or Phase 1 claim-evaluable without controls, calibration, influence and reporting.
 
+Phase 1 final comparator reconciliation after both final comparator runners exist:
+
+```bash
+python -m src.cli phase1_final_comparator_reconciliation \
+  --profile t4_safe \
+  --config artifacts/prereg/<prereg_run>/prereg_bundle.json \
+  --feature-matrix-comparator-run artifacts/phase1_final_comparator_runner/<feature_matrix_comparator_run> \
+  --final-a2d-run artifacts/phase1_final_a2d_runner/<final_a2d_run> \
+  --output-root artifacts/phase1_final_comparator_reconciliation \
+  --reconciliation-config configs/phase1/final_comparator_reconciliation.json
+```
+
+The final comparator reconciliation package is claim-closed. It links the feature-matrix comparator outputs with the final A2d covariance/tangent outputs, verifies all six comparator manifests/logits/subject metrics/runtime leakage logs are present, and records whether the A2d missing-output blocker is cleared at artifact level. It must not rerun models, edit logits, recompute metrics, fabricate missing files or open claims. Downstream controls, calibration, influence and reporting remain required before any headline Phase 1 claim can be evaluated.
+
 ## Conditions for opening real phases
 
 Real phases may be opened only when all conditions are true:
@@ -507,6 +521,7 @@ Real phases may be opened only when all conditions are true:
 - The final feature matrix may be used as final comparator runner input only after materialization validation passes; by itself it is not model evidence and does not open claims.
 - Final comparator runner outputs may feed downstream controls/calibration/influence/reporting only after runtime leakage logs are reviewed; partial output packages with blocked comparators remain non-claim.
 - Final A2d covariance/tangent outputs may clear the A2d missing-output blocker only after their runtime leakage log passes and downstream comparator-package reconciliation links the A2d run with the feature-matrix comparator run.
+- Final comparator reconciliation may mark all six comparator output manifests present, but it remains non-claim until controls, calibration, influence and reporting are implemented, reconciled and pass the locked governance thresholds.
 
 ## Current local status
 
