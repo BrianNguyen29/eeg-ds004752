@@ -54,6 +54,10 @@ from .phase1.final_controls_remediation_audit import (
     Phase1FinalControlsRemediationAuditError,
     run_phase1_final_controls_remediation_audit,
 )
+from .phase1.final_controls_metric_contract_audit import (
+    Phase1FinalControlsMetricContractAuditError,
+    run_phase1_final_controls_metric_contract_audit,
+)
 from .phase1.final_a2d_runner import Phase1FinalA2dRunnerError, run_phase1_final_a2d_runner
 from .phase1.final_claim_package import Phase1FinalClaimPackageError, run_phase1_final_claim_package_plan
 from .phase1.final_split_feature_leakage import (
@@ -531,6 +535,35 @@ def build_parser() -> argparse.ArgumentParser:
         default="configs/controls/control_suite_spec.yaml",
     )
     phase1_final_controls_remediation_audit.add_argument(
+        "--gate2-config",
+        default="configs/gate2/synthetic_validation.json",
+    )
+
+    phase1_final_controls_metric_contract_audit = subparsers.add_parser(
+        "phase1_final_controls_metric_contract_audit",
+        help="Audit final controls relative-metric contract without rerunning controls or opening claims",
+    )
+    phase1_final_controls_metric_contract_audit.add_argument("--profile", default="t4_safe")
+    phase1_final_controls_metric_contract_audit.add_argument("--config", required=True)
+    phase1_final_controls_metric_contract_audit.add_argument("--controls-remediation-audit-run", required=True)
+    phase1_final_controls_metric_contract_audit.add_argument("--final-dedicated-controls-run", required=True)
+    phase1_final_controls_metric_contract_audit.add_argument(
+        "--output-root",
+        default="artifacts/phase1_final_controls_metric_contract_audit",
+    )
+    phase1_final_controls_metric_contract_audit.add_argument(
+        "--metric-contract-config",
+        default="configs/phase1/final_controls_metric_contract_audit.json",
+    )
+    phase1_final_controls_metric_contract_audit.add_argument(
+        "--dedicated-controls-config",
+        default="configs/phase1/final_dedicated_controls.json",
+    )
+    phase1_final_controls_metric_contract_audit.add_argument(
+        "--control-suite-config",
+        default="configs/controls/control_suite_spec.yaml",
+    )
+    phase1_final_controls_metric_contract_audit.add_argument(
         "--gate2-config",
         default="configs/gate2/synthetic_validation.json",
     )
@@ -1048,6 +1081,25 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Report: {result.report_path}")
             return 0
 
+        if args.command == "phase1_final_controls_metric_contract_audit":
+            result = run_phase1_final_controls_metric_contract_audit(
+                prereg_bundle=args.config,
+                controls_remediation_audit_run=args.controls_remediation_audit_run,
+                final_dedicated_controls_run=args.final_dedicated_controls_run,
+                output_root=args.output_root,
+                repo_root=Path.cwd(),
+                config_paths={
+                    "metric_contract": args.metric_contract_config,
+                    "dedicated_controls": args.dedicated_controls_config,
+                    "control_suite": args.control_suite_config,
+                    "gate2": args.gate2_config,
+                },
+            )
+            print(f"Phase 1 final controls metric-contract audit complete: {result.output_dir}")
+            print(f"Summary: {result.summary_path}")
+            print(f"Report: {result.report_path}")
+            return 0
+
         if args.command == "phase1_real" and sum(
             bool(flag)
             for flag in [args.smoke, args.model_smoke, args.a2c_smoke, args.a2d_smoke, args.a3_smoke, args.a4_smoke]
@@ -1248,6 +1300,7 @@ def main(argv: list[str] | None = None) -> int:
         Phase1FinalClaimStateCloseoutError,
         Phase1FinalRemediationPlanError,
         Phase1FinalControlsRemediationAuditError,
+        Phase1FinalControlsMetricContractAuditError,
         Phase1FinalA2dRunnerError,
         Phase1FinalSplitFeatureLeakageError,
         Phase1FinalFeatureManifestError,

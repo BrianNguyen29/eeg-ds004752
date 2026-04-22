@@ -1,0 +1,38 @@
+{
+  "runner_id": "phase1_final_controls_metric_contract_audit_v1",
+  "status": "audit_claim_closed",
+  "claim_scope": "controls_metric_contract_audit_only",
+  "scientific_integrity_rule": "This audit reviews the relative-metric contract for failed final controls. It must not change thresholds, edit logits or metrics, rerun controls, drop subjects post hoc, reclassify failed controls as pass, or open Phase 1 claims.",
+  "required_boundary": {
+    "remediation_claims_opened": false,
+    "remediation_claim_ready": false,
+    "dedicated_controls_claim_ready": false,
+    "dedicated_controls_claims_opened": false
+  },
+  "relative_controls_under_review": [
+    "nuisance_shared_control",
+    "spatial_control"
+  ],
+  "candidate_relative_formulas": [
+    "raw_ba_ratio",
+    "gain_over_chance_ratio"
+  ],
+  "default_baseline_comparator": "A2",
+  "formula_tolerance": 0.00001,
+  "not_allowed_actions": [
+    "threshold_relaxation_after_observed_failure",
+    "editing_control_metrics_or_logits",
+    "dropping_subjects_posthoc_to_pass_controls",
+    "reclassifying_existing_failed_controls_as_pass",
+    "selecting_formula_posthoc_to_improve_results",
+    "opening_headline_claims_before_governance_passes"
+  ],
+  "not_ok_to_claim": [
+    "decoder efficacy",
+    "A2d efficacy",
+    "A3 distillation efficacy",
+    "A4 privileged-transfer efficacy",
+    "A4 superiority over A2/A2b/A2c/A2d/A3",
+    "full Phase 1 neural comparator performance"
+  ]
+}
