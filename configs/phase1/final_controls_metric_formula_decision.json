@@ -1,0 +1,47 @@
+{
+  "runner_id": "phase1_final_controls_metric_formula_decision_v1",
+  "status": "decision_claim_closed",
+  "claim_scope": "metric_formula_contract_decision_only",
+  "scientific_integrity_rule": "This decision records a manual formula-contract disposition after the metric-formula revision plan. It must not change thresholds, edit logits or metrics, rerun controls, reclassify existing artifacts, drop subjects, or open Phase 1 claims.",
+  "required_boundary": {
+    "revision_plan_claims_opened": false,
+    "revision_plan_claim_ready": false,
+    "revision_plan_manual_decision_required": true,
+    "revision_plan_selected_formula": null,
+    "revision_plan_headline_claim_open": false,
+    "revision_plan_code_change_allowed_now": false,
+    "revision_plan_rerun_controls_allowed_now": false,
+    "revision_plan_threshold_change_allowed_now": false
+  },
+  "allowed_formula_decisions": [
+    "raw_ba_ratio",
+    "gain_over_chance_ratio",
+    "unresolved"
+  ],
+  "minimum_rationale_characters": 40,
+  "required_before_any_control_rerun": [
+    "formula decision artifact reviewed",
+    "scoped code/config patch implemented if selected formula differs from runtime",
+    "unit tests added for formula semantics and leak guards",
+    "full unittest passes",
+    "notebook and governance docs updated",
+    "rerun plan uses explicit manual acknowledgement"
+  ],
+  "not_allowed_actions": [
+    "choosing_formula_only_to_improve_observed_control_status",
+    "threshold_relaxation_after_observed_failure",
+    "editing_control_metrics_or_logits",
+    "dropping_subjects_posthoc_to_pass_controls",
+    "rerunning_controls_inside_decision_runner",
+    "reclassifying_existing_failed_controls_without_a_rerun",
+    "opening_headline_claims_before_full_governance_passes"
+  ],
+  "not_ok_to_claim": [
+    "decoder efficacy",
+    "A2d efficacy",
+    "A3 distillation efficacy",
+    "A4 privileged-transfer efficacy",
+    "A4 superiority over A2/A2b/A2c/A2d/A3",
+    "full Phase 1 neural comparator performance"
+  ]
+}

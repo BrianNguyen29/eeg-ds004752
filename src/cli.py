@@ -62,6 +62,10 @@ from .phase1.final_controls_metric_formula_revision_plan import (
     Phase1FinalControlsMetricFormulaRevisionPlanError,
     run_phase1_final_controls_metric_formula_revision_plan,
 )
+from .phase1.final_controls_metric_formula_decision import (
+    Phase1FinalControlsMetricFormulaDecisionError,
+    run_phase1_final_controls_metric_formula_decision,
+)
 from .phase1.final_a2d_runner import Phase1FinalA2dRunnerError, run_phase1_final_a2d_runner
 from .phase1.final_claim_package import Phase1FinalClaimPackageError, run_phase1_final_claim_package_plan
 from .phase1.final_split_feature_leakage import (
@@ -592,6 +596,40 @@ def build_parser() -> argparse.ArgumentParser:
         default="configs/phase1/final_controls_metric_contract_audit.json",
     )
     phase1_final_controls_metric_formula_revision_plan.add_argument(
+        "--gate2-config",
+        default="configs/gate2/synthetic_validation.json",
+    )
+
+    phase1_final_controls_metric_formula_decision = subparsers.add_parser(
+        "phase1_final_controls_metric_formula_decision",
+        help="Record claim-closed manual decision for final controls metric formula",
+    )
+    phase1_final_controls_metric_formula_decision.add_argument("--profile", default="t4_safe")
+    phase1_final_controls_metric_formula_decision.add_argument("--config", required=True)
+    phase1_final_controls_metric_formula_decision.add_argument("--formula-revision-plan-run", required=True)
+    phase1_final_controls_metric_formula_decision.add_argument(
+        "--formula-decision",
+        required=True,
+        choices=["raw_ba_ratio", "gain_over_chance_ratio", "unresolved"],
+    )
+    phase1_final_controls_metric_formula_decision.add_argument("--decision-rationale", required=True)
+    phase1_final_controls_metric_formula_decision.add_argument(
+        "--output-root",
+        default="artifacts/phase1_final_controls_metric_formula_decision",
+    )
+    phase1_final_controls_metric_formula_decision.add_argument(
+        "--decision-config",
+        default="configs/phase1/final_controls_metric_formula_decision.json",
+    )
+    phase1_final_controls_metric_formula_decision.add_argument(
+        "--revision-plan-config",
+        default="configs/phase1/final_controls_metric_formula_revision_plan.json",
+    )
+    phase1_final_controls_metric_formula_decision.add_argument(
+        "--metric-contract-config",
+        default="configs/phase1/final_controls_metric_contract_audit.json",
+    )
+    phase1_final_controls_metric_formula_decision.add_argument(
         "--gate2-config",
         default="configs/gate2/synthetic_validation.json",
     )
@@ -1145,6 +1183,26 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Report: {result.report_path}")
             return 0
 
+        if args.command == "phase1_final_controls_metric_formula_decision":
+            result = run_phase1_final_controls_metric_formula_decision(
+                prereg_bundle=args.config,
+                formula_revision_plan_run=args.formula_revision_plan_run,
+                formula_decision=args.formula_decision,
+                decision_rationale=args.decision_rationale,
+                output_root=args.output_root,
+                repo_root=Path.cwd(),
+                config_paths={
+                    "decision": args.decision_config,
+                    "revision_plan": args.revision_plan_config,
+                    "metric_contract": args.metric_contract_config,
+                    "gate2": args.gate2_config,
+                },
+            )
+            print(f"Phase 1 final controls metric-formula decision complete: {result.output_dir}")
+            print(f"Summary: {result.summary_path}")
+            print(f"Report: {result.report_path}")
+            return 0
+
         if args.command == "phase1_real" and sum(
             bool(flag)
             for flag in [args.smoke, args.model_smoke, args.a2c_smoke, args.a2d_smoke, args.a3_smoke, args.a4_smoke]
@@ -1347,6 +1405,7 @@ def main(argv: list[str] | None = None) -> int:
         Phase1FinalControlsRemediationAuditError,
         Phase1FinalControlsMetricContractAuditError,
         Phase1FinalControlsMetricFormulaRevisionPlanError,
+        Phase1FinalControlsMetricFormulaDecisionError,
         Phase1FinalA2dRunnerError,
         Phase1FinalSplitFeatureLeakageError,
         Phase1FinalFeatureManifestError,
