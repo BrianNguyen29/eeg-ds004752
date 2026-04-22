@@ -227,6 +227,33 @@ python -m src.cli phase1_final_reporting \
 
 This command only assembles the reporting package and closed claim table from existing governance artifacts. It must preserve any controls, calibration or influence blockers and must not be interpreted as Phase 1 efficacy evidence.
 
+Final dedicated controls after final feature matrix and comparator reconciliation:
+
+```bash
+python -m src.cli phase1_final_dedicated_controls \
+  --profile t4_safe \
+  --config artifacts/prereg/<prereg_run>/prereg_bundle.json \
+  --feature-matrix-run artifacts/phase1_final_feature_matrix/<feature_matrix_run> \
+  --comparator-reconciliation-run artifacts/phase1_final_comparator_reconciliation/<comparator_reconciliation_run> \
+  --output-root artifacts/phase1_final_dedicated_controls \
+  --dedicated-controls-config configs/phase1/final_dedicated_controls.json \
+  --comparator-runner-config configs/phase1/final_comparator_runner.json \
+  --gate2-config configs/gate2/synthetic_validation.json
+```
+
+If `final_dedicated_control_manifest.json` is acceptable, rerun final controls with:
+
+```bash
+python -m src.cli phase1_final_controls \
+  --profile t4_safe \
+  --config artifacts/prereg/<prereg_run>/prereg_bundle.json \
+  --comparator-reconciliation-run artifacts/phase1_final_comparator_reconciliation/<comparator_reconciliation_run> \
+  --output-root artifacts/phase1_final_controls \
+  --dedicated-control-manifest artifacts/phase1_final_dedicated_controls/<dedicated_controls_run>/final_dedicated_control_manifest.json
+```
+
+Passing dedicated controls does not open claims. Failed dedicated controls must remain blockers.
+
 Phase 1 A2/A2b model smoke:
 
 ```bash

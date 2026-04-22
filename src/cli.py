@@ -35,6 +35,10 @@ from .phase1.final_governance_reconciliation import (
     run_phase1_final_governance_reconciliation,
 )
 from .phase1.final_controls import Phase1FinalControlsError, run_phase1_final_controls
+from .phase1.final_dedicated_controls import (
+    Phase1FinalDedicatedControlsError,
+    run_phase1_final_dedicated_controls,
+)
 from .phase1.final_calibration import Phase1FinalCalibrationError, run_phase1_final_calibration
 from .phase1.final_influence import Phase1FinalInfluenceError, run_phase1_final_influence
 from .phase1.final_reporting import Phase1FinalReportingError, run_phase1_final_reporting
@@ -389,6 +393,30 @@ def build_parser() -> argparse.ArgumentParser:
     phase1_final_controls.add_argument("--controls-config", default="configs/phase1/final_controls.json")
     phase1_final_controls.add_argument("--control-suite-config", default="configs/controls/control_suite_spec.yaml")
     phase1_final_controls.add_argument("--gate2-config", default="configs/gate2/synthetic_validation.json")
+    phase1_final_controls.add_argument("--dedicated-control-manifest")
+
+    phase1_final_dedicated_controls = subparsers.add_parser(
+        "phase1_final_dedicated_controls",
+        help="Compute claim-closed dedicated final negative controls from the final feature matrix",
+    )
+    phase1_final_dedicated_controls.add_argument("--profile", default="t4_safe")
+    phase1_final_dedicated_controls.add_argument("--config", required=True)
+    phase1_final_dedicated_controls.add_argument("--feature-matrix-run", required=True)
+    phase1_final_dedicated_controls.add_argument("--comparator-reconciliation-run", required=True)
+    phase1_final_dedicated_controls.add_argument(
+        "--output-root",
+        default="artifacts/phase1_final_dedicated_controls",
+    )
+    phase1_final_dedicated_controls.add_argument(
+        "--dedicated-controls-config",
+        default="configs/phase1/final_dedicated_controls.json",
+    )
+    phase1_final_dedicated_controls.add_argument(
+        "--comparator-runner-config",
+        default="configs/phase1/final_comparator_runner.json",
+    )
+    phase1_final_dedicated_controls.add_argument("--gate2-config", default="configs/gate2/synthetic_validation.json")
+    phase1_final_dedicated_controls.add_argument("--max-outer-folds", type=int)
 
     phase1_final_calibration = subparsers.add_parser(
         "phase1_final_calibration",
@@ -818,8 +846,28 @@ def main(argv: list[str] | None = None) -> int:
                     "control_suite": args.control_suite_config,
                     "gate2": args.gate2_config,
                 },
+                dedicated_control_manifest=args.dedicated_control_manifest,
             )
             print(f"Phase 1 final controls complete: {result.output_dir}")
+            print(f"Summary: {result.summary_path}")
+            print(f"Report: {result.report_path}")
+            return 0
+
+        if args.command == "phase1_final_dedicated_controls":
+            result = run_phase1_final_dedicated_controls(
+                prereg_bundle=args.config,
+                feature_matrix_run=args.feature_matrix_run,
+                comparator_reconciliation_run=args.comparator_reconciliation_run,
+                output_root=args.output_root,
+                repo_root=Path.cwd(),
+                config_paths={
+                    "dedicated_controls": args.dedicated_controls_config,
+                    "comparator_runner": args.comparator_runner_config,
+                    "gate2": args.gate2_config,
+                },
+                max_outer_folds=args.max_outer_folds,
+            )
+            print(f"Phase 1 final dedicated controls complete: {result.output_dir}")
             print(f"Summary: {result.summary_path}")
             print(f"Report: {result.report_path}")
             return 0
@@ -1068,6 +1116,7 @@ def main(argv: list[str] | None = None) -> int:
         Phase1FinalComparatorReconciliationError,
         Phase1FinalGovernanceReconciliationError,
         Phase1FinalControlsError,
+        Phase1FinalDedicatedControlsError,
         Phase1FinalCalibrationError,
         Phase1FinalInfluenceError,
         Phase1FinalReportingError,

@@ -1,0 +1,40 @@
+{
+  "runner_id": "phase1_final_dedicated_controls_v1",
+  "status": "implementation_claim_closed",
+  "claim_scope": "dedicated_final_negative_controls",
+  "scientific_integrity_rule": "This runner computes only dedicated final controls from reviewed final feature matrix rows and locked LOSO splits. It must fit all models/statistics on training subjects only, keep test-time inference scalp-only, preserve thresholds from Gate 2, and leave claims closed whether controls pass or fail.",
+  "required_dedicated_controls": [
+    "nuisance_shared_control",
+    "spatial_control",
+    "shuffled_teacher",
+    "time_shifted_teacher"
+  ],
+  "nuisance_control": {
+    "metadata_columns": [
+      "session_id",
+      "trial_id"
+    ],
+    "fit_scope": "training_subjects_only",
+    "test_subject_categories_fit_allowed": false
+  },
+  "spatial_control": {
+    "permutation": "reverse_channel_order_within_band",
+    "fit_scope": "training_subjects_only"
+  },
+  "teacher_controls": {
+    "teacher_source": "training_scalp_feature_matrix_proxy_not_real_ieeg",
+    "real_ieeg_teacher_used": false,
+    "teacher_used_at_inference": false,
+    "test_time_privileged_or_teacher_outputs_allowed": false,
+    "shuffled_teacher_policy": "reverse_training_teacher_probabilities",
+    "time_shifted_teacher_policy": "rotate_training_teacher_probabilities_by_one"
+  },
+  "threshold_sources": {
+    "nuisance_relative_ceiling": "configs/gate2/synthetic_validation.json:frozen_threshold_defaults.nuisance_relative_ceiling",
+    "nuisance_absolute_ceiling": "configs/gate2/synthetic_validation.json:frozen_threshold_defaults.nuisance_absolute_ceiling",
+    "spatial_relative_ceiling": "configs/gate2/synthetic_validation.json:frozen_threshold_defaults.spatial_relative_ceiling",
+    "shuffled_teacher_max_gain_over_a3": "configs/gate2/synthetic_validation.json:control_suite.shuffled_teacher_max_gain_over_a3",
+    "time_shifted_teacher_max_gain_over_a3": "configs/gate2/synthetic_validation.json:control_suite.time_shifted_teacher_max_gain_over_a3"
+  },
+  "claim_ready": false
+}

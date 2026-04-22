@@ -49,6 +49,7 @@ def run_phase1_final_controls(
     output_root: str | Path,
     repo_root: str | Path | None = None,
     config_paths: dict[str, str | Path] | None = None,
+    dedicated_control_manifest: str | Path | None = None,
 ) -> Phase1FinalControlsResult:
     """Write final control-suite artifacts while keeping claims closed."""
 
@@ -74,9 +75,11 @@ def run_phase1_final_controls(
         controls_config=controls_config,
         gate2_config=gate2_config,
     )
-    rerun_requirements = _build_rerun_requirements(controls_config)
+    dedicated_controls = _load_dedicated_control_manifest(dedicated_control_manifest)
+    rerun_requirements = _build_rerun_requirements(controls_config, dedicated_controls=dedicated_controls)
     manifest = _build_manifest(
         logit_controls=logit_controls,
+        dedicated_controls=dedicated_controls,
         rerun_requirements=rerun_requirements,
         input_validation=input_validation,
         controls_config=controls_config,
@@ -100,6 +103,7 @@ def run_phase1_final_controls(
         "prereg_bundle_status": bundle.get("status"),
         "prereg_bundle_hash_sha256": bundle.get("prereg_bundle_hash_sha256"),
         "comparator_reconciliation_run": str(comparator_reconciliation_run),
+        "dedicated_control_manifest": str(dedicated_control_manifest) if dedicated_control_manifest else None,
         "config_paths": config_paths,
         "git": _git_record(repo_root),
     }
@@ -119,6 +123,7 @@ def run_phase1_final_controls(
     _write_json(output_dir / "phase1_final_controls_input_validation.json", input_validation)
     _write_json(output_dir / "phase1_final_logit_level_control_results.json", logit_controls)
     _write_json(output_dir / "phase1_final_dedicated_control_requirements.json", rerun_requirements)
+    _write_json(output_dir / "phase1_final_dedicated_control_manifest_review.json", dedicated_controls)
     _write_json(output_dir / "final_control_manifest.json", manifest)
     _write_json(output_dir / "phase1_final_controls_claim_state.json", claim_state)
     _write_json(summary_path, summary)
@@ -387,13 +392,42 @@ def _rotate_labels_by_group(rows: list[dict[str, Any]], group_key: str) -> list[
     return rotated
 
 
-def _build_rerun_requirements(controls_config: dict[str, Any]) -> dict[str, Any]:
-    missing = list(controls_config.get("dedicated_rerun_required_controls", []))
+def _load_dedicated_control_manifest(path: str | Path | None) -> dict[str, Any]:
+    manifest_path = Path(path) if path else None
+    if manifest_path is None or not manifest_path.exists():
+        return {
+            "status": "phase1_final_dedicated_controls_not_provided",
+            "manifest_path": str(manifest_path) if manifest_path else None,
+            "results": [],
+            "dedicated_control_suite_passed": None,
+            "claim_ready": False,
+            "claim_evaluable": False,
+            "blockers": ["dedicated_final_control_manifest_missing"],
+        }
+    data = _read_json(manifest_path)
+    data["manifest_path"] = str(manifest_path)
+    return data
+
+
+def _build_rerun_requirements(
+    controls_config: dict[str, Any],
+    *,
+    dedicated_controls: dict[str, Any],
+) -> dict[str, Any]:
+    required = list(controls_config.get("dedicated_rerun_required_controls", []))
+    provided = list(dedicated_controls.get("results", []))
+    missing = [control_id for control_id in required if control_id not in provided]
+    dedicated_passed = dedicated_controls.get("dedicated_control_suite_passed")
     return {
-        "status": "phase1_final_dedicated_control_reruns_required" if missing else "phase1_final_dedicated_control_reruns_not_required",
+        "status": "phase1_final_dedicated_control_reruns_required"
+        if missing or dedicated_passed is not True
+        else "phase1_final_dedicated_control_reruns_satisfied",
         "claim_ready": False,
-        "claim_evaluable": False,
+        "claim_evaluable": dedicated_passed is True and not missing,
         "missing_control_ids": missing,
+        "dedicated_control_manifest_path": dedicated_controls.get("manifest_path"),
+        "dedicated_control_suite_passed": dedicated_passed,
+        "dedicated_control_blockers": list(dedicated_controls.get("blockers", [])),
         "requirements": [
             {
                 "control_id": control_id,
@@ -409,17 +443,23 @@ def _build_rerun_requirements(controls_config: dict[str, Any]) -> dict[str, Any]
 def _build_manifest(
     *,
     logit_controls: dict[str, Any],
+    dedicated_controls: dict[str, Any],
     rerun_requirements: dict[str, Any],
     input_validation: dict[str, Any],
     controls_config: dict[str, Any],
 ) -> dict[str, Any]:
     computed = list(logit_controls.get("computed_control_ids", []))
+    dedicated_results = list(dedicated_controls.get("results", []))
+    computed_all = computed + [item for item in dedicated_results if item not in computed]
     missing = list(rerun_requirements.get("missing_control_ids", []))
     required = list(controls_config.get("required_final_control_results", REQUIRED_FINAL_CONTROL_RESULTS))
     blockers = list(input_validation.get("blockers", []))
     if missing:
         blockers.append("dedicated_final_control_artifacts_missing")
-    missing_required = [item for item in required if item not in computed]
+    if dedicated_controls.get("dedicated_control_suite_passed") is not True:
+        blockers.append("dedicated_final_control_suite_not_passed")
+    blockers.extend(list(dedicated_controls.get("blockers", [])))
+    missing_required = [item for item in required if item not in computed_all]
     if missing_required:
         blockers.append("required_final_control_results_missing")
     control_suite_passed = not blockers and not missing_required
@@ -427,10 +467,14 @@ def _build_manifest(
         "status": "phase1_final_controls_manifest_recorded"
         if control_suite_passed
         else "phase1_final_controls_blocked_manifest_recorded",
-        "results": computed,
+        "results": computed_all,
+        "logit_level_results": computed,
+        "dedicated_control_results": dedicated_results,
         "required_results": required,
         "missing_results": missing_required,
         "dedicated_rerun_required_controls": missing,
+        "dedicated_control_manifest_path": dedicated_controls.get("manifest_path"),
+        "dedicated_control_suite_passed": dedicated_controls.get("dedicated_control_suite_passed"),
         "control_suite_passed": control_suite_passed,
         "claim_ready": False,
         "claim_evaluable": control_suite_passed,
