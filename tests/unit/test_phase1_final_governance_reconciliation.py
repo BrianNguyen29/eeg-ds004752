@@ -264,7 +264,17 @@ def _write_complete_manifests(root: Path) -> dict[str, Path]:
             "smoke_artifacts_promoted": False,
         },
     )
-    _write_json(paths["calibration"], {"artifacts": REQUIRED_FINAL_CALIBRATION_ARTIFACTS})
+    _write_json(
+        paths["calibration"],
+        {
+            "status": "phase1_final_calibration_manifest_recorded",
+            "artifacts": REQUIRED_FINAL_CALIBRATION_ARTIFACTS,
+            "calibration_package_passed": True,
+            "claim_ready": False,
+            "claim_evaluable": True,
+            "smoke_artifacts_promoted": False,
+        },
+    )
     _write_json(
         paths["influence"],
         {"artifacts": REQUIRED_FINAL_INFLUENCE_ARTIFACTS, "leave_one_subject_out_executed": True},

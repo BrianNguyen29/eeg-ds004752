@@ -1,0 +1,38 @@
+{
+  "runner_id": "phase1_final_calibration_v1",
+  "status": "implementation_claim_closed",
+  "claim_scope": "final_calibration_package",
+  "scientific_integrity_rule": "This runner may compute calibration diagnostics only from final comparator logits emitted by the reconciled final comparator package. It must not recalibrate predictions, retrain models, fabricate diagrams, promote smoke diagnostics, or open headline claims.",
+  "required_final_calibration_artifacts": [
+    "final_comparator_logits",
+    "pooled_ece_10_bins",
+    "subject_level_ece",
+    "brier_score",
+    "negative_log_likelihood",
+    "reliability_table",
+    "reliability_diagram",
+    "risk_coverage_curve",
+    "calibration_delta_vs_baseline"
+  ],
+  "required_comparators": [
+    "A2",
+    "A2b",
+    "A2c_CORAL",
+    "A2d_riemannian",
+    "A3_distillation",
+    "A4_privileged"
+  ],
+  "baseline_comparator": "A2",
+  "ece_bins": 10,
+  "risk_coverage_thresholds": [
+    0.5,
+    0.6,
+    0.7,
+    0.8,
+    0.9
+  ],
+  "threshold_sources": {
+    "max_allowed_delta_ece": "configs/gate1/decision_simulation.json:max_allowed_delta_ece"
+  },
+  "claim_ready": false
+}

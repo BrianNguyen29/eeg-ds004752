@@ -516,6 +516,22 @@ python -m src.cli phase1_final_controls \
 
 The final controls package is claim-closed and fail-closed. It may compute only controls that are technically valid from final comparator logits, currently A2 scalp baseline diagnostics, grouped label-rotation diagnostics, shuffled-label logit diagnostics and transfer-consistency row-alignment checks. It must not infer nuisance, spatial, shuffled-teacher or time-shifted-teacher controls from logits; those require dedicated final control reruns and remain blockers until real artifacts exist. A blocked final controls manifest is an honest result when dedicated controls are still missing.
 
+Phase 1 final calibration package after final comparator reconciliation:
+
+```bash
+python -m src.cli phase1_final_calibration \
+  --profile t4_safe \
+  --config artifacts/prereg/<prereg_run>/prereg_bundle.json \
+  --comparator-reconciliation-run artifacts/phase1_final_comparator_reconciliation/<comparator_reconciliation_run> \
+  --output-root artifacts/phase1_final_calibration \
+  --calibration-config configs/phase1/final_calibration.json \
+  --metrics-config configs/eval/metrics.yaml \
+  --inference-config configs/eval/inference_defaults.yaml \
+  --gate1-config configs/gate1/decision_simulation.json
+```
+
+The final calibration package is claim-closed. It computes pooled ECE, subject-level ECE, Brier score, negative log-likelihood, reliability-table/diagram data, risk-coverage curves and delta ECE versus the locked baseline from final comparator logits only. It must not recalibrate predictions, retrain comparators, edit logits, fabricate diagrams or promote smoke calibration diagnostics. If the locked delta-ECE threshold fails, the correct result is a blocked final calibration manifest.
+
 Phase 1 final governance reconciliation after final comparator reconciliation:
 
 ```bash
@@ -560,6 +576,7 @@ Real phases may be opened only when all conditions are true:
 - Final A2d covariance/tangent outputs may clear the A2d missing-output blocker only after their runtime leakage log passes and downstream comparator-package reconciliation links the A2d run with the feature-matrix comparator run.
 - Final comparator reconciliation may mark all six comparator output manifests present, but it remains non-claim until controls, calibration, influence and reporting are implemented, reconciled and pass the locked governance thresholds.
 - Final controls may use final logits for logit-level diagnostics only. Dedicated nuisance, spatial, shuffled-teacher and time-shifted-teacher reruns cannot be fabricated or inferred from logits and must remain blockers until executed.
+- Final calibration may compute calibration diagnostics from final logits, but it cannot modify predictions or convert calibration pass/fail into decoder efficacy evidence.
 - Final governance reconciliation may record governance surfaces as ready for review only when final controls, calibration, influence and reporting manifests exist. It still must not open headline claims by itself.
 
 ## Current local status

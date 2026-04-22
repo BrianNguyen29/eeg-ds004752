@@ -1,4 +1,9 @@
-inference_status: draft
+inference_status: executable
 calibration_required: true
 fold_level_outputs_required: true
-
+subject_level_outputs_required: true
+claim_state_required: true
+execution_policy:
+  claim_ready_by_config_only: false
+  final_manifest_required: true
+  missing_calibration_artifacts_block_claims: true

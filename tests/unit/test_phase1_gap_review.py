@@ -65,7 +65,9 @@ class Phase1GapReviewTests(unittest.TestCase):
             self.assertNotIn("required_non_claim_smoke_reviews_not_all_passed", summary["blockers"])
             draft_surfaces = {item["surface"] for item in summary["draft_governance_surfaces"]}
             self.assertNotIn("controls", draft_surfaces)
-            self.assertIn("metrics", draft_surfaces)
+            self.assertNotIn("metrics", draft_surfaces)
+            self.assertNotIn("inference", draft_surfaces)
+            self.assertIn("claim_mapping", draft_surfaces)
             self.assertIn(
                 "A3_distillation",
                 {item["comparator"] for item in summary["missing_or_not_final_comparators"]},

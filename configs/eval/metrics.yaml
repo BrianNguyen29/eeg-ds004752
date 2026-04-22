@@ -1,7 +1,16 @@
-metrics_status: draft
+metrics_status: executable
 primary_metric: balanced_accuracy
 secondary_metrics:
   - auc
   - calibration_error
   - fold_variance
-
+calibration_metrics:
+  ece_bins: 10
+  brier_score: required
+  negative_log_likelihood: required
+  reliability_table: required
+  risk_coverage_curve: required
+execution_policy:
+  claim_ready_by_config_only: false
+  final_manifest_required: true
+  smoke_metrics_allowed_as_final: false

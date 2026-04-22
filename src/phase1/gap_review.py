@@ -298,7 +298,7 @@ def _build_backlog(
             "Keep A3/A4 smoke reviews non-claim; do not promote smoke proxy metrics to final comparator evidence.",
             "Define or refreeze final A3/A4 claim-bearing comparator specifications before any substantive claim run.",
             "Promote control suite from draft to executable Phase 1 controls.",
-            "Implement full calibration package, not just smoke-logit diagnostics.",
+            "Run and reconcile the final calibration package from final logits; do not treat executable config as evidence.",
             "Implement full influence package and leave-one-subject-out claim-state checks.",
             "Implement reporting/claim-state package that refuses headline claims until all blockers clear.",
         ],
