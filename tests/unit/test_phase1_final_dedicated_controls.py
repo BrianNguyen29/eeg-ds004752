@@ -42,6 +42,8 @@ class Phase1FinalDedicatedControlsTests(unittest.TestCase):
             summary = _read_json(result.summary_path)
             manifest = _read_json(result.output_dir / "final_dedicated_control_manifest.json")
             leakage = _read_json(result.output_dir / "phase1_final_dedicated_controls_runtime_leakage_audit.json")
+            shuffled_teacher = _read_json(result.output_dir / "shuffled_teacher_control.json")
+            time_shifted_teacher = _read_json(result.output_dir / "time_shifted_teacher_control.json")
             self.assertEqual(summary["status"], "phase1_final_dedicated_controls_complete_claim_closed")
             self.assertTrue(summary["dedicated_control_suite_passed"])
             self.assertEqual(manifest["results"], DEDICATED)
@@ -49,6 +51,8 @@ class Phase1FinalDedicatedControlsTests(unittest.TestCase):
             self.assertFalse(manifest["claim_ready"])
             self.assertFalse(manifest["smoke_artifacts_promoted"])
             self.assertFalse(leakage["outer_test_subject_used_for_any_fit"])
+            self.assertEqual(shuffled_teacher["threshold"]["max_gain_over_a3"], 1.0)
+            self.assertEqual(time_shifted_teacher["threshold"]["max_gain_over_a3"], 1.0)
 
             final_controls = run_phase1_final_controls(
                 prereg_bundle=prereg,
@@ -136,7 +140,7 @@ def _write_configs(root: Path) -> dict[str, str]:
     _write_json(
         gate2,
         {
-            "control_suite": {
+            "negative_controls": {
                 "shuffled_teacher_max_gain_over_a3": 1.0,
                 "time_shifted_teacher_max_gain_over_a3": 1.0,
             },

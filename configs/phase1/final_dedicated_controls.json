@@ -33,8 +33,8 @@
     "nuisance_relative_ceiling": "configs/gate2/synthetic_validation.json:frozen_threshold_defaults.nuisance_relative_ceiling",
     "nuisance_absolute_ceiling": "configs/gate2/synthetic_validation.json:frozen_threshold_defaults.nuisance_absolute_ceiling",
     "spatial_relative_ceiling": "configs/gate2/synthetic_validation.json:frozen_threshold_defaults.spatial_relative_ceiling",
-    "shuffled_teacher_max_gain_over_a3": "configs/gate2/synthetic_validation.json:control_suite.shuffled_teacher_max_gain_over_a3",
-    "time_shifted_teacher_max_gain_over_a3": "configs/gate2/synthetic_validation.json:control_suite.time_shifted_teacher_max_gain_over_a3"
+    "shuffled_teacher_max_gain_over_a3": "configs/gate2/synthetic_validation.json:negative_controls.shuffled_teacher_max_gain_over_a3",
+    "time_shifted_teacher_max_gain_over_a3": "configs/gate2/synthetic_validation.json:negative_controls.time_shifted_teacher_max_gain_over_a3"
   },
   "claim_ready": false
 }

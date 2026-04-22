@@ -268,8 +268,14 @@ def _run_controls(
         "nuisance_relative_ceiling": gate2_config.get("frozen_threshold_defaults", {}).get("nuisance_relative_ceiling"),
         "nuisance_absolute_ceiling": gate2_config.get("frozen_threshold_defaults", {}).get("nuisance_absolute_ceiling"),
         "spatial_relative_ceiling": gate2_config.get("frozen_threshold_defaults", {}).get("spatial_relative_ceiling"),
-        "shuffled_teacher_max_gain_over_a3": gate2_config.get("control_suite", {}).get("shuffled_teacher_max_gain_over_a3"),
-        "time_shifted_teacher_max_gain_over_a3": gate2_config.get("control_suite", {}).get("time_shifted_teacher_max_gain_over_a3"),
+        "shuffled_teacher_max_gain_over_a3": _threshold_from_gate2(
+            gate2_config,
+            "shuffled_teacher_max_gain_over_a3",
+        ),
+        "time_shifted_teacher_max_gain_over_a3": _threshold_from_gate2(
+            gate2_config,
+            "time_shifted_teacher_max_gain_over_a3",
+        ),
     }
     return {
         "nuisance_shared_control": _nuisance_control(
@@ -875,6 +881,13 @@ def _delta(value: Any, baseline: Any) -> float:
 
 def _float_or_none(value: Any) -> float | None:
     return float(value) if value is not None else None
+
+
+def _threshold_from_gate2(gate2_config: dict[str, Any], key: str) -> Any:
+    negative_controls = gate2_config.get("negative_controls", {})
+    if key in negative_controls:
+        return negative_controls.get(key)
+    return gate2_config.get("control_suite", {}).get(key)
 
 
 def _round(value: float) -> float:
