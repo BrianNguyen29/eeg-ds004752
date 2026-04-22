@@ -37,6 +37,7 @@ from .phase1.final_governance_reconciliation import (
 from .phase1.final_controls import Phase1FinalControlsError, run_phase1_final_controls
 from .phase1.final_calibration import Phase1FinalCalibrationError, run_phase1_final_calibration
 from .phase1.final_influence import Phase1FinalInfluenceError, run_phase1_final_influence
+from .phase1.final_reporting import Phase1FinalReportingError, run_phase1_final_reporting
 from .phase1.final_a2d_runner import Phase1FinalA2dRunnerError, run_phase1_final_a2d_runner
 from .phase1.final_claim_package import Phase1FinalClaimPackageError, run_phase1_final_claim_package_plan
 from .phase1.final_split_feature_leakage import (
@@ -413,6 +414,20 @@ def build_parser() -> argparse.ArgumentParser:
     phase1_final_influence.add_argument("--influence-config", default="configs/phase1/final_influence.json")
     phase1_final_influence.add_argument("--gate1-config", default="configs/gate1/decision_simulation.json")
     phase1_final_influence.add_argument("--gate2-config", default="configs/gate2/synthetic_validation.json")
+
+    phase1_final_reporting = subparsers.add_parser(
+        "phase1_final_reporting",
+        help="Assemble the claim-closed final Phase 1 reporting package from governance reconciliation artifacts",
+    )
+    phase1_final_reporting.add_argument("--profile", default="t4_safe")
+    phase1_final_reporting.add_argument("--config", required=True)
+    phase1_final_reporting.add_argument("--governance-reconciliation-run", required=True)
+    phase1_final_reporting.add_argument("--output-root", default="artifacts/phase1_final_reporting")
+    phase1_final_reporting.add_argument("--reporting-config", default="configs/phase1/final_reporting.json")
+    phase1_final_reporting.add_argument(
+        "--governance-config",
+        default="configs/phase1/final_governance_reconciliation.json",
+    )
 
     for phase in ("phase05_real", "phase1_real", "phase2_real", "phase3_real"):
         phase_parser = subparsers.add_parser(phase, help=f"Guarded {phase} command")
@@ -844,6 +859,22 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Report: {result.report_path}")
             return 0
 
+        if args.command == "phase1_final_reporting":
+            result = run_phase1_final_reporting(
+                prereg_bundle=args.config,
+                final_governance_reconciliation_run=args.governance_reconciliation_run,
+                output_root=args.output_root,
+                repo_root=Path.cwd(),
+                config_paths={
+                    "reporting": args.reporting_config,
+                    "governance": args.governance_config,
+                },
+            )
+            print(f"Phase 1 final reporting complete: {result.output_dir}")
+            print(f"Summary: {result.summary_path}")
+            print(f"Report: {result.report_path}")
+            return 0
+
         if args.command == "phase1_real" and sum(
             bool(flag)
             for flag in [args.smoke, args.model_smoke, args.a2c_smoke, args.a2d_smoke, args.a3_smoke, args.a4_smoke]
@@ -1039,6 +1070,7 @@ def main(argv: list[str] | None = None) -> int:
         Phase1FinalControlsError,
         Phase1FinalCalibrationError,
         Phase1FinalInfluenceError,
+        Phase1FinalReportingError,
         Phase1FinalA2dRunnerError,
         Phase1FinalSplitFeatureLeakageError,
         Phase1FinalFeatureManifestError,

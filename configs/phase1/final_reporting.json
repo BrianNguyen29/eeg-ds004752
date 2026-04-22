@@ -1,0 +1,28 @@
+{
+  "runner_id": "phase1_final_reporting_v1",
+  "status": "implementation_claim_closed",
+  "claim_scope": "final_phase1_reporting_package",
+  "scientific_integrity_rule": "This runner assembles the final reporting package from existing final governance reconciliation artifacts. It does not recompute comparator metrics, does not fabricate missing controls/calibration/influence evidence, and does not open headline claims.",
+  "required_reporting_artifacts": [
+    "final_comparator_completeness_table",
+    "negative_controls_report",
+    "calibration_package_report",
+    "influence_package_report",
+    "final_fold_logs",
+    "claim_state_report",
+    "main_phase1_report"
+  ],
+  "required_governance_inputs": {
+    "comparator_outputs_complete": true,
+    "runtime_logs_audited_for_all_required_comparators": true,
+    "claim_ready": false,
+    "headline_phase1_claim_open": false,
+    "full_phase1_claim_bearing_run_allowed": false
+  },
+  "claim_table_policy": {
+    "claim_table_ready": true,
+    "claims_opened": false,
+    "smoke_artifacts_promoted": false
+  },
+  "claim_opening_policy": "never_open_claims_in_this_reporting_runner"
+}

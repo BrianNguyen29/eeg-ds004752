@@ -12,12 +12,7 @@ Use the bundled Python in this desktop workspace, or any Python 3.10+ environmen
 & "C:\Users\Duong Nguyen\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe" -m unittest discover -s tests
 ```
 
-Expected baseline after the current fix:
-
-```text
-Ran 44 tests
-OK
-```
+Expected baseline after the current fix: `python -m unittest discover -s tests` exits with `OK`. The exact test count is allowed to increase as new governance packages are added.
 
 Optional signal dependencies are needed only for EDF/MAT signal-level workflows:
 
@@ -217,6 +212,20 @@ python -m src.cli phase1_real \
   --smoke \
   --max-outer-folds 2
 ```
+
+Final reporting package after comparator/governance reconciliation:
+
+```bash
+python -m src.cli phase1_final_reporting \
+  --profile t4_safe \
+  --config artifacts/prereg/<prereg_run>/prereg_bundle.json \
+  --governance-reconciliation-run artifacts/phase1_final_governance_reconciliation/<governance_run> \
+  --output-root artifacts/phase1_final_reporting \
+  --reporting-config configs/phase1/final_reporting.json \
+  --governance-config configs/phase1/final_governance_reconciliation.json
+```
+
+This command only assembles the reporting package and closed claim table from existing governance artifacts. It must preserve any controls, calibration or influence blockers and must not be interpreted as Phase 1 efficacy evidence.
 
 Phase 1 A2/A2b model smoke:
 

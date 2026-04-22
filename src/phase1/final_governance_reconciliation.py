@@ -252,6 +252,10 @@ def _evaluate_reporting_manifest(
         blockers.append("final_phase1_claim_table_missing_or_not_ready")
     if manifest.get("claims_opened") is True:
         blockers.append("final_phase1_reporting_manifest_attempts_to_open_claims")
+    if manifest and manifest.get("status") != "phase1_final_reporting_manifest_recorded":
+        blockers.append("final_phase1_reporting_manifest_status_not_claim_evaluable")
+    if manifest and manifest.get("reporting_package_passed") is not True:
+        blockers.append("final_phase1_reporting_package_not_passed")
     return {
         "status": "phase1_final_reporting_claim_evaluable" if not blockers else "phase1_final_reporting_not_claim_evaluable",
         "reporting_package_executable": not blockers,
@@ -262,6 +266,8 @@ def _evaluate_reporting_manifest(
         "provided_artifacts": provided,
         "required_reporting_artifacts": required_artifacts,
         "missing_reporting_artifacts": missing,
+        "manifest_status": manifest.get("status"),
+        "reporting_package_passed": manifest.get("reporting_package_passed"),
         "claim_table_ready": manifest.get("claim_table_ready"),
         "claims_opened": manifest.get("claims_opened", False),
         "scientific_limit": "Reporting readiness does not itself open claims; it records whether reporting artifacts exist.",
