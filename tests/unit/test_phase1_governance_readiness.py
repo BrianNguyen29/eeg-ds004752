@@ -48,7 +48,7 @@ class Phase1GovernanceReadinessTests(unittest.TestCase):
 
             controls = _read_json(result.output_dir / "phase1_control_suite_status.json")
             self.assertEqual(controls["status"], "phase1_control_suite_not_claim_evaluable")
-            self.assertIn("control_suite_config_still_draft", controls["blockers"])
+            self.assertEqual(controls["config_status"], "executable")
             self.assertIn("final_control_manifest_missing", controls["blockers"])
             self.assertIn("final_negative_control_results_missing", controls["blockers"])
 

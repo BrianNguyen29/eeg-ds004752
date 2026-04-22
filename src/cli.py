@@ -34,6 +34,7 @@ from .phase1.final_governance_reconciliation import (
     Phase1FinalGovernanceReconciliationError,
     run_phase1_final_governance_reconciliation,
 )
+from .phase1.final_controls import Phase1FinalControlsError, run_phase1_final_controls
 from .phase1.final_a2d_runner import Phase1FinalA2dRunnerError, run_phase1_final_a2d_runner
 from .phase1.final_claim_package import Phase1FinalClaimPackageError, run_phase1_final_claim_package_plan
 from .phase1.final_split_feature_leakage import (
@@ -373,6 +374,18 @@ def build_parser() -> argparse.ArgumentParser:
     phase1_final_governance_reconciliation.add_argument("--final-calibration-manifest")
     phase1_final_governance_reconciliation.add_argument("--final-influence-manifest")
     phase1_final_governance_reconciliation.add_argument("--final-reporting-manifest")
+
+    phase1_final_controls = subparsers.add_parser(
+        "phase1_final_controls",
+        help="Compute claim-closed final logit-level controls and record missing dedicated control reruns",
+    )
+    phase1_final_controls.add_argument("--profile", default="t4_safe")
+    phase1_final_controls.add_argument("--config", required=True)
+    phase1_final_controls.add_argument("--comparator-reconciliation-run", required=True)
+    phase1_final_controls.add_argument("--output-root", default="artifacts/phase1_final_controls")
+    phase1_final_controls.add_argument("--controls-config", default="configs/phase1/final_controls.json")
+    phase1_final_controls.add_argument("--control-suite-config", default="configs/controls/control_suite_spec.yaml")
+    phase1_final_controls.add_argument("--gate2-config", default="configs/gate2/synthetic_validation.json")
 
     for phase in ("phase05_real", "phase1_real", "phase2_real", "phase3_real"):
         phase_parser = subparsers.add_parser(phase, help=f"Guarded {phase} command")
@@ -752,6 +765,23 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Report: {result.report_path}")
             return 0
 
+        if args.command == "phase1_final_controls":
+            result = run_phase1_final_controls(
+                prereg_bundle=args.config,
+                comparator_reconciliation_run=args.comparator_reconciliation_run,
+                output_root=args.output_root,
+                repo_root=Path.cwd(),
+                config_paths={
+                    "controls": args.controls_config,
+                    "control_suite": args.control_suite_config,
+                    "gate2": args.gate2_config,
+                },
+            )
+            print(f"Phase 1 final controls complete: {result.output_dir}")
+            print(f"Summary: {result.summary_path}")
+            print(f"Report: {result.report_path}")
+            return 0
+
         if args.command == "phase1_real" and sum(
             bool(flag)
             for flag in [args.smoke, args.model_smoke, args.a2c_smoke, args.a2d_smoke, args.a3_smoke, args.a4_smoke]
@@ -944,6 +974,7 @@ def main(argv: list[str] | None = None) -> int:
         Phase1FinalComparatorRunnerError,
         Phase1FinalComparatorReconciliationError,
         Phase1FinalGovernanceReconciliationError,
+        Phase1FinalControlsError,
         Phase1FinalA2dRunnerError,
         Phase1FinalSplitFeatureLeakageError,
         Phase1FinalFeatureManifestError,

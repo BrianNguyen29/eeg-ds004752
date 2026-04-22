@@ -501,6 +501,21 @@ python -m src.cli phase1_final_comparator_reconciliation \
 
 The final comparator reconciliation package is claim-closed. It links the feature-matrix comparator outputs with the final A2d covariance/tangent outputs, verifies all six comparator manifests/logits/subject metrics/runtime leakage logs are present, and records whether the A2d missing-output blocker is cleared at artifact level. It must not rerun models, edit logits, recompute metrics, fabricate missing files or open claims. Downstream controls, calibration, influence and reporting remain required before any headline Phase 1 claim can be evaluated.
 
+Phase 1 final controls package after final comparator reconciliation:
+
+```bash
+python -m src.cli phase1_final_controls \
+  --profile t4_safe \
+  --config artifacts/prereg/<prereg_run>/prereg_bundle.json \
+  --comparator-reconciliation-run artifacts/phase1_final_comparator_reconciliation/<comparator_reconciliation_run> \
+  --output-root artifacts/phase1_final_controls \
+  --controls-config configs/phase1/final_controls.json \
+  --control-suite-config configs/controls/control_suite_spec.yaml \
+  --gate2-config configs/gate2/synthetic_validation.json
+```
+
+The final controls package is claim-closed and fail-closed. It may compute only controls that are technically valid from final comparator logits, currently A2 scalp baseline diagnostics, grouped label-rotation diagnostics, shuffled-label logit diagnostics and transfer-consistency row-alignment checks. It must not infer nuisance, spatial, shuffled-teacher or time-shifted-teacher controls from logits; those require dedicated final control reruns and remain blockers until real artifacts exist. A blocked final controls manifest is an honest result when dedicated controls are still missing.
+
 Phase 1 final governance reconciliation after final comparator reconciliation:
 
 ```bash
@@ -544,6 +559,7 @@ Real phases may be opened only when all conditions are true:
 - Final comparator runner outputs may feed downstream controls/calibration/influence/reporting only after runtime leakage logs are reviewed; partial output packages with blocked comparators remain non-claim.
 - Final A2d covariance/tangent outputs may clear the A2d missing-output blocker only after their runtime leakage log passes and downstream comparator-package reconciliation links the A2d run with the feature-matrix comparator run.
 - Final comparator reconciliation may mark all six comparator output manifests present, but it remains non-claim until controls, calibration, influence and reporting are implemented, reconciled and pass the locked governance thresholds.
+- Final controls may use final logits for logit-level diagnostics only. Dedicated nuisance, spatial, shuffled-teacher and time-shifted-teacher reruns cannot be fabricated or inferred from logits and must remain blockers until executed.
 - Final governance reconciliation may record governance surfaces as ready for review only when final controls, calibration, influence and reporting manifests exist. It still must not open headline claims by itself.
 
 ## Current local status

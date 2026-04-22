@@ -19,6 +19,9 @@ REQUIRED_CONTROL_CONFIGS = [
     "nuisance_shared_control",
     "spatial_control",
     "transfer_consistency",
+    "shuffled_labels",
+    "shuffled_teacher",
+    "time_shifted_teacher",
 ]
 
 REQUIRED_FINAL_CONTROL_RESULTS = [
@@ -51,6 +54,9 @@ def evaluate_control_suite(
     manifest_path = Path(final_control_manifest_path) if final_control_manifest_path else None
     manifest = _load_optional_manifest(manifest_path)
     provided_results = sorted(manifest.get("results", [])) if isinstance(manifest.get("results"), list) else []
+    manifest_status = str(manifest.get("status") or "")
+    control_suite_passed = manifest.get("control_suite_passed")
+    smoke_promoted = manifest.get("smoke_artifacts_promoted")
 
     status = str(control_config.get("control_suite_status") or control_config.get("status") or "")
     configured = control_config.get("controls") or {}
@@ -65,6 +71,15 @@ def evaluate_control_suite(
         blockers.append("required_control_configs_missing")
     if manifest_path is None or not manifest_path.exists():
         blockers.append("final_control_manifest_missing")
+    elif manifest_status not in {
+        "phase1_final_controls_complete_claim_closed",
+        "phase1_final_controls_manifest_recorded",
+    }:
+        blockers.append("final_control_manifest_status_not_claim_evaluable")
+    if manifest_path is not None and manifest_path.exists() and control_suite_passed is not True:
+        blockers.append("final_control_suite_not_passed")
+    if smoke_promoted is True:
+        blockers.append("final_control_manifest_promotes_smoke_artifacts")
     if missing_final_results:
         blockers.append("final_negative_control_results_missing")
 
@@ -91,6 +106,9 @@ def evaluate_control_suite(
         "nuisance_config_path": str(nuisance_config_path),
         "gate2_config_path": str(gate2_config_path),
         "final_control_manifest_path": str(manifest_path) if manifest_path else None,
+        "final_control_manifest_status": manifest_status or None,
+        "control_suite_passed": control_suite_passed,
+        "smoke_artifacts_promoted": smoke_promoted if smoke_promoted is not None else False,
         "configured_controls": configured_controls,
         "required_control_configs": REQUIRED_CONTROL_CONFIGS,
         "missing_config_controls": missing_config_controls,

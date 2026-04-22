@@ -1,8 +1,15 @@
-control_suite_status: draft
+control_suite_status: executable
 controls:
   scalp_only_baseline: required
   grouped_permutation: required
   nuisance_shared_control: required
   spatial_control: required
   transfer_consistency: required
-
+  shuffled_labels: required
+  shuffled_teacher: required
+  time_shifted_teacher: required
+execution_policy:
+  claim_ready_by_config_only: false
+  final_manifest_required: true
+  smoke_controls_allowed_as_final: false
+  missing_control_results_block_claims: true

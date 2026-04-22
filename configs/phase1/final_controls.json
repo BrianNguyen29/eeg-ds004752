@@ -1,0 +1,35 @@
+{
+  "runner_id": "phase1_final_controls_v1",
+  "status": "implementation_claim_closed",
+  "claim_scope": "final_control_suite_artifacts",
+  "scientific_integrity_rule": "This runner may compute only controls that are valid from existing final comparator logits. Controls that require dedicated retraining, nuisance-only modeling, spatial reruns, shuffled teacher reruns or time-shifted teacher reruns must remain explicitly missing until those artifacts exist. It must not promote smoke controls or fabricate negative-control results.",
+  "required_final_control_results": [
+    "scalp_only_baseline",
+    "grouped_permutation",
+    "nuisance_shared_control",
+    "spatial_control",
+    "transfer_consistency",
+    "shuffled_labels",
+    "shuffled_teacher",
+    "time_shifted_teacher"
+  ],
+  "logit_level_controls": [
+    "scalp_only_baseline",
+    "grouped_permutation",
+    "transfer_consistency",
+    "shuffled_labels"
+  ],
+  "dedicated_rerun_required_controls": [
+    "nuisance_shared_control",
+    "spatial_control",
+    "shuffled_teacher",
+    "time_shifted_teacher"
+  ],
+  "threshold_sources": {
+    "negative_control_max_abs_gain": "configs/gate2/synthetic_validation.json:pass_criteria.negative_control_max_abs_gain",
+    "nuisance_relative_ceiling": "configs/gate2/synthetic_validation.json:frozen_threshold_defaults.nuisance_relative_ceiling",
+    "nuisance_absolute_ceiling": "configs/gate2/synthetic_validation.json:frozen_threshold_defaults.nuisance_absolute_ceiling",
+    "spatial_relative_ceiling": "configs/gate2/synthetic_validation.json:frozen_threshold_defaults.spatial_relative_ceiling"
+  },
+  "claim_ready": false
+}

@@ -253,7 +253,17 @@ def _write_complete_manifests(root: Path) -> dict[str, Path]:
         "influence": manifest_dir / "final_influence_manifest.json",
         "reporting": manifest_dir / "final_reporting_manifest.json",
     }
-    _write_json(paths["controls"], {"results": REQUIRED_FINAL_CONTROL_RESULTS})
+    _write_json(
+        paths["controls"],
+        {
+            "status": "phase1_final_controls_manifest_recorded",
+            "results": REQUIRED_FINAL_CONTROL_RESULTS,
+            "control_suite_passed": True,
+            "claim_ready": False,
+            "claim_evaluable": True,
+            "smoke_artifacts_promoted": False,
+        },
+    )
     _write_json(paths["calibration"], {"artifacts": REQUIRED_FINAL_CALIBRATION_ARTIFACTS})
     _write_json(
         paths["influence"],
