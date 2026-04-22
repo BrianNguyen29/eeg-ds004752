@@ -70,6 +70,10 @@ from .phase1.final_post_formula_decision_governance_update import (
     Phase1FinalPostFormulaDecisionGovernanceUpdateError,
     run_phase1_final_post_formula_decision_governance_update,
 )
+from .phase1.final_metric_formula_contract_remediation_plan import (
+    Phase1FinalMetricFormulaContractRemediationPlanError,
+    run_phase1_final_metric_formula_contract_remediation_plan,
+)
 from .phase1.final_a2d_runner import Phase1FinalA2dRunnerError, run_phase1_final_a2d_runner
 from .phase1.final_claim_package import Phase1FinalClaimPackageError, run_phase1_final_claim_package_plan
 from .phase1.final_split_feature_leakage import (
@@ -666,6 +670,37 @@ def build_parser() -> argparse.ArgumentParser:
         default="configs/phase1/final_governance_reconciliation.json",
     )
 
+    phase1_final_metric_formula_contract_remediation_plan = subparsers.add_parser(
+        "phase1_final_metric_formula_contract_remediation_plan",
+        help="Record claim-closed remediation plan for unresolved final controls metric-formula contract",
+    )
+    phase1_final_metric_formula_contract_remediation_plan.add_argument("--profile", default="t4_safe")
+    phase1_final_metric_formula_contract_remediation_plan.add_argument("--config", required=True)
+    phase1_final_metric_formula_contract_remediation_plan.add_argument(
+        "--post-formula-decision-governance-run",
+        required=True,
+    )
+    phase1_final_metric_formula_contract_remediation_plan.add_argument(
+        "--output-root",
+        default="artifacts/phase1_final_metric_formula_contract_remediation_plan",
+    )
+    phase1_final_metric_formula_contract_remediation_plan.add_argument(
+        "--remediation-config",
+        default="configs/phase1/final_metric_formula_contract_remediation_plan.json",
+    )
+    phase1_final_metric_formula_contract_remediation_plan.add_argument(
+        "--post-formula-governance-config",
+        default="configs/phase1/final_post_formula_decision_governance_update.json",
+    )
+    phase1_final_metric_formula_contract_remediation_plan.add_argument(
+        "--formula-decision-config",
+        default="configs/phase1/final_controls_metric_formula_decision.json",
+    )
+    phase1_final_metric_formula_contract_remediation_plan.add_argument(
+        "--gate2-config",
+        default="configs/gate2/synthetic_validation.json",
+    )
+
     for phase in ("phase05_real", "phase1_real", "phase2_real", "phase3_real"):
         phase_parser = subparsers.add_parser(phase, help=f"Guarded {phase} command")
         phase_parser.add_argument("--profile", default="a100_fast")
@@ -1253,6 +1288,24 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Report: {result.report_path}")
             return 0
 
+        if args.command == "phase1_final_metric_formula_contract_remediation_plan":
+            result = run_phase1_final_metric_formula_contract_remediation_plan(
+                prereg_bundle=args.config,
+                post_formula_decision_governance_run=args.post_formula_decision_governance_run,
+                output_root=args.output_root,
+                repo_root=Path.cwd(),
+                config_paths={
+                    "remediation": args.remediation_config,
+                    "post_formula_governance": args.post_formula_governance_config,
+                    "formula_decision": args.formula_decision_config,
+                    "gate2": args.gate2_config,
+                },
+            )
+            print(f"Phase 1 final metric-formula contract remediation plan complete: {result.output_dir}")
+            print(f"Summary: {result.summary_path}")
+            print(f"Report: {result.report_path}")
+            return 0
+
         if args.command == "phase1_real" and sum(
             bool(flag)
             for flag in [args.smoke, args.model_smoke, args.a2c_smoke, args.a2d_smoke, args.a3_smoke, args.a4_smoke]
@@ -1457,6 +1510,7 @@ def main(argv: list[str] | None = None) -> int:
         Phase1FinalControlsMetricFormulaRevisionPlanError,
         Phase1FinalControlsMetricFormulaDecisionError,
         Phase1FinalPostFormulaDecisionGovernanceUpdateError,
+        Phase1FinalMetricFormulaContractRemediationPlanError,
         Phase1FinalA2dRunnerError,
         Phase1FinalSplitFeatureLeakageError,
         Phase1FinalFeatureManifestError,

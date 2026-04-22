@@ -1,0 +1,90 @@
+{
+  "runner_id": "phase1_final_metric_formula_contract_remediation_plan_v1",
+  "status": "planning_claim_closed",
+  "claim_scope": "metric_formula_contract_remediation_planning_only",
+  "scientific_integrity_rule": "This plan may draft remediation for the unresolved metric-formula contract only. It must not select a formula, change thresholds, edit logits or metrics, rerun controls, drop subjects, reclassify artifacts, or open Phase 1 claims.",
+  "required_boundary": {
+    "post_formula_claim_ready": false,
+    "post_formula_headline_phase1_claim_open": false,
+    "post_formula_claims_opened": false,
+    "metric_formula_contract_claim_evaluable": false,
+    "formula_decision": "unresolved",
+    "selected_formula": null
+  },
+  "allowed_remediation_targets": [
+    "documentation_contract",
+    "configuration_schema",
+    "unit_test_contract",
+    "future_rerun_plan"
+  ],
+  "candidate_formula_semantics": [
+    {
+      "formula_id": "raw_ba_ratio",
+      "definition": "control_balanced_accuracy / baseline_balanced_accuracy",
+      "status": "candidate_only_not_selected"
+    },
+    {
+      "formula_id": "gain_over_chance_ratio",
+      "definition": "abs(control_balanced_accuracy - 0.5) / abs(baseline_balanced_accuracy - 0.5)",
+      "status": "candidate_only_not_selected"
+    }
+  ],
+  "work_items": [
+    {
+      "id": "review_locked_contract_sources",
+      "objective": "Review prereg, Gate 2 threshold registry, control-suite configs and decision memos for pre-existing formula semantics.",
+      "required_before_execution": [
+        "source links reviewed",
+        "no observed-result-driven formula selection"
+      ],
+      "allowed_outputs": [
+        "source review table",
+        "contract ambiguity memo"
+      ]
+    },
+    {
+      "id": "draft_metric_formula_contract_revision",
+      "objective": "Draft an explicit contract field for relative metric formula semantics without applying it to current results.",
+      "required_before_execution": [
+        "manual revision rationale",
+        "claim-closed acknowledgement",
+        "review of impact on nuisance and spatial controls"
+      ],
+      "allowed_outputs": [
+        "proposed config key",
+        "proposed docs text",
+        "test plan"
+      ]
+    },
+    {
+      "id": "prepare_future_rerun_dependency_plan",
+      "objective": "Specify which controls and downstream governance artifacts must be rerun only after a reviewed contract update lands.",
+      "required_before_execution": [
+        "formula contract selected under revision policy",
+        "code/config patch and tests approved"
+      ],
+      "allowed_outputs": [
+        "rerun dependency list",
+        "manual-launch checklist"
+      ]
+    }
+  ],
+  "not_allowed_actions": [
+    "selecting_formula_inside_this_plan",
+    "changing_runtime_formula_inside_this_plan",
+    "threshold_relaxation_after_observed_failure",
+    "editing_control_metrics_or_logits",
+    "dropping_subjects_posthoc_to_pass_controls",
+    "rerunning_controls_before_formula_contract_is_resolved",
+    "reclassifying_existing_failed_controls_without_a_rerun",
+    "opening_headline_claims_before_full_governance_passes"
+  ],
+  "not_ok_to_claim": [
+    "decoder efficacy",
+    "A2d efficacy",
+    "A3 distillation efficacy",
+    "A4 privileged-transfer efficacy",
+    "A4 superiority over A2/A2b/A2c/A2d/A3",
+    "full Phase 1 neural comparator performance"
+  ]
+}
