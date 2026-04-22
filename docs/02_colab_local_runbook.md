@@ -501,6 +501,28 @@ python -m src.cli phase1_final_comparator_reconciliation \
 
 The final comparator reconciliation package is claim-closed. It links the feature-matrix comparator outputs with the final A2d covariance/tangent outputs, verifies all six comparator manifests/logits/subject metrics/runtime leakage logs are present, and records whether the A2d missing-output blocker is cleared at artifact level. It must not rerun models, edit logits, recompute metrics, fabricate missing files or open claims. Downstream controls, calibration, influence and reporting remain required before any headline Phase 1 claim can be evaluated.
 
+Phase 1 final governance reconciliation after final comparator reconciliation:
+
+```bash
+python -m src.cli phase1_final_governance_reconciliation \
+  --profile t4_safe \
+  --config artifacts/prereg/<prereg_run>/prereg_bundle.json \
+  --comparator-reconciliation-run artifacts/phase1_final_comparator_reconciliation/<comparator_reconciliation_run> \
+  --output-root artifacts/phase1_final_governance_reconciliation \
+  --governance-config configs/phase1/final_governance_reconciliation.json
+```
+
+Optional final governance manifests can be supplied only when they exist:
+
+```bash
+  --final-control-manifest artifacts/phase1_final_controls/<run>/final_control_manifest.json \
+  --final-calibration-manifest artifacts/phase1_final_calibration/<run>/final_calibration_manifest.json \
+  --final-influence-manifest artifacts/phase1_final_influence/<run>/final_influence_manifest.json \
+  --final-reporting-manifest artifacts/phase1_final_reporting/<run>/final_reporting_manifest.json
+```
+
+The final governance reconciliation package is claim-closed. It verifies that comparator reconciliation is complete, then checks whether final controls, calibration, influence and reporting manifests exist and satisfy the required artifact lists. If those manifests are absent, the correct result is blocked/non-claim; the runner must not fabricate governance evidence from comparator metrics or smoke artifacts.
+
 ## Conditions for opening real phases
 
 Real phases may be opened only when all conditions are true:
@@ -522,6 +544,7 @@ Real phases may be opened only when all conditions are true:
 - Final comparator runner outputs may feed downstream controls/calibration/influence/reporting only after runtime leakage logs are reviewed; partial output packages with blocked comparators remain non-claim.
 - Final A2d covariance/tangent outputs may clear the A2d missing-output blocker only after their runtime leakage log passes and downstream comparator-package reconciliation links the A2d run with the feature-matrix comparator run.
 - Final comparator reconciliation may mark all six comparator output manifests present, but it remains non-claim until controls, calibration, influence and reporting are implemented, reconciled and pass the locked governance thresholds.
+- Final governance reconciliation may record governance surfaces as ready for review only when final controls, calibration, influence and reporting manifests exist. It still must not open headline claims by itself.
 
 ## Current local status
 

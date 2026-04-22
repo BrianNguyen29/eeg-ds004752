@@ -1,0 +1,29 @@
+{
+  "runner_id": "phase1_final_governance_reconciliation_v1",
+  "status": "implementation_claim_closed",
+  "claim_scope": "final_controls_calibration_influence_reporting_reconciliation",
+  "scientific_integrity_rule": "This package validates whether final comparator reconciliation can be linked to final controls, calibration, influence and reporting manifests. It does not fabricate missing governance results, does not compute new efficacy claims, and does not open headline claims.",
+  "required_comparator_reconciliation": {
+    "all_final_comparator_outputs_present": true,
+    "runtime_comparator_logs_audited_for_all_required_comparators": true,
+    "claim_ready": false,
+    "headline_phase1_claim_open": false,
+    "full_phase1_claim_bearing_run_allowed": false,
+    "smoke_artifacts_promoted": false
+  },
+  "required_reporting_artifacts": [
+    "final_comparator_completeness_table",
+    "negative_controls_report",
+    "calibration_package_report",
+    "influence_package_report",
+    "final_fold_logs",
+    "claim_state_report",
+    "main_phase1_report"
+  ],
+  "claim_blockers_when_incomplete": [
+    "controls_calibration_influence_reporting_missing",
+    "headline_claim_blocked_until_full_package_passes",
+    "final_governance_reconciliation_incomplete"
+  ],
+  "claim_opening_policy": "never_open_claims_in_this_reconciliation_runner"
+}
