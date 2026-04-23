@@ -55,6 +55,20 @@ DEFAULT_CONFIG_PATHS = {
     "gate2": "configs/gate2/synthetic_validation.json",
 }
 
+RAW_BA_RATIO_CONTRACT = {
+    "formula_id": "raw_ba_ratio",
+    "definition": "control_balanced_accuracy / baseline_balanced_accuracy",
+    "applies_to": [
+        "nuisance_shared_control.relative_to_baseline",
+        "spatial_control.relative_to_baseline",
+    ],
+    "default_baseline_comparator": "A2",
+    "status": "prospective_contract_clarification",
+    "current_artifacts_reclassified": False,
+    "thresholds_changed": False,
+    "claims_opened": False,
+}
+
 
 def run_phase1_final_dedicated_controls(
     *,
@@ -221,6 +235,17 @@ def _validate_inputs(
     required = list(dedicated_config.get("required_dedicated_controls", []))
     if set(required) != {"nuisance_shared_control", "spatial_control", "shuffled_teacher", "time_shifted_teacher"}:
         blockers.append("dedicated_control_contract_mismatch")
+    relative_contract = _relative_metric_contract(dedicated_config)
+    if relative_contract.get("formula_id") != RAW_BA_RATIO_CONTRACT["formula_id"]:
+        blockers.append("relative_metric_formula_contract_mismatch")
+    if relative_contract.get("definition") != RAW_BA_RATIO_CONTRACT["definition"]:
+        blockers.append("relative_metric_formula_definition_mismatch")
+    if relative_contract.get("thresholds_changed") is not False:
+        blockers.append("relative_metric_contract_thresholds_changed")
+    if relative_contract.get("current_artifacts_reclassified") is not False:
+        blockers.append("relative_metric_contract_reclassifies_current_artifacts")
+    if relative_contract.get("claims_opened") is not False:
+        blockers.append("relative_metric_contract_opens_claims")
     if not rows:
         blockers.append("final_feature_matrix_has_no_rows")
     if not feature_names:
@@ -232,6 +257,7 @@ def _validate_inputs(
         "feature_matrix_run": str(matrix["run_dir"]),
         "comparator_reconciliation_run": str(comparator["run_dir"]),
         "required_dedicated_controls": required,
+        "relative_metric_contract": relative_contract,
         "n_rows": len(rows),
         "n_features": len(feature_names),
         "n_folds": len(folds),
@@ -277,6 +303,11 @@ def _run_controls(
             "time_shifted_teacher_max_gain_over_a3",
         ),
     }
+    relative_contract = _relative_metric_contract(dedicated_config)
+    if relative_contract.get("formula_id") != RAW_BA_RATIO_CONTRACT["formula_id"]:
+        raise Phase1FinalDedicatedControlsError(
+            "Dedicated controls support only raw_ba_ratio until a reviewed formula-contract patch lands."
+        )
     return {
         "nuisance_shared_control": _nuisance_control(
             rows=rows,
@@ -284,6 +315,7 @@ def _run_controls(
             config=dedicated_config.get("nuisance_control", {}),
             runner_config=runner_config,
             thresholds=thresholds,
+            relative_contract=relative_contract,
             baseline_metrics=baseline_metrics,
         ),
         "spatial_control": _spatial_control(
@@ -293,6 +325,7 @@ def _run_controls(
             config=dedicated_config.get("spatial_control", {}),
             runner_config=runner_config,
             thresholds=thresholds,
+            relative_contract=relative_contract,
             baseline_metrics=baseline_metrics,
         ),
         "shuffled_teacher": _teacher_control(
@@ -323,6 +356,7 @@ def _nuisance_control(
     config: dict[str, Any],
     runner_config: dict[str, Any],
     thresholds: dict[str, Any],
+    relative_contract: dict[str, Any],
     baseline_metrics: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
     metadata_columns = [str(value) for value in config.get("metadata_columns", ["session_id", "trial_id"])]
@@ -362,6 +396,9 @@ def _nuisance_control(
             "nuisance_relative_ceiling": rel_ceiling,
             "nuisance_absolute_ceiling": abs_ceiling,
             "baseline_comparator": "A2",
+            "relative_metric_formula_id": relative_contract["formula_id"],
+            "relative_metric_formula_definition": relative_contract["definition"],
+            "relative_metric_formula_source": "configs/phase1/final_dedicated_controls.json:relative_metric_contract",
             "relative_to_baseline": _round(relative),
             "absolute_gain_over_chance": _round(absolute_gain),
         },
@@ -377,6 +414,7 @@ def _spatial_control(
     config: dict[str, Any],
     runner_config: dict[str, Any],
     thresholds: dict[str, Any],
+    relative_contract: dict[str, Any],
     baseline_metrics: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
     permuted_rows = _spatially_permuted_rows(rows, feature_names)
@@ -407,6 +445,9 @@ def _spatial_control(
         threshold={
             "spatial_relative_ceiling": ceiling,
             "baseline_comparator": "A2",
+            "relative_metric_formula_id": relative_contract["formula_id"],
+            "relative_metric_formula_definition": relative_contract["definition"],
+            "relative_metric_formula_source": "configs/phase1/final_dedicated_controls.json:relative_metric_contract",
             "relative_to_baseline": _round(relative),
         },
         scientific_limit="Spatial control uses deterministic within-band channel permutation; it is not decoder evidence.",
@@ -749,6 +790,7 @@ def _build_manifest(
         "required_results": required,
         "missing_results": missing,
         "failed_results": failed,
+        "relative_metric_contract": _relative_metric_contract(dedicated_config),
         "dedicated_control_suite_passed": control_suite_passed,
         "claim_ready": False,
         "claim_evaluable": control_suite_passed,
@@ -758,6 +800,22 @@ def _build_manifest(
         "test_time_privileged_or_teacher_outputs_allowed": False,
         "blockers": _unique(blockers),
         "scientific_limit": "Dedicated controls may pass or fail; either result leaves claims closed pending full governance.",
+    }
+
+
+def _relative_metric_contract(dedicated_config: dict[str, Any]) -> dict[str, Any]:
+    contract = dict(dedicated_config.get("relative_metric_contract") or {})
+    if not contract:
+        return {}
+    return {
+        "formula_id": contract.get("formula_id"),
+        "definition": contract.get("definition"),
+        "applies_to": list(contract.get("applies_to", [])),
+        "default_baseline_comparator": contract.get("default_baseline_comparator"),
+        "status": contract.get("status"),
+        "current_artifacts_reclassified": contract.get("current_artifacts_reclassified"),
+        "thresholds_changed": contract.get("thresholds_changed"),
+        "claims_opened": contract.get("claims_opened"),
     }
 
 

@@ -29,6 +29,19 @@
     "shuffled_teacher_policy": "reverse_training_teacher_probabilities",
     "time_shifted_teacher_policy": "rotate_training_teacher_probabilities_by_one"
   },
+  "relative_metric_contract": {
+    "formula_id": "raw_ba_ratio",
+    "definition": "control_balanced_accuracy / baseline_balanced_accuracy",
+    "applies_to": [
+      "nuisance_shared_control.relative_to_baseline",
+      "spatial_control.relative_to_baseline"
+    ],
+    "default_baseline_comparator": "A2",
+    "status": "prospective_contract_clarification",
+    "current_artifacts_reclassified": false,
+    "thresholds_changed": false,
+    "claims_opened": false
+  },
   "threshold_sources": {
     "nuisance_relative_ceiling": "configs/gate2/synthetic_validation.json:frozen_threshold_defaults.nuisance_relative_ceiling",
     "nuisance_absolute_ceiling": "configs/gate2/synthetic_validation.json:frozen_threshold_defaults.nuisance_absolute_ceiling",

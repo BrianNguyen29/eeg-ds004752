@@ -284,7 +284,7 @@ def _build_relative_formula_review(
     audit_config: dict[str, Any],
     supporting_configs: dict[str, dict[str, Any]],
 ) -> dict[str, Any]:
-    formula_contract = _locked_formula_contract(supporting_configs)
+    formula_contract = _locked_formula_contract(supporting_configs, dedicated)
     rows = []
     for control_id in audit_config.get("relative_controls_under_review", []):
         payload = dedicated[control_id]
@@ -334,6 +334,7 @@ def _build_relative_formula_review(
         "status": "phase1_final_controls_relative_metric_formula_review_recorded",
         "relative_formula_locked": formula_contract["relative_formula_locked"],
         "locked_formula_source": formula_contract["locked_formula_source"],
+        "prospective_formula_source": formula_contract.get("prospective_formula_source", []),
         "locked_formula_id": formula_contract["locked_formula_id"],
         "current_runtime_formula_ids": sorted({row["runtime_formula_matches"] for row in rows}),
         "formula_ambiguity_detected": bool(ambiguous_rows),
@@ -345,8 +346,12 @@ def _build_relative_formula_review(
     }
 
 
-def _locked_formula_contract(supporting_configs: dict[str, dict[str, Any]]) -> dict[str, Any]:
+def _locked_formula_contract(
+    supporting_configs: dict[str, dict[str, Any]],
+    dedicated: dict[str, Any],
+) -> dict[str, Any]:
     locations = []
+    prospective_locations = []
     for key, payload in supporting_configs.items():
         data = payload["data"]
         for field in (
@@ -356,17 +361,69 @@ def _locked_formula_contract(supporting_configs: dict[str, dict[str, Any]]) -> d
         ):
             if field in data:
                 locations.append({"config": key, "path": payload["path"], "field": field, "value": data[field]})
+        nested = data.get("relative_metric_contract")
+        if isinstance(nested, dict) and nested.get("formula_id"):
+            location = {
+                "config": key,
+                "path": payload["path"],
+                "field": "relative_metric_contract.formula_id",
+                "value": nested.get("formula_id"),
+                "definition": nested.get("definition"),
+                "status": nested.get("status"),
+                "current_artifacts_reclassified": nested.get("current_artifacts_reclassified"),
+            }
+            if nested.get("status") == "prospective_contract_clarification":
+                prospective_locations.append(location)
+            else:
+                locations.append(location)
+    artifact_locations = _artifact_formula_contract_locations(dedicated)
+    if artifact_locations:
+        formula_ids = sorted({str(item["value"]) for item in artifact_locations})
+        if len(formula_ids) == 1:
+            return {
+                "relative_formula_locked": True,
+                "locked_formula_source": artifact_locations,
+                "prospective_formula_source": prospective_locations,
+                "locked_formula_id": formula_ids[0],
+                "scientific_limit": "Formula lock is attached to the dedicated-control artifacts under audit.",
+            }
     if locations:
         return {
             "relative_formula_locked": True,
             "locked_formula_source": locations,
+            "prospective_formula_source": prospective_locations,
             "locked_formula_id": str(locations[0]["value"]),
+            "scientific_limit": "Formula lock is provided by non-prospective supporting config.",
         }
     return {
         "relative_formula_locked": False,
         "locked_formula_source": [],
+        "prospective_formula_source": prospective_locations,
         "locked_formula_id": None,
+        "scientific_limit": (
+            "Prospective config clarification alone does not reclassify previously generated "
+            "dedicated-control artifacts."
+        ),
     }
+
+
+def _artifact_formula_contract_locations(dedicated: dict[str, Any]) -> list[dict[str, Any]]:
+    locations = []
+    for control_id in ("nuisance_shared_control", "spatial_control"):
+        payload = dedicated.get(control_id, {})
+        threshold = payload.get("threshold", {})
+        formula_id = threshold.get("relative_metric_formula_id")
+        if formula_id:
+            locations.append(
+                {
+                    "artifact": control_id,
+                    "field": "threshold.relative_metric_formula_id",
+                    "value": formula_id,
+                    "definition": threshold.get("relative_metric_formula_definition"),
+                    "source": threshold.get("relative_metric_formula_source"),
+                }
+            )
+    return locations
 
 
 def _build_threshold_contract_review(

@@ -8,7 +8,10 @@ from pathlib import Path
 
 from src.cli import main
 from src.phase1.final_controls import run_phase1_final_controls
-from src.phase1.final_dedicated_controls import run_phase1_final_dedicated_controls
+from src.phase1.final_dedicated_controls import (
+    Phase1FinalDedicatedControlsError,
+    run_phase1_final_dedicated_controls,
+)
 
 
 COMPARATORS = ["A2", "A2b", "A2c_CORAL", "A2d_riemannian", "A3_distillation", "A4_privileged"]
@@ -42,15 +45,33 @@ class Phase1FinalDedicatedControlsTests(unittest.TestCase):
             summary = _read_json(result.summary_path)
             manifest = _read_json(result.output_dir / "final_dedicated_control_manifest.json")
             leakage = _read_json(result.output_dir / "phase1_final_dedicated_controls_runtime_leakage_audit.json")
+            nuisance = _read_json(result.output_dir / "nuisance_shared_control.json")
+            spatial = _read_json(result.output_dir / "spatial_control.json")
             shuffled_teacher = _read_json(result.output_dir / "shuffled_teacher_control.json")
             time_shifted_teacher = _read_json(result.output_dir / "time_shifted_teacher_control.json")
             self.assertEqual(summary["status"], "phase1_final_dedicated_controls_complete_claim_closed")
             self.assertTrue(summary["dedicated_control_suite_passed"])
             self.assertEqual(manifest["results"], DEDICATED)
+            self.assertEqual(manifest["relative_metric_contract"]["formula_id"], "raw_ba_ratio")
+            self.assertFalse(manifest["relative_metric_contract"]["thresholds_changed"])
+            self.assertFalse(manifest["relative_metric_contract"]["current_artifacts_reclassified"])
+            self.assertFalse(manifest["relative_metric_contract"]["claims_opened"])
             self.assertTrue(manifest["dedicated_control_suite_passed"])
             self.assertFalse(manifest["claim_ready"])
             self.assertFalse(manifest["smoke_artifacts_promoted"])
             self.assertFalse(leakage["outer_test_subject_used_for_any_fit"])
+            self.assertEqual(nuisance["threshold"]["relative_metric_formula_id"], "raw_ba_ratio")
+            self.assertEqual(
+                nuisance["threshold"]["relative_metric_formula_definition"],
+                "control_balanced_accuracy / baseline_balanced_accuracy",
+            )
+            self.assertEqual(nuisance["threshold"]["relative_to_baseline"], round(nuisance["metrics"]["balanced_accuracy"], 6))
+            self.assertEqual(spatial["threshold"]["relative_metric_formula_id"], "raw_ba_ratio")
+            self.assertEqual(
+                spatial["threshold"]["relative_metric_formula_definition"],
+                "control_balanced_accuracy / baseline_balanced_accuracy",
+            )
+            self.assertEqual(spatial["threshold"]["relative_to_baseline"], round(spatial["metrics"]["balanced_accuracy"], 6))
             self.assertEqual(shuffled_teacher["threshold"]["max_gain_over_a3"], 1.0)
             self.assertEqual(time_shifted_teacher["threshold"]["max_gain_over_a3"], 1.0)
 
@@ -115,6 +136,35 @@ class Phase1FinalDedicatedControlsTests(unittest.TestCase):
             summary = _read_json(run_dir / "phase1_final_dedicated_controls_summary.json")
             self.assertFalse(summary["claim_ready"])
 
+    def test_dedicated_controls_reject_unreviewed_relative_formula_change(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            prereg = root / "prereg_bundle.json"
+            split_manifest = root / "phase1_final_split_manifest" / "run" / "final_split_manifest.json"
+            feature_matrix_run = root / "phase1_final_feature_matrix" / "run"
+            comparator_run = root / "phase1_final_comparator_reconciliation" / "run"
+            configs = _write_configs(root)
+            dedicated_config = _read_json(Path(configs["dedicated_controls"]))
+            dedicated_config["relative_metric_contract"]["formula_id"] = "gain_over_chance_ratio"
+            dedicated_config["relative_metric_contract"]["definition"] = (
+                "abs(control_balanced_accuracy - 0.5) / abs(baseline_balanced_accuracy - 0.5)"
+            )
+            _write_json(Path(configs["dedicated_controls"]), dedicated_config)
+            _write_prereg(prereg)
+            _write_split_manifest(split_manifest)
+            _write_feature_matrix_run(feature_matrix_run, split_manifest)
+            _write_comparator_reconciliation(comparator_run)
+
+            with self.assertRaisesRegex(Phase1FinalDedicatedControlsError, "raw_ba_ratio"):
+                run_phase1_final_dedicated_controls(
+                    prereg_bundle=prereg,
+                    feature_matrix_run=feature_matrix_run,
+                    comparator_reconciliation_run=comparator_run,
+                    output_root=root / "phase1_final_dedicated_controls",
+                    repo_root=Path.cwd(),
+                    config_paths=configs,
+                )
+
 
 def _write_configs(root: Path) -> dict[str, str]:
     config_dir = root / "configs"
@@ -128,6 +178,19 @@ def _write_configs(root: Path) -> dict[str, str]:
             "required_dedicated_controls": DEDICATED,
             "nuisance_control": {"metadata_columns": ["session_id", "trial_id"]},
             "spatial_control": {"permutation": "reverse_channel_order_within_band"},
+            "relative_metric_contract": {
+                "formula_id": "raw_ba_ratio",
+                "definition": "control_balanced_accuracy / baseline_balanced_accuracy",
+                "applies_to": [
+                    "nuisance_shared_control.relative_to_baseline",
+                    "spatial_control.relative_to_baseline",
+                ],
+                "default_baseline_comparator": "A2",
+                "status": "prospective_contract_clarification",
+                "current_artifacts_reclassified": False,
+                "thresholds_changed": False,
+                "claims_opened": False,
+            },
         },
     )
     _write_json(

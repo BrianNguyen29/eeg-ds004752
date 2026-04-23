@@ -18,9 +18,11 @@ class Phase1FinalControlsMetricContractAuditTests(unittest.TestCase):
             prereg = root / "prereg_bundle.json"
             remediation_run = root / "phase1_final_controls_remediation_audit" / "run"
             dedicated_run = root / "phase1_final_dedicated_controls" / "run"
+            dedicated_config = root / "configs" / "final_dedicated_controls.json"
             _write_prereg(prereg)
             _write_remediation_audit(remediation_run)
             _write_dedicated_controls(dedicated_run)
+            _write_dedicated_controls_config(dedicated_config, locked=False)
 
             result = run_phase1_final_controls_metric_contract_audit(
                 prereg_bundle=prereg,
@@ -28,6 +30,7 @@ class Phase1FinalControlsMetricContractAuditTests(unittest.TestCase):
                 final_dedicated_controls_run=dedicated_run,
                 output_root=root / "phase1_final_controls_metric_contract_audit",
                 repo_root=Path.cwd(),
+                config_paths={"dedicated_controls": str(dedicated_config)},
             )
 
             summary = _read_json(result.summary_path)
@@ -51,6 +54,69 @@ class Phase1FinalControlsMetricContractAuditTests(unittest.TestCase):
             self.assertTrue(recommendation["do_not_change_thresholds"])
             self.assertTrue(recommendation["do_not_edit_logits_or_metrics"])
             self.assertFalse(claim_state["headline_phase1_claim_open"])
+
+    def test_audit_records_prospective_contract_without_reclassifying_existing_artifacts(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            prereg = root / "prereg_bundle.json"
+            remediation_run = root / "phase1_final_controls_remediation_audit" / "run"
+            dedicated_run = root / "phase1_final_dedicated_controls" / "run"
+            dedicated_config = root / "configs" / "final_dedicated_controls.json"
+            _write_prereg(prereg)
+            _write_remediation_audit(remediation_run)
+            _write_dedicated_controls(dedicated_run)
+            _write_dedicated_controls_config(dedicated_config, locked=True)
+
+            result = run_phase1_final_controls_metric_contract_audit(
+                prereg_bundle=prereg,
+                controls_remediation_audit_run=remediation_run,
+                final_dedicated_controls_run=dedicated_run,
+                output_root=root / "phase1_final_controls_metric_contract_audit",
+                repo_root=Path.cwd(),
+                config_paths={"dedicated_controls": str(dedicated_config)},
+            )
+
+            summary = _read_json(result.summary_path)
+            formula_review = _read_json(result.output_dir / "relative_metric_formula_review.json")
+            self.assertFalse(summary["relative_formula_locked"])
+            self.assertTrue(summary["formula_ambiguity_detected"])
+            self.assertEqual(formula_review["prospective_formula_source"][0]["value"], "raw_ba_ratio")
+            self.assertEqual(
+                formula_review["prospective_formula_source"][0]["field"],
+                "relative_metric_contract.formula_id",
+            )
+
+    def test_audit_locks_formula_when_artifacts_carry_formula_metadata(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            prereg = root / "prereg_bundle.json"
+            remediation_run = root / "phase1_final_controls_remediation_audit" / "run"
+            dedicated_run = root / "phase1_final_dedicated_controls" / "run"
+            dedicated_config = root / "configs" / "final_dedicated_controls.json"
+            _write_prereg(prereg)
+            _write_remediation_audit(remediation_run)
+            _write_dedicated_controls(dedicated_run, formula_metadata=True)
+            _write_dedicated_controls_config(dedicated_config, locked=True)
+
+            result = run_phase1_final_controls_metric_contract_audit(
+                prereg_bundle=prereg,
+                controls_remediation_audit_run=remediation_run,
+                final_dedicated_controls_run=dedicated_run,
+                output_root=root / "phase1_final_controls_metric_contract_audit",
+                repo_root=Path.cwd(),
+                config_paths={"dedicated_controls": str(dedicated_config)},
+            )
+
+            summary = _read_json(result.summary_path)
+            formula_review = _read_json(result.output_dir / "relative_metric_formula_review.json")
+            self.assertTrue(summary["relative_formula_locked"])
+            self.assertFalse(summary["formula_ambiguity_detected"])
+            self.assertEqual(summary["current_runtime_formula_ids"], ["raw_ba_ratio"])
+            self.assertEqual(formula_review["locked_formula_id"], "raw_ba_ratio")
+            self.assertEqual(
+                formula_review["locked_formula_source"][0]["field"],
+                "threshold.relative_metric_formula_id",
+            )
 
     def test_cli_audit_writes_latest_pointer(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -152,8 +218,28 @@ def _write_remediation_audit(run_dir: Path) -> None:
     )
 
 
-def _write_dedicated_controls(run_dir: Path) -> None:
+def _write_dedicated_controls(run_dir: Path, *, formula_metadata: bool = False) -> None:
     run_dir.mkdir(parents=True, exist_ok=True)
+    nuisance_threshold = {
+        "nuisance_relative_ceiling": 0.5,
+        "nuisance_absolute_ceiling": 0.02,
+        "baseline_comparator": "A2",
+        "relative_to_baseline": 0.997035,
+        "absolute_gain_over_chance": 0.0,
+    }
+    spatial_threshold = {
+        "spatial_relative_ceiling": 0.67,
+        "baseline_comparator": "A2",
+        "relative_to_baseline": 1.0,
+    }
+    if formula_metadata:
+        formula = {
+            "relative_metric_formula_id": "raw_ba_ratio",
+            "relative_metric_formula_definition": "control_balanced_accuracy / baseline_balanced_accuracy",
+            "relative_metric_formula_source": "configs/phase1/final_dedicated_controls.json:relative_metric_contract",
+        }
+        nuisance_threshold.update(formula)
+        spatial_threshold.update(formula)
     _write_json(
         run_dir / "phase1_final_dedicated_controls_summary.json",
         {
@@ -170,13 +256,7 @@ def _write_dedicated_controls(run_dir: Path) -> None:
             "passed": False,
             "runtime_leakage_passed": True,
             "metrics": {"balanced_accuracy": 0.5},
-            "threshold": {
-                "nuisance_relative_ceiling": 0.5,
-                "nuisance_absolute_ceiling": 0.02,
-                "baseline_comparator": "A2",
-                "relative_to_baseline": 0.997035,
-                "absolute_gain_over_chance": 0.0,
-            },
+            "threshold": nuisance_threshold,
         },
     )
     _write_json(
@@ -186,11 +266,7 @@ def _write_dedicated_controls(run_dir: Path) -> None:
             "passed": False,
             "runtime_leakage_passed": True,
             "metrics": {"balanced_accuracy": 0.501487},
-            "threshold": {
-                "spatial_relative_ceiling": 0.67,
-                "baseline_comparator": "A2",
-                "relative_to_baseline": 1.0,
-            },
+            "threshold": spatial_threshold,
         },
     )
     _write_json(
@@ -211,6 +287,32 @@ def _write_dedicated_controls(run_dir: Path) -> None:
         run_dir / "phase1_final_dedicated_controls_claim_state.json",
         {"status": "phase1_final_dedicated_controls_claim_state_blocked", "claim_ready": False, "headline_phase1_claim_open": False},
     )
+
+
+def _write_dedicated_controls_config(path: Path, *, locked: bool) -> None:
+    payload: dict[str, object] = {
+        "required_dedicated_controls": [
+            "nuisance_shared_control",
+            "spatial_control",
+            "shuffled_teacher",
+            "time_shifted_teacher",
+        ]
+    }
+    if locked:
+        payload["relative_metric_contract"] = {
+            "formula_id": "raw_ba_ratio",
+            "definition": "control_balanced_accuracy / baseline_balanced_accuracy",
+            "applies_to": [
+                "nuisance_shared_control.relative_to_baseline",
+                "spatial_control.relative_to_baseline",
+            ],
+            "default_baseline_comparator": "A2",
+            "status": "prospective_contract_clarification",
+            "current_artifacts_reclassified": False,
+            "thresholds_changed": False,
+            "claims_opened": False,
+        }
+    _write_json(path, payload)
 
 
 def _write_json(path: Path, payload: dict[str, object]) -> None:
