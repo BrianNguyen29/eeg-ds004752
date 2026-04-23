@@ -25,6 +25,22 @@ Ket luan thuc te hien tai:
 - Gia tri lon nhat cua ket qua hien tai nam o methodological credibility, khong nam o
   positive efficacy claim.
 
+## 1.1 Final Disposition
+
+Trang thai chot cho nhanh nay:
+
+- `fail-closed`
+- `claim-closed`
+- docs `06` va `07` la nguon dien giai chinh thuc cho nhanh controls nay
+- khong chay them notebook remediation/governance nao nua cho issue metric formula nay
+
+Y nghia:
+
+- nhanh metric-formula ambiguity da dong;
+- nhanh controls failure hien tai duoc giu o trang thai fail-closed;
+- moi dien giai tiep theo phai dua tren negative finding va limitation, khong dua tren
+  efficacy claim.
+
 ## 2. Muc tieu cua tai lieu
 
 Tai lieu nay dung de:
@@ -229,18 +245,18 @@ Ban tieng Viet ngan gon:
 
 ### 11.1 Viec nen lam tiep
 
-1. ghi nhan ket luan ky thuat chinh thuc cho nhanh controls nay:
-   - khong thay bug trien khai ro rang;
-   - failure hien tai nghieng ve substantive negative finding hop le;
-   - trang thai phai giu `fail-closed`;
-2. neu can tiep tuc, chi duoc mo mot proposal prospective moi de xem control design
-   co can revise cho future runs hay khong;
-3. neu khong mo proposal prospective moi, dung ket qua hien tai de viet limitation,
-   negative finding, va claim boundary trong bao cao/luan van.
+1. su dung docs `06` va `07` lam nguon dien giai chinh thuc trong bao cao chinh;
+2. su dung mot muc bao cao rieng cho `negative finding`;
+3. giu trang thai `fail-closed` va `claim-closed` cho nhanh nay;
+4. neu can tiep tuc nghien cuu, chi duoc mo mot proposal prospective moi de xem control
+   design co can revise cho future runs hay khong;
+5. proposal prospective, neu co, phai bat dau bang docs-only va khong sua code/config
+   runtime truoc.
 
 ### 11.2 Viec khong nen lam
 
 - khong chay 38-40 cho issue formula nay;
+- khong chay them notebook remediation/governance cho issue formula nay;
 - khong doi threshold;
 - khong doi formula de nham thay doi pass/fail;
 - khong mo claim;
@@ -254,6 +270,7 @@ Ban tieng Viet ngan gon:
 | 2026-04-23 | Formula ambiguity dong; runtime formula lock = `raw_ba_ratio` | Hoan tat |
 | 2026-04-24 | Tong hop scientific interpretation / limitations / claim boundary | Hoan tat |
 | 2026-04-24 | Doi chieu remediation export + source code + config + tests; ket luan chua thay bug trien khai ro rang | Hoan tat |
+| 2026-04-24 | Chot nhanh controls o trang thai `fail-closed` trong bao cao chinh; khong chay them notebook governance cho issue formula nay | Hoan tat |
 | YYYY-MM-DD | [Cap nhat moi] | [Dang cho cap nhat] |
 
 ## 13. One-line Status
