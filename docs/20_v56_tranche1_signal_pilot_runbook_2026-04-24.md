@@ -1,12 +1,12 @@
-# V5.6 Tranche 1 Signal Pilot Runbook
+# V5.6 Tranche 1 Signal Audit Runbook
 
 Ngay cap nhat: 2026-04-24
 
 Pham vi: runbook ngan de thuc hien `Tranche 1` cua V5.6 theo huong:
 
-- payload materialization pilot
-- signal-level Gate 0 rerun
-- quyet dinh tiep tuc `GO/NO-GO`
+- payload materialization
+- full-cohort signal-level Gate 0 rerun
+- closeout readiness cho tranche benchmark/control-first
 
 Tai lieu nay dua tren:
 
@@ -18,28 +18,25 @@ Tai lieu nay dua tren:
 
 Tai lieu nay khong mo claim va khong sua record V5.5.
 
-## 1. Muc tieu cua pilot
+## 1. Muc tieu cua tranche
 
-Pilot nay chi tra loi 3 cau hoi:
+Tranche nay chi tra loi 3 cau hoi:
 
 1. co materialize duoc payload that tu ds004752 hay khong?
-2. Gate 0 signal-level co chay duoc tren sample payload hay khong?
-3. sau pilot, co du dieu kien mo rong sang materialization theo subject hay khong?
+2. Gate 0 signal-level co chay duoc tren toan cohort hay khong?
+3. sau tranche nay, co du dieu kien mo benchmark/control-first hay khong?
 
 ## 2. Tieu chi thanh cong
 
-Pilot duoc xem la thanh cong neu:
+Tranche duoc xem la thanh cong neu:
 
-- `bootstrap/get_data_colab.sh ... sample` tai duoc payload that;
-- `python -m src.cli audit --include-signal` tao duoc Gate 0 run moi;
-- Gate 0 run moi khong con blocker `edf_payloads_not_materialized` cho sample scope;
-- co `materialization_report.json` va `audit_report.md` de review.
-
-Pilot duoc xem la that bai neu:
-
-- datalad/git-annex khong lay duoc payload;
-- signal audit khong doc duoc EDF/MAT;
-- Gate 0 van blocked o muc payload cho sample scope.
+- `bootstrap/get_data_colab.sh ... all` tai duoc payload that;
+- `python -m src.cli audit --include-signal --signal-max-sessions 68` tao duoc Gate 0 run moi;
+- Gate 0 run moi co:
+  - `manifest_status = signal_audit_ready`
+  - `cohort_lock_status = signal_audit_ready`
+  - `gate0_blockers = []`
+- co `materialization_report.json`, `cohort_lock.json`, `manifest.json`, `audit_report.md` de review.
 
 ## 3. Colab preflight
 
@@ -53,16 +50,6 @@ drive.mount('/content/drive')
 ### 3.2 Lay repo moi nhat
 
 ```python
-%cd /content/drive/MyDrive
-!git clone https://github.com/BrianNguyen29/eeg-ds004752.git
-%cd /content/drive/MyDrive/eeg-ds004752
-!git pull --ff-only
-!git log --oneline -1
-```
-
-Neu repo da ton tai:
-
-```python
 %cd /content/drive/MyDrive/eeg-ds004752
 !git pull --ff-only
 !git log --oneline -1
@@ -71,79 +58,34 @@ Neu repo da ton tai:
 ### 3.3 Cai runtime
 
 ```bash
-bash bootstrap/install_runtime.sh
-```
-
-Neu se chay signal-level audit:
-
-```bash
 INSTALL_SIGNAL_EXTRAS=1 bash bootstrap/install_runtime.sh
 ```
 
-## 4. Pilot materialization
-
-### 4.0 Cach chay ngan nhat
-
-Neu muon giam thao tac tay, chay script pilot da dong goi san:
+## 4. Full materialization
 
 ```bash
-bash bootstrap/run_v56_tranche1_signal_pilot.sh /content/drive/MyDrive/eeg-ds004752/data
+bash bootstrap/get_data_colab.sh /content/drive/MyDrive/eeg-ds004752/data all
 ```
 
-Script nay se tu dong:
-
-1. cai signal extras
-2. materialize sample payload
-3. chay Gate 0 voi `--include-signal`
-
-### 4.1 Materialize sample payload
-
-```bash
-bash bootstrap/get_data_colab.sh /content/drive/MyDrive/eeg-ds004752/data sample
-```
-
-Lenh nay theo `bootstrap/get_data_colab.sh` se co gang lay:
-
-- `sub-01/ses-01/eeg`
-- `sub-01/ses-01/ieeg`
-- `derivatives/sub-01/beamforming`
-
-### 4.2 Kiem tra file da khong con pointer
+Kiem tra nhanh:
 
 ```bash
 ls -lh /content/drive/MyDrive/eeg-ds004752/data/ds004752/sub-01/ses-01/eeg
-ls -lh /content/drive/MyDrive/eeg-ds004752/data/ds004752/sub-01/ses-01/ieeg
-ls -lh /content/drive/MyDrive/eeg-ds004752/data/ds004752/derivatives/sub-01/beamforming
+ls -lh /content/drive/MyDrive/eeg-ds004752/data/ds004752/sub-14/ses-08/ieeg
+ls -lh /content/drive/MyDrive/eeg-ds004752/data/ds004752/derivatives/sub-14/beamforming
 ```
 
-Neu file van co size cuc nho va noi dung la duong dan `.git/annex/objects/...`,
-pilot chua materialize thanh cong.
-
-## 5. Signal-level Gate 0 rerun
-
-### 5.1 Chay audit tren sample
+## 5. Full-cohort signal-level Gate 0 rerun
 
 ```bash
 python -m src.cli audit \
   --profile t4_safe \
   --config configs/data/snapshot_colab.yaml \
   --include-signal \
-  --signal-max-sessions 1
+  --signal-max-sessions 68
 ```
 
-### 5.2 Neu muon gioi han theo subject/session ro hon
-
-```bash
-python -m src.cli audit \
-  --profile t4_safe \
-  --config configs/data/snapshot_colab.yaml \
-  --include-signal \
-  --subjects sub-01 \
-  --sessions ses-01 \
-  --signal-max-sessions 1
-```
-
-## 6. Artifact can kiem tra sau pilot
+## 6. Artifact can kiem tra sau tranche
 
 Sau khi audit xong, vao thu muc Gate 0 moi nhat va kiem:
 
@@ -151,52 +93,26 @@ Sau khi audit xong, vao thu muc Gate 0 moi nhat va kiem:
 - `audit_report.md`
 - `cohort_lock.json`
 - `bridge_availability.json`
-- `materialization_report.json` neu co
+- `materialization_report.json`
 
-Lenh goi y:
+## 7. Cach dien giai ket qua
 
-```python
-from pathlib import Path
-
-root = Path('/content/drive/MyDrive/eeg-ds004752/artifacts/gate0')
-runs = sorted([p for p in root.iterdir() if p.is_dir()])
-latest = runs[-1]
-print(latest)
-for p in sorted(latest.iterdir()):
-    print(p.name)
-```
-
-## 7. Cach dien giai ket qua pilot
-
-### Truong hop A - PASS cho sample
+### PASS full-cohort
 
 Dau hieu:
 
-- sample EDF/iEEG/MAT doc duoc
-- signal-level audit chay xong
-- artifact Gate 0 moi duoc tao
+- `manifest_status = signal_audit_ready`
+- `cohort_lock_status = signal_audit_ready`
+- `gate0_blockers = []`
+- `n_primary_eligible = 15`
 
 Hanh dong tiep:
 
-1. mo rong sang `subjects sub-01 sub-02 ...`
-2. rerun Gate 0 voi scope rong hon
-3. update `docs/12`, `docs/14`, `docs/15`
-4. review lai `GO/NO-GO`
+1. cap nhat `docs/12`, `docs/14`, `docs/15`, `docs/16`, `docs/19`
+2. mo tranche benchmark/control-first
+3. giu `claim-closed`
 
-### Truong hop B - Partial pass
-
-Dau hieu:
-
-- mot so payload lay duoc;
-- nhung signal audit con blocker ro rang
-
-Hanh dong tiep:
-
-1. ghi ro blocker trong review note
-2. chua mo code V5.6
-3. quyet dinh co tiep tuc materialize theo subject hay khong
-
-### Truong hop C - FAIL / still blocked
+### FAIL / still blocked
 
 Dau hieu:
 
@@ -213,42 +129,20 @@ Hanh dong tiep:
    - simulation validation
    - data-readiness report
 
-## 8. Mo rong sau pilot
+## 8. Closeout moi nhat
 
-Neu sample pass, chay tiep theo subject:
+Run closeout da dat:
 
-```bash
-bash bootstrap/get_data_colab.sh /content/drive/MyDrive/eeg-ds004752/data subjects sub-01 sub-02
-python -m src.cli audit \
-  --profile t4_safe \
-  --config configs/data/snapshot_colab.yaml \
-  --include-signal \
-  --subjects sub-01 sub-02 \
-  --signal-max-sessions 11
-```
+- Gate 0 run: `20260424T092923202761Z`
+- `manifest_status = signal_audit_ready`
+- `primary_eligibility_status = signal_audit_ready`
+- `cohort_lock_status = signal_audit_ready`
+- `n_primary_eligible = 15`
+- `edf_materialized = 136/136`
+- `mat_materialized = 15/15`
 
-Chi sau khi co artifact signal-level ro rang moi xem xet:
+## 9. One-line Runbook Conclusion
 
-- cohort lock signal-ready
-- benchmark skeleton V5.6
-- RIFT-Net Lite tranche
-
-## 9. Bao cao can thu ve sau pilot
-
-Sau khi chay xong pilot, can thu ve toi thieu:
-
-1. duong dan Gate 0 run moi
-2. `audit_report.md`
-3. `manifest.json`
-4. `materialization_report.json` neu co
-5. ghi chu ngan:
-   - payload materialized hay chua
-   - signal audit pass hay fail
-   - blocker con lai la gi
-   - khuyen nghi `continue` hay `Scenario D`
-
-## 10. One-line Runbook
-
-Tranche 1 cua V5.6 phai bat dau bang sample payload materialization va signal-level
-Gate 0 pilot; chi khi pilot nay cho artifact sach moi duoc mo rong sang cohort
-signal-ready va benchmark implementation.
+Tranche 1 cua V5.6 da hoan tat o muc data/signal readiness; buoc tiep theo la
+benchmark/control-first implementation, khong phai quay lai materialization
+pilot.

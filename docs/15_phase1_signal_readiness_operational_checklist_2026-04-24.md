@@ -3,179 +3,134 @@
 Ngay cap nhat: 2026-04-24
 
 Pham vi: checklist van hanh de dua nhanh prospective tu trang thai
-`metadata-ready only` sang trang thai co the danh gia lai `go/no-go` cho
-signal-level Gate 0.
+`metadata-ready only` sang trang thai signal-ready va chuyen tiep sang tranche
+benchmark/control-first.
 
-Tai lieu nay docs-only, khong sua code, khong mo claim, va khong thay doi record
-Phase 1 hien tai.
+Tai lieu nay docs-only, khong mo claim, va khong thay doi record Phase 1 hien tai.
 
 ## 1. Muc tieu
 
-Checklist nay dung de hoan tat 3 viec:
+Checklist nay dung de xac nhan 4 viec da hoan tat:
 
 1. payload materialization
 2. signal-level Gate 0 rerun
 3. cohort lock signal-ready
+4. readiness package cho tranche benchmark/control-first
 
 Exit target:
 
-- du dieu kien review lai [docs/14_phase1_go_no_go_decision_memo_2026-04-24.md](D:/WorkSpace/EEG/eeg-ds004752/docs/14_phase1_go_no_go_decision_memo_2026-04-24.md)
+- du dieu kien thi hanh `docs/16_phase1_prospective_execution_roadmap_2026-04-24.md`
 
-## 2. Current Blockers
+## 2. Current Status
 
-Blockers hien tai da biet:
+Theo Gate 0 run `20260424T092923202761Z`:
 
-- `edf_payloads_not_materialized`
-- `mat_derivatives_not_materialized`
-- `cohort_lock_is_draft_until_signal_level_audit`
+- [x] `edf_payloads_not_materialized` da dong
+- [x] `mat_derivatives_not_materialized` da dong
+- [x] `cohort_lock_is_draft_until_signal_level_audit` da dong
+- [x] `gate0_blockers = []`
 
 ## 3. Phase O1 - Payload Materialization
 
-### Muc tieu
-
-Bien payload tu trang thai pointer-like sang trang thai doc duoc o muc signal.
-
 ### Checklist
 
-- [ ] Xac dinh ro co che luu tru hien tai:
-  - DataLad
-  - git-annex
-  - local mirror
-  - cloud mount
-- [ ] Liet ke chinh xac cac duong dan `.edf` can materialize
-- [ ] Liet ke chinh xac cac duong dan `.mat` can materialize
-- [ ] Xac nhan dung luong can thiet va kha nang luu tru
-- [ ] Materialize toan bo `.edf`
-- [ ] Materialize toan bo `.mat`
-- [ ] Kiem tra lai file sizes khong con pointer-like
-- [ ] Ghi nhan log materialization:
-  - so file thanh cong
-  - so file that bai
-  - file nao thieu
-  - ly do that bai
+- [x] Xac dinh co che lay du lieu that: DataLad/git-annex
+- [x] Materialize toan bo `.edf`
+- [x] Materialize toan bo `.mat`
+- [x] Kiem tra lai file sizes khong con pointer-like
+- [x] Ghi nhan `materialization_report.json`
 
 ### Exit criteria
 
-- [ ] `edf materialized_count > 0` va tot nhat la full coverage
-- [ ] `mat materialized_count > 0` va tot nhat la full coverage
-- [ ] khong con trang thai `all_pointer_like`
+- [x] `edf materialized_count = 136/136`
+- [x] `mat materialized_count = 15/15`
+- [x] khong con trang thai pointer-like trong payload state
 
 ## 4. Phase O2 - Signal-Level Gate 0 Rerun
 
-### Muc tieu
-
-Rerun Gate 0 voi payload that de kiem signal-level integrity.
-
 ### Checklist
 
-- [ ] Chuan bi environment/runtime co the doc EDF/MAT
-- [ ] Xac nhan duong dan dataset root sau materialization
-- [ ] Rerun Gate 0 audit
-- [ ] Tao artifact Gate 0 moi
-- [ ] Kiem tra artifact moi co day du:
+- [x] Chuan bi environment/runtime doc EDF/MAT
+- [x] Xac nhan dataset root sau materialization
+- [x] Rerun Gate 0 audit voi `--include-signal`
+- [x] Tao artifact Gate 0 moi
+- [x] Kiem tra artifact moi co day du:
   - `manifest.json`
   - `audit_report.md`
   - `cohort_lock.json`
   - `bridge_availability.json`
-  - materialization/signal reports neu co
+  - `materialization_report.json`
 
-### Signal audit checks can co
+### Signal audit checks
 
-- [ ] EEG payload doc duoc
-- [ ] iEEG payload doc duoc
-- [ ] session duration hop le
-- [ ] sampling frequency co the doi chieu bang payload that
-- [ ] event-to-signal alignment hop le
-- [ ] channel inventory hop le
-- [ ] electrode inventory hop le
-- [ ] bridge/beamforming availability duoc xac nhan o muc payload neu can
+- [x] EEG payload doc duoc
+- [x] iEEG payload doc duoc
+- [x] session duration hop le
+- [x] sampling frequency doi chieu duoc bang payload that
+- [x] event-to-signal alignment hop le
+- [x] beamforming MAT files check `15/15`
 
 ### Exit criteria
 
-- [ ] Gate 0 moi khong con blocker `edf_payloads_not_materialized`
-- [ ] Gate 0 moi khong con blocker `mat_derivatives_not_materialized` neu branch can bridge
-- [ ] signal-level audit co ket luan ro rang, khong mo ho
+- [x] full-cohort signal audit `status = ok`
+- [x] `sessions_checked = 68`
+- [x] `mat_files_checked = 15`
 
 ## 5. Phase O3 - Cohort Lock Signal-Ready
 
-### Muc tieu
-
-Chuyen cohort lock tu draft metadata-only sang signal-ready.
-
 ### Checklist
 
-- [ ] Xac dinh `n_primary_eligible`
-- [ ] Ghi ro cac subject/session bi loai
-- [ ] Ghi ro ly do loai:
-  - missing payload
-  - signal read failure
-  - alignment failure
-  - bridge unavailable
-  - quality issue
-- [ ] Kiem tra cohort lock khop voi signal-level audit moi
-- [ ] Dong bang subject/session/trial usable cho nhanh prospective
+- [x] Xac dinh `n_primary_eligible`
+- [x] Khoa `cohort_lock.json`
+- [x] Dong bang subject/session usability o muc Gate 0
 
 ### Exit criteria
 
-- [ ] `cohort_lock.json` khong con o trang thai draft
-- [ ] subject/session inclusion duoc khoa ro
-- [ ] co the dung artifact nay lam input cho future-run proposal review
+- [x] `cohort_lock_status = signal_audit_ready`
+- [x] `n_primary_eligible = 15`
 
 ## 6. Phase O4 - Readiness Review Package
 
-### Muc tieu
-
-Lap goi review nho de quay lai quyet dinh `go/no-go`.
-
 ### Checklist
 
-- [ ] Ghi lai duong dan Gate 0 run moi
-- [ ] Tom tat blockers da dong
-- [ ] Liet ke blockers con lai neu co
-- [ ] Cap nhat `docs/12_phase1_signal_level_gate0_readiness_2026-04-24.md`
-- [ ] Neu can, cap nhat `docs/14_phase1_go_no_go_decision_memo_2026-04-24.md`
+- [x] Ghi lai duong dan Gate 0 run moi
+- [x] Tom tat blockers da dong
+- [x] Cap nhat `docs/12`
+- [x] Cap nhat `docs/14`
+- [x] Cap nhat `docs/16`
+- [x] Cap nhat `docs/19`
+- [x] Cap nhat `docs/20`
 
 ### Exit criteria
 
-- [ ] du thong tin de danh gia lai `go/no-go`
+- [x] du thong tin de chuyen sang tranche benchmark/control-first
 
 ## 7. Decision Rule
 
-### Tiep tuc giu `NO-GO`
+### Trang thai hien tai
 
-Neu con bat ky dieu nao sau day:
+- `NO-GO for code due to data-readiness` khong con ap dung
 
-- payload chua materialize day du
-- signal-level audit chua xong
-- cohort lock van draft
-- bridge readiness van mo ho
+### Trang thai moi
 
-### Co the mo review lai `GO`
+- `GO` cho implementation benchmark/control-first
+- van `claim-closed` cho den khi evidence package day du
 
-Chi khi:
+## 8. Deliverables thu duoc
 
-- payload da san sang
-- signal-level Gate 0 moi da tao artifact sach
-- cohort lock signal-ready da khoa
-
-## 8. Deliverables can thu ve
-
-Toi thieu can thu ve:
-
-1. Gate 0 run moi o muc signal-level
-2. `audit_report.md` moi
-3. `manifest.json` moi
-4. `cohort_lock.json` signal-ready
-5. `bridge_availability.json` da cap nhat neu ap dung
-6. mot ghi chu tong hop blockers con lai
+1. Gate 0 run `20260424T092923202761Z`
+2. `manifest.json` signal-ready
+3. `cohort_lock.json` signal-ready
+4. `materialization_report.json` complete
+5. `audit_report.md` full-cohort signal audit
 
 ## 9. Operational Notes
 
-- khong nhay sang code A3/A4 prospective truoc khi xong checklist nay
-- khong dung payload materialization nhu mot co so de sua run Phase 1 da fail
-- checklist nay phuc vu future-run readiness, khong phuc vu remediation cho record hien tai
+- khong dung checklist nay de “cuu” V5.5
+- checklist nay phuc vu future-run readiness cua V5.6
+- buoc tiep theo la benchmark/control scaffolding, khong phai efficacy claim
 
 ## 10. One-line Checklist Status
 
-Cho den khi checklist nay duoc hoan tat, nhanh prospective `iEEG-assisted`
-van phai giu o trang thai `NO-GO for code`.
+Checklist signal-readiness da hoan tat; nhanh prospective `iEEG-assisted` da co
+the chuyen sang tranche benchmark/control-first cua V5.6.

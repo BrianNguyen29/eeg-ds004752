@@ -5,20 +5,39 @@ Ngay cap nhat: 2026-04-24
 Pham vi: tai lieu docs-only de xac dinh nhanh prospective iEEG-assisted da du
 dieu kien du lieu va signal-level Gate 0 hay chua.
 
-Tai lieu nay khong sua code, khong mo claim, khong doi artifact da khoa, va khong
-reclassify run hien tai.
+Tai lieu nay khong mo claim, khong sua artifact da khoa, va khong reclassify
+record V5.5.
 
 ## 1. Muc tieu
 
 Tai lieu nay tra loi 3 cau hoi:
 
 1. Gate 0 hien tai da san sang o muc signal-level hay chua?
-2. Cac blocker du lieu nao dang chan nhanh prospective iEEG-assisted?
-3. Dieu kien toi thieu nao phai dat truoc khi cho phep nhanh code prospective?
+2. Cac blocker du lieu nao con ton tai cho nhanh prospective iEEG-assisted?
+3. Buoc implementation nao duoc phep mo tiep theo?
 
-## 2. Trang thai hien tai
+## 2. Source of truth
 
-Theo Gate 0 audit da khoa:
+Run duoc dung lam co so readiness:
+
+- `artifacts/gate0/20260424T092923202761Z`
+
+Truong authoritative:
+
+- `manifest_status = signal_audit_ready`
+- `primary_eligibility_status = signal_audit_ready`
+- `gate0_blockers = []`
+- `signal_status = ok`
+- `sessions_checked = 68`
+- `mat_files_checked = 15`
+- `cohort_lock_status = signal_audit_ready`
+- `n_primary_eligible = 15`
+- `edf_materialized = 136/136`
+- `mat_materialized = 15/15`
+
+## 3. Trang thai hien tai
+
+Theo Gate 0 run da khoa:
 
 - dataset: `ds004752`
 - subjects: `15`
@@ -31,134 +50,105 @@ Theo Gate 0 audit da khoa:
 Y nghia:
 
 - metadata-level alignment cua dataset la tot;
-- EEG va iEEG da dong bo o muc event/session;
-- nhung dieu nay chua du de xem Gate 0 la signal-ready.
+- payload EDF/MAT da duoc materialize day du;
+- signal-level audit da pass tren toan cohort;
+- cohort lock da duoc khoa o muc signal-ready.
 
-## 3. Blockers hien tai
+## 4. Blockers hien tai
 
-Theo `artifacts/gate0/20260417T082814Z/audit_report.md`, cac blocker hien tai la:
+Theo `manifest.json` cua run `20260424T092923202761Z`, blockers hien tai la:
+
+- khong con blocker nao (`gate0_blockers = []`)
+
+Blocker cu da dong:
 
 1. `edf_payloads_not_materialized`
 2. `mat_derivatives_not_materialized`
 3. `cohort_lock_is_draft_until_signal_level_audit`
 
-Day la blockers that su, khong phai ghi chu phu.
+## 5. Danh gia readiness
 
-## 4. Danh gia readiness
-
-### 4.1 Dieu da san sang
+### 5.1 Dieu da san sang
 
 - BIDS identity da duoc ghi nhan
 - subject/session inventory da co
 - EEG/iEEG event alignment da duoc audit o muc metadata
-- channel/electrode sidecars da duoc thong ke
-- bridge/beamforming files da duoc thay o muc pointer inventory
+- payload EDF da materialize day du
+- payload MAT/beamforming da materialize day du
+- signal-level audit da pass tren `68/68` sessions
+- MAT derivatives da duoc check `15/15`
+- cohort lock da signal-ready
+- `n_primary_eligible = 15`
 
-### 4.2 Dieu chua san sang
+### 5.2 Dieu chua duoc chung minh
 
-- EDF payload chua duoc materialize de doc tin hieu that
-- MAT derivatives chua duoc materialize de doc bridge/beamforming that
-- cohort lock van o muc draft, chua duoc khoa signal-level
-- chua co audit signal-level cho:
-  - sampling consistency
-  - duration consistency
-  - signal readability
-  - trial-to-signal alignment
-  - bridge availability o muc payload
+- readiness nay khong mo efficacy claim
+- readiness nay khong chung minh iEEG-assisted superiority
+- readiness nay khong cho phep sua lai record V5.5
 
-## 5. Tai sao blocker nay quan trong cho nhanh iEEG-assisted
+No chi chung minh:
 
-Nhanh `iEEG-assisted` khong chi can metadata alignment.
+- du lieu da san sang cho nhanh prospective;
+- Gate 0 khong con la blocker van hanh chinh.
 
-No can:
+## 6. Tac dong doi voi nhanh iEEG-assisted
 
-- real signal payload
-- real iEEG availability
-- neu dung bridge/beamforming, phai co derivative payload that
-- kha nang audit duoc privileged path bang artifact signal-level
+Truoc run nay, contract iEEG-assisted moi o muc docs-only va bi chan boi
+data-readiness.
 
-Neu khong dat muc nay, moi contract ve:
+Sau run nay:
 
-- real iEEG teacher
-- privileged branch
-- observability bridge
-
-deu se mo ho va kho audit.
-
-## 6. Danh sach readiness check can vuot qua
-
-Nhanh prospective chi nen duoc xem la signal-ready neu dat du cac check sau:
-
-### 6.1 Payload materialization
-
-- EDF files co the doc duoc o muc signal
-- MAT derivative files co the doc duoc o muc noi dung
-- khong con trang thai `pointer_like_only`
-
-### 6.2 Signal audit
-
-- sampling frequencies hop le va doc duoc bang payload that
-- session durations hop le
-- EEG/iEEG signal co the map voi event windows
-- channel inventory va electrode inventory co the doi chieu voi payload
-
-### 6.3 Cohort lock
-
-- `n_primary_eligible` duoc khoa
-- subject/session exclusion reasons duoc ghi ro
-- cohort lock khong con o trang thai draft
-
-### 6.4 Bridge readiness
-
-Neu dung beamforming/bridge:
-
-- payload bridge co mat that su
-- subject/session bridge availability duoc xac nhan o muc signal
-- co audit cho missing bridge va su dong bo voi scalp/iEEG rows
+- real signal payload da co the doc va audit;
+- beamforming derivatives da co the inventory va signal-check;
+- cohort lock da san sang de lam dau vao cho nhanh benchmark/control-first cua V5.6.
 
 ## 7. Readiness decision
 
 Danh gia hien tai:
 
 - `metadata_ready = true`
-- `signal_ready = false`
-- `prospective_ieeg_branch_ready = false`
+- `signal_ready = true`
+- `cohort_ready = true`
+- `prospective_ieeg_branch_ready = true` o muc data/readiness
 
 Ket luan:
 
-> Gate 0 hien tai chua san sang o muc signal-level cho nhanh prospective
+> Gate 0 hien tai da san sang o muc signal-level cho nhanh prospective
 > iEEG-assisted.
 
-## 8. De xuat buoc tiep theo
+## 8. Buoc tiep theo duoc phep
 
-Truoc khi lam bat ky thiet ke A3/A4 real iEEG nao, can:
+Sau Gate 0 run nay, nhanh prospective duoc phep mo sang:
 
-1. materialize EDF payloads
-2. materialize MAT/beamforming derivatives neu se dung bridge
-3. rerun Gate 0 o muc signal-level
-4. khoa cohort lock o muc signal-ready
-5. cap nhat bridge availability artifact
+1. benchmark/control layer implementation
+2. split registry va feature provenance scaffolding
+3. leaderboard/comparator scaffolding
+4. contract-bound implementation planning cho `A4_privileged`
+
+Khong nen nhay thang vao heavy modeling truoc khi benchmark/control layer duoc
+lap day du theo V5.6.
 
 ## 9. Decision gate
 
-### `No-go` hien tai
+### Trang thai cu
 
-Khong nen mo nhanh code prospective neu:
+Trang thai `NO-GO do chua signal-ready` khong con hieu luc.
 
-- payload van chua materialize
-- cohort lock van draft
-- khong co signal-level audit moi
+### Trang thai moi
 
-### `Go` toi thieu
+`GO` cho:
 
-Chi sau khi co:
+- benchmark/control-first implementation tranche
+- repo mapping va execution plan tiep theo
 
-- Gate 0 signal-level audit clean hoac co blocker duoc dinh danh ro;
-- cohort lock signal-ready;
-- bridge/payload readiness duoc ghi bang artifact.
+`Khong` tu dong co nghia la GO cho:
+
+- mo efficacy claim
+- bo qua governance
+- heavy modeling khong co benchmark contract
 
 ## 10. One-line Conclusion
 
-Gate 0 hien tai moi dat muc metadata-ready, chua dat muc signal-ready; vi vay
-nhanh prospective `iEEG-assisted` chua du dieu kien de di vao code/runtime, va
-can uu tien payload materialization + signal-level audit truoc.
+Gate 0 hien tai da dat muc signal-ready va cohort-ready; vi vay nhanh
+prospective `iEEG-assisted` khong con bi chan boi data-readiness, va co the di
+tiep sang tranche benchmark/control-first cua V5.6.
