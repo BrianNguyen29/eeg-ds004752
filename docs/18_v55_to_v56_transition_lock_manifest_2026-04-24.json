@@ -1,0 +1,59 @@
+{
+  "document_id": "v55_to_v56_transition_lock_v1",
+  "created_on": "2026-04-24",
+  "status": "locked_transition_record",
+  "source_of_truth_docs": [
+    "docs/06_bao_cao_tien_do_ket_qua_va_claim_boundary_2026-04-24.md",
+    "docs/07_phase1_controls_technical_conclusion_2026-04-24.md",
+    "docs/08_phase1_negative_finding_report_2026-04-24.md",
+    "docs/10_phase1_consistency_audit_report_2026-04-24.md",
+    "docs/16_phase1_prospective_execution_roadmap_2026-04-24.md"
+  ],
+  "reviewed_v55_runs": {
+    "final_dedicated_controls_run": "20260423T161538578351Z",
+    "final_controls_run": "20260423T165758332060Z",
+    "final_controls_remediation_audit_run": "20260423T170320725358Z",
+    "final_controls_metric_contract_audit_run": "20260423T170705285760Z"
+  },
+  "locked_v55_state": {
+    "claim_state": "claim-closed",
+    "control_state": "fail-closed",
+    "formula_ambiguity_closed": true,
+    "relative_formula_locked": true,
+    "relative_formula_id": "raw_ba_ratio",
+    "consistency_checked": true
+  },
+  "locked_blockers": [
+    "nuisance_shared_control",
+    "spatial_control"
+  ],
+  "allowed_v55_conclusions": [
+    "pipeline_governance_consistent",
+    "artifact_chain_reviewed",
+    "runtime_formula_locked",
+    "final_controls_artifacts_complete",
+    "remaining_failures_are_substantive_in_current_record"
+  ],
+  "forbidden_v55_conclusions": [
+    "decoder_efficacy",
+    "a2d_efficacy",
+    "a3_efficacy",
+    "a4_efficacy",
+    "a4_superiority",
+    "ieeg_assisted_superiority",
+    "full_phase1_success"
+  ],
+  "v56_allowed_carry_over": [
+    "historical_negative_finding",
+    "methodological_lesson",
+    "claim_boundary_lesson",
+    "control_first_design_motivation"
+  ],
+  "v56_forbidden_carry_over": [
+    "smoke_or_proxy_as_claim_evidence",
+    "blocked_v55_run_as_positive_support",
+    "scalp_proxy_teacher_as_real_ieeg_teacher",
+    "reopening_formula_chain_to_rescue_v55"
+  ],
+  "transition_rule": "V5.5 is frozen as a reviewed negative finding record; V5.6 may inherit lessons and governance discipline, but not any positive efficacy interpretation."
+}
