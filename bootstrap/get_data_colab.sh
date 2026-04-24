@@ -10,6 +10,15 @@ mkdir -p "${DATA_ROOT}"
 
 python -m pip install --quiet --upgrade datalad datalad-installer
 
+ensure_apt_dependency() {
+  local package="$1"
+  if ! dpkg -s "${package}" >/dev/null 2>&1; then
+    echo "Installing missing system dependency: ${package}"
+    sudo apt-get update -y
+    sudo apt-get install -y "${package}"
+  fi
+}
+
 # DataLad/git-annex creates local git commits during dataset initialization.
 # Fresh Colab runtimes usually have no Git identity configured, which makes
 # `git annex init` fail unless we set a harmless local automation identity.
@@ -38,8 +47,14 @@ git_annex_ok() {
 }
 
 if ! git_annex_ok; then
+  ensure_apt_dependency netbase
   echo "Installing recent git-annex with datalad-installer..."
-  datalad-installer --sudo ok git-annex -m datalad/git-annex:release
+  if ! datalad-installer --sudo ok git-annex -m datalad/git-annex:release; then
+    echo "Retrying git-annex install after repairing system dependencies..."
+    ensure_apt_dependency netbase
+    sudo apt-get install -f -y
+    datalad-installer --sudo ok git-annex -m datalad/git-annex:release
+  fi
   hash -r
 fi
 
