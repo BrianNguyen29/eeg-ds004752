@@ -52,6 +52,19 @@ Tranche 2 scaffold khong duoc:
 
 ## 3. Lenh Chay
 
+Notebook Colab khuyen nghi:
+
+- `notebooks/41_colab_v56_tranche2_scaffold.ipynb`
+
+Notebook nay chay tuan tu:
+
+1. mount Drive;
+2. clone/pull repo vao `/content/eeg-ds004752`;
+3. preflight Gate 0 run `20260424T100159866284Z`;
+4. chay scaffold script;
+5. doc va assert bon artifact families;
+6. in closeout claim-closed.
+
 Khuyen nghi tren Colab/Drive: dung script da dong goi de artifact duoc ghi
 vao Drive thay vi runtime tam:
 
