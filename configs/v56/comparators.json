@@ -1,0 +1,47 @@
+{
+  "primary_target_id": "A4_privileged",
+  "comparators": [
+    {
+      "id": "scalp_linear_baseline",
+      "family": "scalp_baseline",
+      "strength": "reference",
+      "requires_privileged_train_time": false,
+      "enabled_by_default": true
+    },
+    {
+      "id": "scalp_riemannian_baseline",
+      "family": "scalp_baseline",
+      "strength": "strong",
+      "requires_privileged_train_time": false,
+      "enabled_by_default": true
+    },
+    {
+      "id": "A3_distillation",
+      "family": "privileged_transfer",
+      "strength": "strong",
+      "requires_privileged_train_time": true,
+      "enabled_by_default": true
+    },
+    {
+      "id": "A4_privileged",
+      "family": "privileged_transfer",
+      "strength": "primary_target",
+      "requires_privileged_train_time": true,
+      "enabled_by_default": true
+    },
+    {
+      "id": "RIFT_Mamba_extension",
+      "family": "extension",
+      "strength": "conditional",
+      "requires_privileged_train_time": true,
+      "enabled_by_default": false
+    },
+    {
+      "id": "RIFT_Bridge_extension",
+      "family": "extension",
+      "strength": "conditional",
+      "requires_privileged_train_time": true,
+      "enabled_by_default": false
+    }
+  ]
+}

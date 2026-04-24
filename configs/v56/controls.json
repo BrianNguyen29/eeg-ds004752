@@ -1,0 +1,33 @@
+{
+  "claim_closed_by_default": true,
+  "control_tiers": [
+    {
+      "id": "data_integrity",
+      "claim_blocking": true,
+      "required_controls": [
+        "signal_ready_gate0",
+        "split_registry_locked",
+        "feature_provenance_complete"
+      ]
+    },
+    {
+      "id": "control_adequacy",
+      "claim_blocking": true,
+      "required_controls": [
+        "anti_teacher_suite",
+        "nuisance_suite",
+        "spatial_suite",
+        "teacher_shuffle_suite"
+      ]
+    },
+    {
+      "id": "reporting",
+      "claim_blocking": true,
+      "required_controls": [
+        "calibration_package",
+        "influence_package",
+        "claim_state_closeout"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "split_registry_version": "v56-tranche2",
+  "subject_isolation_required": true,
+  "test_time_inference": {
+    "modality": "scalp_eeg_only",
+    "allow_ieeg": false,
+    "allow_beamforming_bridge": false
+  },
+  "train_time_privileged": {
+    "allow_ieeg_teacher": true,
+    "allow_beamforming_bridge": true,
+    "requires_audit": true
+  },
+  "tracks": [
+    {
+      "id": "scalp_only_primary",
+      "features": "scalp_eeg",
+      "privileged_train_time": false
+    },
+    {
+      "id": "privileged_train_scalp_test",
+      "features": "scalp_eeg",
+      "privileged_train_time": true
+    }
+  ],
+  "feature_provenance": {
+    "require_manifest": true,
+    "require_split_registry_link": true,
+    "require_source_hashes": true
+  }
+}

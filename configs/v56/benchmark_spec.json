@@ -1,0 +1,39 @@
+{
+  "program_version": "v5.6",
+  "benchmark_name": "NOST-Bench",
+  "record_scope": "prospective_only",
+  "claim_boundary": {
+    "claim_closed_by_default": true,
+    "current_record_cannot_support_positive_efficacy_claim": true,
+    "current_record_is_historical_negative_finding_only": true
+  },
+  "gate_requirements": {
+    "gate0_manifest_status": "signal_audit_ready",
+    "cohort_lock_status": "signal_audit_ready",
+    "n_primary_eligible_min": 1
+  },
+  "statistics": {
+    "primary_metric": "balanced_accuracy",
+    "bootstrap_ci_required": true,
+    "max_t_permutation_required": true,
+    "crtg_required": true
+  },
+  "implementation_policy": {
+    "benchmark_first": true,
+    "control_first": true,
+    "heavy_modeling_allowed_in_tranche2": false,
+    "test_time_inference": "scalp_eeg_only"
+  },
+  "primary_target": {
+    "id": "A4_privileged",
+    "description": "Privileged-train, scalp-only-test comparator target for V5.6.",
+    "must_exceed_all_strong_scalp_comparators": true
+  },
+  "artifact_roots": {
+    "benchmark_spec": "artifacts/v56_benchmark_spec",
+    "split_registry": "artifacts/v56_split_registry",
+    "feature_provenance": "artifacts/v56_feature_provenance",
+    "control_registry": "artifacts/v56_control_registry",
+    "leaderboard": "artifacts/v56_leaderboard"
+  }
+}
