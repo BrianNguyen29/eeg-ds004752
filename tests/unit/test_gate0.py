@@ -5,9 +5,11 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from src.audit.gate0 import _bridge_availability
 from src.audit.gate0 import _cohort_lock
 from src.audit.gate0 import _gate0_blockers
 from src.audit.gate0 import _manifest_status
+from src.audit.gate0 import _render_audit_report
 from src.audit.gate0 import _write_json
 from src.audit.gate0 import run_gate0_audit
 
@@ -155,6 +157,80 @@ class Gate0AuditTests(unittest.TestCase):
             "cohort_lock_is_draft_until_signal_level_audit",
             _gate0_blockers(payload_state, events_audit, signal_audit),
         )
+
+    def test_bridge_availability_reflects_materialized_inventory(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "ds004752"
+            _write_minimal_dataset(root)
+
+            bridge = _bridge_availability(
+                root,
+                {
+                    "payloads": {
+                        "mat": {
+                            "missing_examples": [],
+                            "materialized_examples": [
+                                {
+                                    "relative_path": "derivatives/sub-01/beamforming/sub-01-task-verbalWM-LCMVsources.mat",
+                                    "materialized": True,
+                                }
+                            ],
+                        }
+                    }
+                },
+            )
+
+            self.assertEqual(bridge["status"], "materialized_inventory")
+            self.assertEqual(bridge["subjects_with_beamforming_files"], 1)
+            self.assertEqual(bridge["subjects_with_beamforming_pointer"], 0)
+
+    def test_render_audit_report_uses_sample_signal_conclusion_when_payloads_are_ready(self) -> None:
+        manifest = {
+            "created_utc": "20260424T000000000000Z",
+            "dataset_identity": {
+                "name": "ds004752",
+                "dataset_doi": "doi:test",
+                "bids_version": "1.4.0",
+                "dataset_type": "raw",
+                "license": "CC0",
+            },
+            "events_audit": {
+                "eeg_trials_total": 2,
+                "ieeg_trials_total": 2,
+                "sessions_with_mismatched_trial_counts": 0,
+                "core_field_mismatch_count": 0,
+                "artifact_trials_total_from_eeg_events": 0,
+                "correct_trials_total_from_eeg_events": 2,
+            },
+            "payload_state": {
+                "edf": {"count": 2, "pointer_like_count": 0},
+                "mat": {"count": 1, "pointer_like_count": 0},
+            },
+            "subjects": {"n_subjects": 2, "n_sessions": 11},
+            "sidecar_audit": {
+                "channel_sampling_frequency_counts": {"200": 1},
+                "channel_type_counts": {"EEG": 1},
+                "electrode_rows": 1,
+                "electrodes_with_no_label_found": 0,
+            },
+            "signal_audit": {
+                "status": "ok",
+                "sessions_checked": 11,
+                "mat_files_checked": 2,
+                "subject_filter": ["sub-01", "sub-02"],
+                "session_filter": [],
+                "candidate_sessions": 11,
+                "candidate_mat_files": 2,
+            },
+            "materialization": {"status": "complete"},
+            "gate0_blockers": ["cohort_lock_is_draft_until_signal_level_audit"],
+        }
+
+        report = _render_audit_report(manifest)
+
+        self.assertIn("EDF/MAT payloads are materialized", report)
+        self.assertIn("remains draft until signal-level audit covers the full cohort", report)
+        self.assertNotIn("until EDF/MAT payloads are materialized", report)
 
 
 def _write_minimal_dataset(root: Path) -> None:

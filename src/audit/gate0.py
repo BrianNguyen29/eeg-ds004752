@@ -103,10 +103,8 @@ def run_gate0_audit(
         "sidecar_audit": sidecar_audit,
         "signal_audit": signal_audit,
         "derivatives": {
-            "bridge_availability_status": "pointer_level_only"
-            if payload_state["mat"]["pointer_like_count"]
-            else "materialized_or_unknown",
-            "beamforming_subjects_with_files": bridge_availability["subjects_with_beamforming_pointer"],
+            "bridge_availability_status": bridge_availability["status"],
+            "beamforming_subjects_with_files": bridge_availability["subjects_with_beamforming_files"],
         },
         "gate0_blockers": _gate0_blockers(payload_state, events_audit, signal_audit),
     }
@@ -315,9 +313,20 @@ def _bridge_availability(dataset_root: Path, materialization_report: dict[str, A
                 ) if mat_files else False,
             }
         )
+    subjects_with_beamforming_files = sum(1 for row in rows if row["n_beamforming_files"] > 0)
+    subjects_with_beamforming_pointer = sum(1 for row in rows if row["all_files_pointer_like"])
+    if not subjects_with_beamforming_files:
+        status = "no_beamforming_inventory"
+    elif subjects_with_beamforming_pointer == subjects_with_beamforming_files:
+        status = "pointer_level_inventory"
+    elif subjects_with_beamforming_pointer == 0:
+        status = "materialized_inventory"
+    else:
+        status = "mixed_inventory"
     return {
-        "status": "pointer_level_inventory",
-        "subjects_with_beamforming_pointer": sum(1 for row in rows if row["n_beamforming_files"] > 0),
+        "status": status,
+        "subjects_with_beamforming_files": subjects_with_beamforming_files,
+        "subjects_with_beamforming_pointer": subjects_with_beamforming_pointer,
         "subjects": rows,
     }
 
@@ -486,6 +495,7 @@ def _render_audit_report(manifest: dict[str, Any]) -> str:
     signal = manifest["signal_audit"]
     materialization = manifest["materialization"]
     blockers = "\n".join(f"- {item}" for item in manifest["gate0_blockers"])
+    conclusion = _render_conclusion(manifest)
     return f"""# Gate 0 audit report
 
 Created UTC: {manifest["created_utc"]}
@@ -534,9 +544,35 @@ Created UTC: {manifest["created_utc"]}
 
 ## Conclusion
 
-Metadata-level Gate 0 audit is complete. Primary cohort lock and
-signal-level freeze remain blocked until EDF/MAT payloads are materialized.
+{conclusion}
 """
+
+
+def _render_conclusion(manifest: dict[str, Any]) -> str:
+    payload = manifest["payload_state"]
+    events = manifest["events_audit"]
+    signal = manifest["signal_audit"]
+    if _gate0_ready(payload, events, signal):
+        return (
+            "Signal-level Gate 0 audit is complete. Payloads are materialized and the "
+            "primary cohort lock is ready."
+        )
+    if _payloads_materialized(payload):
+        if signal.get("status") == "ok":
+            return (
+                "Metadata-level Gate 0 audit is complete. EDF/MAT payloads are "
+                "materialized and sampled signal-level audit passed, but the primary "
+                "cohort lock remains draft until signal-level audit covers the full cohort."
+            )
+        return (
+            "Metadata-level Gate 0 audit is complete. EDF/MAT payloads are "
+            "materialized, but the primary cohort lock remains draft until signal-level "
+            "audit is completed."
+        )
+    return (
+        "Metadata-level Gate 0 audit is complete. Primary cohort lock and "
+        "signal-level freeze remain blocked until EDF/MAT payloads are materialized."
+    )
 
 
 def _render_override_log(timestamp: str) -> str:
