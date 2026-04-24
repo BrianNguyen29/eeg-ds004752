@@ -275,12 +275,9 @@ Buoc tiep theo tot nhat trong repo hien tai:
 Lenh du kien:
 
 ```bash
-python -m src.cli v56-scaffold \
-  --gate0-run artifacts/gate0/20260424T100159866284Z \
-  --benchmark-spec configs/v56/benchmark_spec.json \
-  --splits configs/v56/splits.json \
-  --controls configs/v56/controls.json \
-  --comparators configs/v56/comparators.json
+bash bootstrap/run_v56_tranche2_scaffold.sh \
+  /content/drive/MyDrive/eeg-ds004752/artifacts/gate0/20260424T100159866284Z \
+  /content/drive/MyDrive/eeg-ds004752/artifacts
 ```
 
 Ket qua can review:

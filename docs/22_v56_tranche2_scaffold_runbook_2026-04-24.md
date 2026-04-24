@@ -52,6 +52,15 @@ Tranche 2 scaffold khong duoc:
 
 ## 3. Lenh Chay
 
+Khuyen nghi tren Colab/Drive: dung script da dong goi de artifact duoc ghi
+vao Drive thay vi runtime tam:
+
+```bash
+bash bootstrap/run_v56_tranche2_scaffold.sh \
+  /content/drive/MyDrive/eeg-ds004752/artifacts/gate0/20260424T100159866284Z \
+  /content/drive/MyDrive/eeg-ds004752/artifacts
+```
+
 Tu repo root:
 
 ```bash
@@ -60,7 +69,8 @@ python -m src.cli v56-scaffold \
   --benchmark-spec configs/v56/benchmark_spec.json \
   --splits configs/v56/splits.json \
   --controls configs/v56/controls.json \
-  --comparators configs/v56/comparators.json
+  --comparators configs/v56/comparators.json \
+  --output-root artifacts
 ```
 
 Neu chay tren Colab, dung Gate 0 path tren Drive:
@@ -71,7 +81,8 @@ python -m src.cli v56-scaffold \
   --benchmark-spec configs/v56/benchmark_spec.json \
   --splits configs/v56/splits.json \
   --controls configs/v56/controls.json \
-  --comparators configs/v56/comparators.json
+  --comparators configs/v56/comparators.json \
+  --output-root /content/drive/MyDrive/eeg-ds004752/artifacts
 ```
 
 ## 4. Expected Outputs

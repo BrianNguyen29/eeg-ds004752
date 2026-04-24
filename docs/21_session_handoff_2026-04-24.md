@@ -255,6 +255,7 @@ This step has been implemented:
 
 - `src/v56/runner.py`
 - CLI command `v56-scaffold`
+- `bootstrap/run_v56_tranche2_scaffold.sh`
 - `tests/unit/test_v56_cli.py`
 
 The command remains scaffold-only. It writes V5.6 benchmark/control artifacts
@@ -282,16 +283,14 @@ Implementation contract:
 Suggested CLI shape:
 
 ```bash
-python -m src.cli v56-scaffold \
-  --gate0-run artifacts/gate0/20260424T100159866284Z \
-  --benchmark-spec configs/v56/benchmark_spec.json \
-  --splits configs/v56/splits.json \
-  --controls configs/v56/controls.json \
-  --comparators configs/v56/comparators.json
+bash bootstrap/run_v56_tranche2_scaffold.sh \
+  /content/drive/MyDrive/eeg-ds004752/artifacts/gate0/20260424T100159866284Z \
+  /content/drive/MyDrive/eeg-ds004752/artifacts
 ```
 
 Expected implementation files for next step:
 
+- `bootstrap/run_v56_tranche2_scaffold.sh`
 - `src/cli.py`
 - `src/v56/runner.py`
 - `tests/unit/test_v56_cli.py`
