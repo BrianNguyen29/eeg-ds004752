@@ -7,13 +7,16 @@ continuing the next implementation session.
 ## Executive State
 
 - Current branch: `main`
-- Current pushed head at handoff: `5561fdd Add V5.6 scaffold artifact writers`
+- Most recent implementation commit before this doc-only update:
+  `37e87a9 Organize V5 docs and update Gate 0 Colab`
+- Last known pushed head before local follow-up commits:
+  `06a2f40 Add session handoff note`
 - Scientific state:
   - V5.5 remains `fail-closed` and `claim-closed`.
   - V5.5 does not support decoder efficacy, A3/A4 efficacy, A4 superiority, or iEEG-assisted superiority claims.
   - V5.6 has moved to a benchmark-first and control-first direction.
   - V5.6 Gate 0 has reached full-cohort `signal_audit_ready`.
-  - V5.6 Tranche 2 scaffold and artifact writers are implemented.
+  - V5.6 Tranche 2 scaffold, artifact writers, and scaffold-only CLI are implemented.
   - No V5.6 model training, comparator execution, or efficacy claim has been implemented.
 
 ## V5.5 Locked Historical Record
@@ -36,17 +39,15 @@ Locked interpretation:
 
 Primary V5.5 documentation chain:
 
-- `docs/06_bao_cao_tien_do_ket_qua_va_claim_boundary_2026-04-24.md`
-- `docs/07_phase1_controls_technical_conclusion_2026-04-24.md`
-- `docs/08_phase1_negative_finding_report_2026-04-24.md`
-- `docs/10_phase1_consistency_audit_report_2026-04-24.md`
+- `docs/V5.5/06_bao_cao_tien_do_ket_qua_va_claim_boundary_2026-04-24.md`
+- `docs/V5.5/07_phase1_controls_technical_conclusion_2026-04-24.md`
+- `docs/V5.5/08_phase1_negative_finding_report_2026-04-24.md`
+- `docs/V5.5/10_phase1_consistency_audit_report_2026-04-24.md`
 - `docs/17_v55_to_v56_transition_lock_2026-04-24.md`
 - `docs/18_v55_to_v56_transition_lock_manifest_2026-04-24.json`
 
-Important note: these files may currently appear as deleted in the local
-working tree because of unrelated local file movement. They were previously
-committed to `main`. Do not treat those deletions as part of the V5.6 work
-unless explicitly requested.
+Important note: V5.5 historical docs are now archived under `docs/V5.5/`.
+Do not move them back into the docs root unless explicitly requested.
 
 ## V5.6 Direction
 
@@ -68,14 +69,15 @@ Main target:
 
 Primary V5.6 planning docs:
 
-- `docs/11_phase1_prospective_ieeg_assisted_proposal_2026-04-24.md`
+- `docs/V5.5/11_phase1_prospective_ieeg_assisted_proposal_2026-04-24.md`
 - `docs/12_phase1_signal_level_gate0_readiness_2026-04-24.md`
-- `docs/13_phase1_ieeg_assisted_contract_2026-04-24.md`
+- `docs/V5.5/13_phase1_ieeg_assisted_contract_2026-04-24.md`
 - `docs/14_phase1_go_no_go_decision_memo_2026-04-24.md`
 - `docs/15_phase1_signal_readiness_operational_checklist_2026-04-24.md`
 - `docs/16_phase1_prospective_execution_roadmap_2026-04-24.md`
 - `docs/19_v56_repo_mapping_and_execution_roadmap_2026-04-24.md`
 - `docs/20_v56_tranche1_signal_pilot_runbook_2026-04-24.md`
+- `docs/22_v56_tranche2_scaffold_runbook_2026-04-24.md`
 
 ## Gate 0 Full-Cohort Signal Readiness
 
@@ -116,8 +118,11 @@ Interpretation:
 
 ## Relevant Commits
 
-Recent pushed commits:
+Recent local commits:
 
+- `37e87a9 Organize V5 docs and update Gate 0 Colab`
+- `8f2dfb0 Add V5.6 scaffold CLI`
+- `06a2f40 Add session handoff note`
 - `5561fdd Add V5.6 scaffold artifact writers`
 - `4f92fbb Add V5.6 Tranche 2 benchmark scaffold`
 - `596167b Update V5.6 readiness docs after full-cohort Gate 0 pass`
@@ -147,11 +152,13 @@ Source modules added:
 - `src/v56/controls.py`
 - `src/v56/leaderboard.py`
 - `src/v56/artifacts.py`
+- `src/v56/runner.py`
 
 Tests added:
 
 - `tests/unit/test_v56_scaffold.py`
 - `tests/unit/test_v56_artifacts.py`
+- `tests/unit/test_v56_cli.py`
 
 Implemented artifact writers:
 
@@ -209,22 +216,15 @@ Important local note:
 - That notebook edit was not included in commit `5561fdd`.
 - Check `git status --short` before deciding whether to commit the notebook.
 
-## Current Working Tree Caution
+## Current Working Tree State
 
-At handoff, the local working tree had unrelated modifications and deletions.
-Do not stage them unless explicitly requested.
+After commit `37e87a9`, the worktree was cleaned. The branch was ahead of
+`origin/main` by two commits before this documentation update:
 
-Known unrelated local changes included:
+- `8f2dfb0 Add V5.6 scaffold CLI`
+- `37e87a9 Organize V5 docs and update Gate 0 Colab`
 
-- `M bootstrap/get_data_colab.sh`
-- `M notebooks/01_colab_gate0_audit.ipynb`
-- deleted historical docs under `docs/`
-- untracked `docs/V5.5/`
-- untracked `docs/V5.6/`
-- untracked local export directory:
-  - `20260423T170320725358Z-20260423T172013Z-3-001/`
-
-Recommended staging discipline:
+Recommended staging discipline remains:
 
 - Stage exact files only.
 - Avoid `git add .`.
@@ -251,8 +251,7 @@ These rules remain active:
 
 ## Recommended Next Step
 
-This step has now been implemented in the local worktree after the original
-handoff note:
+This step has been implemented:
 
 - `src/v56/runner.py`
 - CLI command `v56-scaffold`
@@ -299,9 +298,12 @@ Expected implementation files for next step:
 
 Do not implement model training or comparator execution in that CLI command.
 
-Next step after this local implementation:
+Next step after this implementation:
 
-1. Review and commit the CLI scaffold-only patch if accepted.
-2. Run the command on the authoritative Gate 0 run.
-3. Review the four generated artifact families before any comparator or model
+1. Run the command on the authoritative Gate 0 run.
+2. Review the four generated artifact families before any comparator or model
    execution is considered.
+3. If scaffold artifacts are consistent, open a separate split/provenance
+   registry lock step.
+4. If scaffold artifacts show missing source links or status drift, fix the
+   scaffold first. Do not proceed to model execution.

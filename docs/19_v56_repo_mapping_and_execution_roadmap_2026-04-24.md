@@ -221,10 +221,12 @@ Muc tieu:
 
 Trang thai:
 
-- **Dang trien khai**
-- Da co config scaffold, module scaffold, artifact writers va CLI scaffold-only
-  trong worktree.
+- **Da co scaffold implementation**
+- Da co config scaffold, module scaffold, artifact writers va CLI scaffold-only.
 - Chua co model training, comparator execution hay efficacy metric.
+- Buoc tiep theo la chay CLI scaffold-only tren Gate 0 run
+  `20260424T100159866284Z`, review bon artifact family, roi moi quyet dinh
+  co khoa split/provenance registry hay khong.
 
 ### Tranche 3 - Baseline leaderboard
 
@@ -267,7 +269,33 @@ Buoc tiep theo tot nhat trong repo hien tai:
 
 1. **khong quay lai materialization pilot**
 2. **khong mo efficacy claim**
-3. **mo Tranche 2 - benchmark/control-first**
+3. **chay Tranche 2 scaffold artifact generation**
+4. **review artifacts truoc khi them comparator/model execution**
+
+Lenh du kien:
+
+```bash
+python -m src.cli v56-scaffold \
+  --gate0-run artifacts/gate0/20260424T100159866284Z \
+  --benchmark-spec configs/v56/benchmark_spec.json \
+  --splits configs/v56/splits.json \
+  --controls configs/v56/controls.json \
+  --comparators configs/v56/comparators.json
+```
+
+Ket qua can review:
+
+- `artifacts/v56_split_registry/latest.txt`
+- `artifacts/v56_feature_provenance/latest.txt`
+- `artifacts/v56_control_registry/latest.txt`
+- `artifacts/v56_leaderboard/latest.txt`
+
+Decision gate sau review:
+
+- neu 4 artifact dung contract va claim-closed: chuyen sang khoa
+  split/provenance registry;
+- neu artifact thieu source/link/status: sua scaffold, khong chay model;
+- khong mo Tranche 3 neu chua co review artifact scaffold.
 
 ## 7. One-line Mapping Decision
 
