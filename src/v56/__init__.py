@@ -8,6 +8,7 @@ from .artifacts import V56ArtifactWriterError
 from .benchmark import V56BenchmarkError, V56ReadinessError
 from .controls import V56ControlPolicyError
 from .leaderboard import V56LeaderboardError
+from .runner import V56ScaffoldRunError
 from .splits import V56SplitPolicyError
 
 __all__ = [
@@ -16,5 +17,6 @@ __all__ = [
     "V56ControlPolicyError",
     "V56LeaderboardError",
     "V56ReadinessError",
+    "V56ScaffoldRunError",
     "V56SplitPolicyError",
 ]

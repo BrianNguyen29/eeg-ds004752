@@ -133,7 +133,7 @@ Hanh dong tiep:
 
 Run closeout da dat:
 
-- Gate 0 run: `20260424T092923202761Z`
+- Gate 0 run: `20260424T100159866284Z`
 - `manifest_status = signal_audit_ready`
 - `primary_eligibility_status = signal_audit_ready`
 - `cohort_lock_status = signal_audit_ready`

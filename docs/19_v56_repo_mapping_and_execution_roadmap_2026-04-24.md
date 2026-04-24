@@ -8,7 +8,7 @@ tranche, dua tren:
 - `docs/17_v55_to_v56_transition_lock_2026-04-24.md`
 - `docs/18_v55_to_v56_transition_lock_manifest_2026-04-24.json`
 - bo tai lieu `docs/V5.6/`
-- Gate 0 run `artifacts/gate0/20260424T092923202761Z`
+- Gate 0 run `artifacts/gate0/20260424T100159866284Z`
 
 Tai lieu nay docs-only. No khong doi record V5.5 va khong mo efficacy claim.
 
@@ -195,7 +195,7 @@ Muc tieu:
 
 Trang thai:
 
-- **Da xong** voi run `20260424T092923202761Z`
+- **Da xong** voi run `20260424T100159866284Z`
 
 ### Tranche 2 - Benchmark skeleton
 
@@ -221,7 +221,10 @@ Muc tieu:
 
 Trang thai:
 
-- **Next active tranche**
+- **Dang trien khai**
+- Da co config scaffold, module scaffold, artifact writers va CLI scaffold-only
+  trong worktree.
+- Chua co model training, comparator execution hay efficacy metric.
 
 ### Tranche 3 - Baseline leaderboard
 

@@ -92,6 +92,12 @@ from .phase05.observability import Phase05Error, run_phase05_observability
 from .prereg.bundle import PreregError, run_prereg_assembly
 from .simulation.decision import Gate1Error, run_gate1_decision
 from .synthetic.gate2 import Gate2Error, run_gate2_synthetic_validation
+from .v56.artifacts import V56ArtifactWriterError
+from .v56.benchmark import V56BenchmarkError, V56ReadinessError
+from .v56.controls import V56ControlPolicyError
+from .v56.leaderboard import V56LeaderboardError
+from .v56.runner import V56ScaffoldRunError, run_v56_scaffold
+from .v56.splits import V56SplitPolicyError
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -723,6 +729,18 @@ def build_parser() -> argparse.ArgumentParser:
     report = subparsers.add_parser("report_compile", help="Compile available artefact summary")
     report.add_argument("--profile", default="t4_safe")
     report.add_argument("--run", required=True)
+
+    v56_scaffold = subparsers.add_parser(
+        "v56-scaffold",
+        help="Write V5.6 scaffold artifacts after signal-ready Gate 0 without running models",
+    )
+    v56_scaffold.add_argument("--profile", default="t4_safe")
+    v56_scaffold.add_argument("--gate0-run", required=True)
+    v56_scaffold.add_argument("--benchmark-spec", default="configs/v56/benchmark_spec.json")
+    v56_scaffold.add_argument("--splits", default="configs/v56/splits.json")
+    v56_scaffold.add_argument("--controls", default="configs/v56/controls.json")
+    v56_scaffold.add_argument("--comparators", default="configs/v56/comparators.json")
+    v56_scaffold.add_argument("--output-root")
 
     return parser
 
@@ -1475,6 +1493,24 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Files discovered: {len(files)}")
             return 0
 
+        if args.command == "v56-scaffold":
+            result = run_v56_scaffold(
+                gate0_run=args.gate0_run,
+                benchmark_spec=args.benchmark_spec,
+                splits=args.splits,
+                controls=args.controls,
+                comparators=args.comparators,
+                output_root=args.output_root,
+                repo_root=Path.cwd(),
+            )
+            print(f"V5.6 scaffold artifacts complete from Gate 0: {result.gate0_run}")
+            for name, output_dir in result.output_dirs.items():
+                print(f"{name}: {output_dir}")
+            print("Claim state: closed")
+            print("Model training: not run")
+            print("Efficacy metrics: not computed")
+            return 0
+
     except (
         FileNotFoundError,
         ValueError,
@@ -1517,6 +1553,13 @@ def main(argv: list[str] | None = None) -> int:
         Phase1FinalFeatureMatrixError,
         Phase1FinalLeakageAuditError,
         Phase1FinalSplitManifestError,
+        V56ArtifactWriterError,
+        V56BenchmarkError,
+        V56ControlPolicyError,
+        V56LeaderboardError,
+        V56ReadinessError,
+        V56ScaffoldRunError,
+        V56SplitPolicyError,
     ) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2

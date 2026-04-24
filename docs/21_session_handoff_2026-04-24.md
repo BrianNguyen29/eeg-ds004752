@@ -251,23 +251,33 @@ These rules remain active:
 
 ## Recommended Next Step
 
-Next implementation step:
+This step has now been implemented in the local worktree after the original
+handoff note:
 
-1. Add a minimal CLI command for Tranche 2 scaffold artifact generation.
-2. The command should be scaffold-only and should not run models.
-3. Inputs should include:
+- `src/v56/runner.py`
+- CLI command `v56-scaffold`
+- `tests/unit/test_v56_cli.py`
+
+The command remains scaffold-only. It writes V5.6 benchmark/control artifacts
+from a signal-ready Gate 0 run and does not train models or compute efficacy
+metrics.
+
+Implementation contract:
+
+1. The command is scaffold-only and must not run models.
+2. Inputs should include:
    - Gate 0 run directory
    - `configs/v56/benchmark_spec.json`
    - `configs/v56/splits.json`
    - `configs/v56/controls.json`
    - `configs/v56/comparators.json`
-4. Outputs should be only:
+3. Outputs should be only:
    - `v56_split_registry`
    - `v56_feature_provenance`
    - `v56_control_registry`
    - `v56_leaderboard`
-5. The command should fail if Gate 0 is not `signal_audit_ready`.
-6. The command should keep claim state closed and report that no efficacy metric
+4. The command should fail if Gate 0 is not `signal_audit_ready`.
+5. The command should keep claim state closed and report that no efficacy metric
    was computed.
 
 Suggested CLI shape:
@@ -284,8 +294,14 @@ python -m src.cli v56-scaffold \
 Expected implementation files for next step:
 
 - `src/cli.py`
-- possibly `src/v56/runner.py`
-- `tests/unit/test_cli.py` or a new focused `tests/unit/test_v56_cli.py`
+- `src/v56/runner.py`
+- `tests/unit/test_v56_cli.py`
 
 Do not implement model training or comparator execution in that CLI command.
 
+Next step after this local implementation:
+
+1. Review and commit the CLI scaffold-only patch if accepted.
+2. Run the command on the authoritative Gate 0 run.
+3. Review the four generated artifact families before any comparator or model
+   execution is considered.
