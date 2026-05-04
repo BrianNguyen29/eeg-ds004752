@@ -1,0 +1,54 @@
+{
+  "audit_plan_id": "v56_feature_matrix_leakage_audit_plan_v1",
+  "status": "planner_non_claim",
+  "claim_scope": "feature_matrix_leakage_audit_planning_only",
+  "scientific_integrity_rule": "This plan defines leakage-audit requirements before V5.6 feature matrix materialization or comparator execution. It does not materialize feature values, train models, run comparators, compute metrics, inspect runtime logs, or open efficacy claims.",
+  "required_upstream": {
+    "gate0_manifest_status": "signal_audit_ready",
+    "cohort_lock_status": "signal_audit_ready",
+    "split_registry_lock_status": "locked_subject_level_split_registry",
+    "feature_provenance_status": "populated_source_hashes_and_split_links",
+    "feature_matrix_plan_status": "planned_feature_matrix_contract_recorded",
+    "feature_matrix_plan_validation_status": "v56_feature_matrix_plan_validation_passed"
+  },
+  "fit_scope_policy": {
+    "normalization_fit_scope": "training_subjects_only_per_fold",
+    "alignment_fit_scope": "training_subjects_only_per_fold",
+    "privileged_source_fit_scope": "training_subjects_only_per_fold",
+    "teacher_fit_scope": "training_subjects_only_per_fold",
+    "calibration_fit_scope": "training_or_nested_training_only",
+    "outer_test_subject_in_any_fit_allowed": false,
+    "test_time_inference_policy": "scalp_eeg_only",
+    "test_time_ieeg_allowed": false,
+    "test_time_beamforming_bridge_allowed": false
+  },
+  "planned_audit_checks": [
+    "verify_split_registry_lock_link",
+    "verify_feature_provenance_link",
+    "verify_feature_matrix_plan_link",
+    "verify_subject_isolation_per_fold",
+    "verify_no_outer_test_subject_in_fit_scopes",
+    "verify_test_time_scalp_only_inputs",
+    "verify_privileged_sources_train_time_only",
+    "verify_no_feature_values_in_plan_artifact",
+    "verify_no_model_outputs_or_metrics_in_plan_artifact",
+    "defer_runtime_comparator_log_audit_until_comparator_execution_exists"
+  ],
+  "artifact_boundary": {
+    "manifest_level_audit_plan": true,
+    "runtime_comparator_logs_audited": false,
+    "feature_matrix_materialized": false,
+    "contains_feature_values": false,
+    "contains_model_outputs": false,
+    "contains_metrics": false,
+    "standalone_claim_ready": false
+  },
+  "claim_blockers_after_success": [
+    "feature_matrix_not_materialized",
+    "runtime_comparator_logs_not_available",
+    "baseline_comparator_outputs_missing",
+    "control_execution_missing",
+    "statistics_missing",
+    "claim_blocked_until_audited_comparators_controls_statistics_exist"
+  ]
+}

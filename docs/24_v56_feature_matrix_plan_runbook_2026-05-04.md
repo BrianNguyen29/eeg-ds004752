@@ -131,16 +131,23 @@ Neu feature matrix plan fail:
 
 ## 7. Next Recommendation
 
-Sau Tranche 2.2 pass, buoc code tiep theo nen la:
+Sau Tranche 2.2 pass, buoc code tiep theo la Tranche 2.3 theo
+`docs/25_v56_feature_matrix_leakage_audit_plan_runbook_2026-05-04.md`:
 
-1. `v56_feature_matrix_materializer_plan_or_skeleton`
-   - bat dau bang scalp EEG feature values;
-   - khong train model;
-   - khong dung privileged sources tai test-time.
-
-2. `v56_feature_matrix_leakage_audit`
+1. `v56_feature_matrix_leakage_audit_plan`
    - verify split-lock link;
    - verify train/test fit-scope policy;
    - verify no privileged test-time inputs.
 
 Chua nen chay RIFT-Net Lite/A4 cho den khi feature matrix va leakage audit pass.
+
+Lenh Tranche 2.3 khuyen nghi:
+
+```bash
+bash bootstrap/run_v56_feature_matrix_leakage_plan.sh \
+  /content/drive/MyDrive/eeg-ds004752/artifacts/gate0/20260424T100159866284Z \
+  /content/drive/MyDrive/eeg-ds004752/artifacts/v56_split_registry_lock/latest.txt \
+  /content/drive/MyDrive/eeg-ds004752/artifacts/v56_feature_provenance_populated/latest.txt \
+  /content/drive/MyDrive/eeg-ds004752/artifacts/v56_feature_matrix_plan/latest.txt \
+  /content/drive/MyDrive/eeg-ds004752/artifacts/v56_feature_matrix_leakage_audit_plan
+```

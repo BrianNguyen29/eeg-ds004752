@@ -95,6 +95,10 @@ from .synthetic.gate2 import Gate2Error, run_gate2_synthetic_validation
 from .v56.artifacts import V56ArtifactWriterError
 from .v56.benchmark import V56BenchmarkError, V56ReadinessError
 from .v56.controls import V56ControlPolicyError
+from .v56.feature_matrix_leakage_audit_plan import (
+    V56FeatureMatrixLeakageAuditPlanError,
+    run_v56_feature_matrix_leakage_audit_plan,
+)
 from .v56.feature_matrix_plan import V56FeatureMatrixPlanError, run_v56_feature_matrix_plan
 from .v56.leaderboard import V56LeaderboardError
 from .v56.runner import V56ScaffoldRunError, run_v56_scaffold
@@ -770,6 +774,25 @@ def build_parser() -> argparse.ArgumentParser:
         default="configs/v56/feature_matrix_plan.json",
     )
     v56_feature_matrix_plan.add_argument("--output-root", default="artifacts/v56_feature_matrix_plan")
+
+    v56_feature_matrix_leakage = subparsers.add_parser(
+        "v56-feature-matrix-leakage-plan",
+        help="Record V5.6 feature-matrix leakage-audit plan without materializing features or running models",
+    )
+    v56_feature_matrix_leakage.add_argument("--profile", default="t4_safe")
+    v56_feature_matrix_leakage.add_argument("--gate0-run", required=True)
+    v56_feature_matrix_leakage.add_argument("--split-registry-lock-run", required=True)
+    v56_feature_matrix_leakage.add_argument("--feature-provenance-run", required=True)
+    v56_feature_matrix_leakage.add_argument("--feature-matrix-plan-run", required=True)
+    v56_feature_matrix_leakage.add_argument("--benchmark-spec", default="configs/v56/benchmark_spec.json")
+    v56_feature_matrix_leakage.add_argument(
+        "--leakage-audit-plan-config",
+        default="configs/v56/feature_matrix_leakage_audit_plan.json",
+    )
+    v56_feature_matrix_leakage.add_argument(
+        "--output-root",
+        default="artifacts/v56_feature_matrix_leakage_audit_plan",
+    )
 
     return parser
 
@@ -1576,6 +1599,26 @@ def main(argv: list[str] | None = None) -> int:
             print("Efficacy metrics: not computed")
             return 0
 
+        if args.command == "v56-feature-matrix-leakage-plan":
+            result = run_v56_feature_matrix_leakage_audit_plan(
+                gate0_run=args.gate0_run,
+                split_registry_lock_run=args.split_registry_lock_run,
+                feature_provenance_run=args.feature_provenance_run,
+                feature_matrix_plan_run=args.feature_matrix_plan_run,
+                benchmark_spec=args.benchmark_spec,
+                leakage_audit_plan_config=args.leakage_audit_plan_config,
+                output_root=args.output_root,
+                repo_root=Path.cwd(),
+            )
+            print(f"V5.6 feature-matrix leakage-audit plan recorded: {result.output_dir}")
+            print(f"Plan: {result.plan_path}")
+            print("Claim state: closed")
+            print("Feature matrix materialization: not run")
+            print("Runtime comparator log audit: not run")
+            print("Model training: not run")
+            print("Efficacy metrics: not computed")
+            return 0
+
     except (
         FileNotFoundError,
         ValueError,
@@ -1621,6 +1664,7 @@ def main(argv: list[str] | None = None) -> int:
         V56ArtifactWriterError,
         V56BenchmarkError,
         V56ControlPolicyError,
+        V56FeatureMatrixLeakageAuditPlanError,
         V56FeatureMatrixPlanError,
         V56LeaderboardError,
         V56ReadinessError,

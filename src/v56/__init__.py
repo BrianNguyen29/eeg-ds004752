@@ -7,6 +7,7 @@ It does not implement training, model selection, or efficacy claims.
 from .artifacts import V56ArtifactWriterError
 from .benchmark import V56BenchmarkError, V56ReadinessError
 from .controls import V56ControlPolicyError
+from .feature_matrix_leakage_audit_plan import V56FeatureMatrixLeakageAuditPlanError
 from .feature_matrix_plan import V56FeatureMatrixPlanError
 from .leaderboard import V56LeaderboardError
 from .runner import V56ScaffoldRunError
@@ -17,6 +18,7 @@ __all__ = [
     "V56ArtifactWriterError",
     "V56BenchmarkError",
     "V56ControlPolicyError",
+    "V56FeatureMatrixLeakageAuditPlanError",
     "V56FeatureMatrixPlanError",
     "V56LeaderboardError",
     "V56ReadinessError",
