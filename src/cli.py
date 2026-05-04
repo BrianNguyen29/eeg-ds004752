@@ -99,6 +99,10 @@ from .v56.feature_matrix_leakage_audit_plan import (
     V56FeatureMatrixLeakageAuditPlanError,
     run_v56_feature_matrix_leakage_audit_plan,
 )
+from .v56.feature_matrix_materializer_skeleton import (
+    V56FeatureMatrixMaterializerSkeletonError,
+    run_v56_feature_matrix_materializer_skeleton,
+)
 from .v56.feature_matrix_plan import V56FeatureMatrixPlanError, run_v56_feature_matrix_plan
 from .v56.leaderboard import V56LeaderboardError
 from .v56.runner import V56ScaffoldRunError, run_v56_scaffold
@@ -792,6 +796,26 @@ def build_parser() -> argparse.ArgumentParser:
     v56_feature_matrix_leakage.add_argument(
         "--output-root",
         default="artifacts/v56_feature_matrix_leakage_audit_plan",
+    )
+
+    v56_feature_matrix_skeleton = subparsers.add_parser(
+        "v56-feature-matrix-materializer-skeleton",
+        help="Record V5.6 feature-matrix materializer skeleton without reading EDFs or writing feature values",
+    )
+    v56_feature_matrix_skeleton.add_argument("--profile", default="t4_safe")
+    v56_feature_matrix_skeleton.add_argument("--gate0-run", required=True)
+    v56_feature_matrix_skeleton.add_argument("--split-registry-lock-run", required=True)
+    v56_feature_matrix_skeleton.add_argument("--feature-provenance-run", required=True)
+    v56_feature_matrix_skeleton.add_argument("--feature-matrix-plan-run", required=True)
+    v56_feature_matrix_skeleton.add_argument("--leakage-audit-plan-run", required=True)
+    v56_feature_matrix_skeleton.add_argument("--benchmark-spec", default="configs/v56/benchmark_spec.json")
+    v56_feature_matrix_skeleton.add_argument(
+        "--materializer-skeleton-config",
+        default="configs/v56/feature_matrix_materializer_skeleton.json",
+    )
+    v56_feature_matrix_skeleton.add_argument(
+        "--output-root",
+        default="artifacts/v56_feature_matrix_materializer_skeleton",
     )
 
     return parser
@@ -1619,6 +1643,27 @@ def main(argv: list[str] | None = None) -> int:
             print("Efficacy metrics: not computed")
             return 0
 
+        if args.command == "v56-feature-matrix-materializer-skeleton":
+            result = run_v56_feature_matrix_materializer_skeleton(
+                gate0_run=args.gate0_run,
+                split_registry_lock_run=args.split_registry_lock_run,
+                feature_provenance_run=args.feature_provenance_run,
+                feature_matrix_plan_run=args.feature_matrix_plan_run,
+                leakage_audit_plan_run=args.leakage_audit_plan_run,
+                benchmark_spec=args.benchmark_spec,
+                materializer_skeleton_config=args.materializer_skeleton_config,
+                output_root=args.output_root,
+                repo_root=Path.cwd(),
+            )
+            print(f"V5.6 feature-matrix materializer skeleton recorded: {result.output_dir}")
+            print(f"Skeleton: {result.skeleton_path}")
+            print("Claim state: closed")
+            print("EDF payload read: not run")
+            print("Feature matrix materialization: not run")
+            print("Model training: not run")
+            print("Efficacy metrics: not computed")
+            return 0
+
     except (
         FileNotFoundError,
         ValueError,
@@ -1665,6 +1710,7 @@ def main(argv: list[str] | None = None) -> int:
         V56BenchmarkError,
         V56ControlPolicyError,
         V56FeatureMatrixLeakageAuditPlanError,
+        V56FeatureMatrixMaterializerSkeletonError,
         V56FeatureMatrixPlanError,
         V56LeaderboardError,
         V56ReadinessError,

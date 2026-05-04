@@ -230,6 +230,8 @@ Trang thai:
   split lock/provenance pass, van khong materialize feature values.
 - Da bo sung Tranche 2.3 implementation de record feature-matrix leakage-audit
   plan truoc khi materialize feature values hoac chay comparator.
+- Da bo sung Tranche 2.4 implementation de record feature-matrix materializer
+  skeleton, van chua doc EDF hoac write feature values.
 - Buoc tiep theo van la review artifact theo tung tranche; khong chuyen sang
   comparator/model execution neu split lock va feature provenance chua pass.
 
@@ -270,34 +272,35 @@ Extensions:
 
 ## 6. De xuat buoc tiep theo
 
-Buoc tiep theo tot nhat trong repo hien tai sau feature matrix plan:
+Buoc tiep theo tot nhat trong repo hien tai sau leakage-audit plan:
 
 1. **khong quay lai materialization pilot**
 2. **khong mo efficacy claim**
-3. **chay Tranche 2.3 feature matrix leakage-audit plan**
-4. **review leakage plan artifact truoc khi them feature matrix materializer/comparator/model execution**
+3. **chay Tranche 2.4 feature matrix materializer skeleton**
+4. **review skeleton artifact truoc khi implement real materializer/comparator/model execution**
 
 Lenh du kien:
 
 ```bash
-bash bootstrap/run_v56_feature_matrix_leakage_plan.sh \
+bash bootstrap/run_v56_feature_matrix_materializer_skeleton.sh \
   /content/drive/MyDrive/eeg-ds004752/artifacts/gate0/20260424T100159866284Z \
   /content/drive/MyDrive/eeg-ds004752/artifacts/v56_split_registry_lock/latest.txt \
   /content/drive/MyDrive/eeg-ds004752/artifacts/v56_feature_provenance_populated/latest.txt \
   /content/drive/MyDrive/eeg-ds004752/artifacts/v56_feature_matrix_plan/latest.txt \
-  /content/drive/MyDrive/eeg-ds004752/artifacts/v56_feature_matrix_leakage_audit_plan
+  /content/drive/MyDrive/eeg-ds004752/artifacts/v56_feature_matrix_leakage_audit_plan/latest.txt \
+  /content/drive/MyDrive/eeg-ds004752/artifacts/v56_feature_matrix_materializer_skeleton
 ```
 
 Ket qua can review:
 
-- `artifacts/v56_feature_matrix_leakage_audit_plan/latest.txt`
+- `artifacts/v56_feature_matrix_materializer_skeleton/latest.txt`
 
 Decision gate sau review:
 
-- neu leakage-audit plan dung contract va claim-closed:
-  chuyen sang feature matrix materializer skeleton;
+- neu materializer skeleton dung contract va claim-closed:
+  chuyen sang real scalp feature matrix materializer;
 - neu artifact thieu source/link/status: sua scaffold, khong chay model;
-- khong mo Tranche 3 neu chua co review leakage-audit plan.
+- khong mo Tranche 3 neu chua co review materializer skeleton.
 
 ## 7. One-line Mapping Decision
 

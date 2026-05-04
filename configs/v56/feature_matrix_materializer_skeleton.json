@@ -1,0 +1,63 @@
+{
+  "skeleton_id": "v56_feature_matrix_materializer_skeleton_v1",
+  "status": "skeleton_non_claim",
+  "claim_scope": "feature_matrix_materializer_skeleton_only",
+  "scientific_integrity_rule": "This skeleton records the allowed V5.6 feature-matrix materializer contract after leakage-audit planning. It does not read EDF payloads, materialize feature values, train models, run comparators, compute metrics, or open efficacy claims.",
+  "required_upstream": {
+    "gate0_manifest_status": "signal_audit_ready",
+    "cohort_lock_status": "signal_audit_ready",
+    "split_registry_lock_status": "locked_subject_level_split_registry",
+    "feature_provenance_status": "populated_source_hashes_and_split_links",
+    "feature_matrix_plan_status": "planned_feature_matrix_contract_recorded",
+    "feature_matrix_plan_validation_status": "v56_feature_matrix_plan_validation_passed",
+    "leakage_audit_plan_status": "planned_feature_matrix_leakage_audit_recorded",
+    "leakage_audit_plan_validation_status": "v56_feature_matrix_leakage_audit_plan_validation_passed"
+  },
+  "materializer_contract": {
+    "first_materialization_scope": "scalp_eeg_feature_values_only",
+    "read_edf_payloads_now": false,
+    "write_feature_values_now": false,
+    "write_row_provenance_now": false,
+    "allowed_source_modality_at_test_time": "scalp_eeg",
+    "forbidden_test_time_sources": ["ieeg", "beamforming_bridge", "teacher_outputs", "privileged_latents"],
+    "normalization_fit_scope": "training_subjects_only_per_fold",
+    "alignment_fit_scope": "training_subjects_only_per_fold",
+    "privileged_source_fit_scope": "training_subjects_only_per_fold",
+    "future_output_files": [
+      "v56_feature_matrix.csv",
+      "v56_feature_matrix_schema.json",
+      "v56_feature_row_index.json",
+      "v56_feature_matrix_validation.json",
+      "v56_feature_matrix_source_links.json",
+      "v56_feature_matrix_claim_state.json"
+    ]
+  },
+  "planned_validation_rules": {
+    "row_count_must_match_events_after_filters": true,
+    "subject_ids_must_match_split_lock": true,
+    "fold_ids_must_match_split_lock": true,
+    "feature_columns_must_match_feature_matrix_plan": true,
+    "all_feature_values_must_be_finite": true,
+    "no_model_outputs_or_logits_allowed": true,
+    "no_metrics_allowed": true,
+    "no_privileged_test_time_inputs_allowed": true
+  },
+  "artifact_boundary": {
+    "materializer_skeleton": true,
+    "feature_matrix_materialized": false,
+    "contains_feature_values": false,
+    "contains_model_outputs": false,
+    "contains_logits": false,
+    "contains_metrics": false,
+    "standalone_claim_ready": false
+  },
+  "claim_blockers_after_success": [
+    "feature_matrix_not_materialized",
+    "feature_matrix_validation_missing",
+    "runtime_comparator_logs_not_available",
+    "baseline_comparator_outputs_missing",
+    "control_execution_missing",
+    "statistics_missing",
+    "claim_blocked_until_audited_comparators_controls_statistics_exist"
+  ]
+}

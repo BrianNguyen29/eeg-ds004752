@@ -117,13 +117,27 @@ Neu leakage-audit plan fail:
 
 ## 7. Next Recommendation
 
-Sau Tranche 2.3 pass, buoc code tiep theo nen la:
+Sau Tranche 2.3 pass, buoc code tiep theo la Tranche 2.4 theo
+`docs/26_v56_feature_matrix_materializer_skeleton_runbook_2026-05-04.md`:
 
 1. `v56_feature_matrix_materializer_skeleton`
-   - materialize scalp EEG feature rows theo split lock;
-   - record row provenance va source hashes;
-   - no model outputs, no metrics.
+   - record materializer contract;
+   - record future output files va validation rules;
+   - khong doc EDF;
+   - khong write feature values.
 
 2. `v56_feature_matrix_leakage_audit_runtime_placeholder`
-   - chi audit runtime logs sau khi comparator execution ton tai;
-   - khong tao positive claim tu materializer.
+  - chi audit runtime logs sau khi comparator execution ton tai;
+  - khong tao positive claim tu materializer.
+
+Lenh Tranche 2.4 khuyen nghi:
+
+```bash
+bash bootstrap/run_v56_feature_matrix_materializer_skeleton.sh \
+  /content/drive/MyDrive/eeg-ds004752/artifacts/gate0/20260424T100159866284Z \
+  /content/drive/MyDrive/eeg-ds004752/artifacts/v56_split_registry_lock/latest.txt \
+  /content/drive/MyDrive/eeg-ds004752/artifacts/v56_feature_provenance_populated/latest.txt \
+  /content/drive/MyDrive/eeg-ds004752/artifacts/v56_feature_matrix_plan/latest.txt \
+  /content/drive/MyDrive/eeg-ds004752/artifacts/v56_feature_matrix_leakage_audit_plan/latest.txt \
+  /content/drive/MyDrive/eeg-ds004752/artifacts/v56_feature_matrix_materializer_skeleton
+```
