@@ -95,6 +95,7 @@ from .synthetic.gate2 import Gate2Error, run_gate2_synthetic_validation
 from .v56.artifacts import V56ArtifactWriterError
 from .v56.benchmark import V56BenchmarkError, V56ReadinessError
 from .v56.controls import V56ControlPolicyError
+from .v56.feature_matrix_plan import V56FeatureMatrixPlanError, run_v56_feature_matrix_plan
 from .v56.leaderboard import V56LeaderboardError
 from .v56.runner import V56ScaffoldRunError, run_v56_scaffold
 from .v56.splits import V56SplitPolicyError
@@ -754,6 +755,21 @@ def build_parser() -> argparse.ArgumentParser:
     v56_tranche2_lock.add_argument("--benchmark-spec", default="configs/v56/benchmark_spec.json")
     v56_tranche2_lock.add_argument("--splits", default="configs/v56/splits.json")
     v56_tranche2_lock.add_argument("--output-root", default="artifacts")
+
+    v56_feature_matrix_plan = subparsers.add_parser(
+        "v56-feature-matrix-plan",
+        help="Record V5.6 feature-matrix plan after split/provenance lock without materializing features",
+    )
+    v56_feature_matrix_plan.add_argument("--profile", default="t4_safe")
+    v56_feature_matrix_plan.add_argument("--gate0-run", required=True)
+    v56_feature_matrix_plan.add_argument("--split-registry-lock-run", required=True)
+    v56_feature_matrix_plan.add_argument("--feature-provenance-run", required=True)
+    v56_feature_matrix_plan.add_argument("--benchmark-spec", default="configs/v56/benchmark_spec.json")
+    v56_feature_matrix_plan.add_argument(
+        "--feature-matrix-plan-config",
+        default="configs/v56/feature_matrix_plan.json",
+    )
+    v56_feature_matrix_plan.add_argument("--output-root", default="artifacts/v56_feature_matrix_plan")
 
     return parser
 
@@ -1542,6 +1558,24 @@ def main(argv: list[str] | None = None) -> int:
             print("Efficacy metrics: not computed")
             return 0
 
+        if args.command == "v56-feature-matrix-plan":
+            result = run_v56_feature_matrix_plan(
+                gate0_run=args.gate0_run,
+                split_registry_lock_run=args.split_registry_lock_run,
+                feature_provenance_run=args.feature_provenance_run,
+                benchmark_spec=args.benchmark_spec,
+                feature_matrix_plan_config=args.feature_matrix_plan_config,
+                output_root=args.output_root,
+                repo_root=Path.cwd(),
+            )
+            print(f"V5.6 feature-matrix plan recorded: {result.output_dir}")
+            print(f"Plan: {result.plan_path}")
+            print("Claim state: closed")
+            print("Feature matrix materialization: not run")
+            print("Model training: not run")
+            print("Efficacy metrics: not computed")
+            return 0
+
     except (
         FileNotFoundError,
         ValueError,
@@ -1587,6 +1621,7 @@ def main(argv: list[str] | None = None) -> int:
         V56ArtifactWriterError,
         V56BenchmarkError,
         V56ControlPolicyError,
+        V56FeatureMatrixPlanError,
         V56LeaderboardError,
         V56ReadinessError,
         V56ScaffoldRunError,

@@ -133,12 +133,14 @@ Neu co mismatch:
 
 ## 7. Next Recommendation
 
-Sau Tranche 2.1 pass, buoc tiep theo nen la docs/code proposal cho:
+Sau Tranche 2.1 pass, buoc tiep theo la Tranche 2.2 theo
+`docs/24_v56_feature_matrix_plan_runbook_2026-05-04.md`:
 
 1. `v56_feature_matrix_plan`
-   - chi materialize scalp-only baseline features truoc;
-   - privileged train-time sources can duoc tach rieng va link provenance;
-   - khong train RIFT-Net Lite ngay.
+   - record feature-matrix contract;
+   - tach scalp-only test-time feature sets va privileged train-time sources;
+   - khong materialize feature values;
+   - khong train RIFT-Net Lite.
 
 2. `v56_baseline_leaderboard_plan`
    - chi mo sau khi feature matrix provenance pass;
@@ -147,3 +149,13 @@ Sau Tranche 2.1 pass, buoc tiep theo nen la docs/code proposal cho:
 
 RIFT-Net Lite va A4 privileged execution chi nen mo sau khi baseline/control
 surface da co artifact contract ro rang.
+
+Lenh Tranche 2.2 khuyen nghi:
+
+```bash
+bash bootstrap/run_v56_feature_matrix_plan.sh \
+  /content/drive/MyDrive/eeg-ds004752/artifacts/gate0/20260424T100159866284Z \
+  /content/drive/MyDrive/eeg-ds004752/artifacts/v56_split_registry_lock/latest.txt \
+  /content/drive/MyDrive/eeg-ds004752/artifacts/v56_feature_provenance_populated/latest.txt \
+  /content/drive/MyDrive/eeg-ds004752/artifacts/v56_feature_matrix_plan
+```

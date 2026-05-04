@@ -1,0 +1,82 @@
+{
+  "plan_id": "v56_feature_matrix_plan_v1",
+  "status": "planner_non_claim",
+  "claim_scope": "feature_matrix_planning_only",
+  "scientific_integrity_rule": "This plan defines allowed V5.6 feature-matrix contracts after split/provenance lock. It does not materialize feature values, train models, compute metrics, run comparators, or open efficacy claims.",
+  "row_identity_columns": [
+    "row_id",
+    "participant_id",
+    "session_id",
+    "trial_id",
+    "label",
+    "set_size",
+    "event_onset_sample",
+    "event_onset_sec",
+    "outer_fold_id",
+    "track_id",
+    "source_eeg_file",
+    "source_events_file"
+  ],
+  "primary_feature_sets": [
+    {
+      "id": "scalp_eeg_log_bandpower_v56",
+      "source_modality": "scalp_eeg",
+      "allowed_at_test_time": true,
+      "allowed_tracks": ["scalp_only_primary", "privileged_train_scalp_test"],
+      "feature_family": "log_bandpower",
+      "signal_window_sec": [2.25, 4.75],
+      "frequency_bands_hz": {
+        "theta": [4.0, 8.0],
+        "alpha": [8.0, 13.0],
+        "beta": [13.0, 30.0]
+      },
+      "materialization_status": "planned_not_materialized"
+    }
+  ],
+  "privileged_train_time_sources": [
+    {
+      "id": "ieeg_teacher_train_time_only",
+      "source_modality": "ieeg",
+      "allowed_at_test_time": false,
+      "allowed_tracks": ["privileged_train_scalp_test"],
+      "requires_train_fold_fit_only": true,
+      "materialization_status": "proposal_only_not_materialized"
+    },
+    {
+      "id": "beamforming_bridge_train_time_only",
+      "source_modality": "beamforming_bridge",
+      "allowed_at_test_time": false,
+      "allowed_tracks": ["privileged_train_scalp_test"],
+      "requires_train_fold_fit_only": true,
+      "materialization_status": "proposal_only_not_materialized"
+    }
+  ],
+  "validation_rules": {
+    "split_registry_lock_required": true,
+    "feature_provenance_required": true,
+    "subject_isolation_required": true,
+    "test_time_must_be_scalp_only": true,
+    "test_time_ieeg_forbidden": true,
+    "test_time_beamforming_bridge_forbidden": true,
+    "feature_values_forbidden_in_plan": true,
+    "model_outputs_forbidden_in_plan": true,
+    "efficacy_metrics_forbidden_in_plan": true
+  },
+  "future_materialization_requirements": {
+    "requires_manual_review_of_this_plan": true,
+    "requires_dataset_root": true,
+    "requires_split_lock_link": true,
+    "requires_feature_provenance_link": true,
+    "requires_leakage_audit_before_comparator_execution": true,
+    "normalization_fit_scope": "training_subjects_only_per_fold",
+    "privileged_source_fit_scope": "training_subjects_only_per_fold",
+    "test_time_inference_policy": "scalp_eeg_only"
+  },
+  "claim_blockers_after_success": [
+    "feature_matrix_not_materialized",
+    "feature_matrix_leakage_audit_missing",
+    "baseline_comparator_outputs_missing",
+    "control_execution_missing",
+    "claim_blocked_until_audited_comparators_controls_statistics_exist"
+  ]
+}
