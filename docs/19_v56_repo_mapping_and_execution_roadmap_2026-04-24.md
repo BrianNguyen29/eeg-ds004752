@@ -224,9 +224,10 @@ Trang thai:
 - **Da co scaffold implementation**
 - Da co config scaffold, module scaffold, artifact writers va CLI scaffold-only.
 - Chua co model training, comparator execution hay efficacy metric.
-- Buoc tiep theo la chay CLI scaffold-only tren Gate 0 run
-  `20260424T100159866284Z`, review bon artifact family, roi moi quyet dinh
-  co khoa split/provenance registry hay khong.
+- Da bo sung Tranche 2.1 implementation de khoa split registry va populate
+  feature provenance sau khi scaffold artifact pass review.
+- Buoc tiep theo van la review artifact theo tung tranche; khong chuyen sang
+  comparator/model execution neu split lock va feature provenance chua pass.
 
 ### Tranche 3 - Baseline leaderboard
 
@@ -265,34 +266,34 @@ Extensions:
 
 ## 6. De xuat buoc tiep theo
 
-Buoc tiep theo tot nhat trong repo hien tai:
+Buoc tiep theo tot nhat trong repo hien tai sau scaffold:
 
 1. **khong quay lai materialization pilot**
 2. **khong mo efficacy claim**
-3. **chay Tranche 2 scaffold artifact generation**
-4. **review artifacts truoc khi them comparator/model execution**
+3. **chay Tranche 2.1 split lock va feature provenance population**
+4. **review artifacts truoc khi them feature matrix/comparator/model execution**
 
 Lenh du kien:
 
 ```bash
-bash bootstrap/run_v56_tranche2_scaffold.sh \
+bash bootstrap/run_v56_tranche2_lock.sh \
   /content/drive/MyDrive/eeg-ds004752/artifacts/gate0/20260424T100159866284Z \
+  /content/drive/MyDrive/eeg-ds004752/artifacts/v56_split_registry/latest.txt \
+  /content/drive/MyDrive/eeg-ds004752/artifacts/v56_feature_provenance/latest.txt \
   /content/drive/MyDrive/eeg-ds004752/artifacts
 ```
 
 Ket qua can review:
 
-- `artifacts/v56_split_registry/latest.txt`
-- `artifacts/v56_feature_provenance/latest.txt`
-- `artifacts/v56_control_registry/latest.txt`
-- `artifacts/v56_leaderboard/latest.txt`
+- `artifacts/v56_split_registry_lock/latest.txt`
+- `artifacts/v56_feature_provenance_populated/latest.txt`
 
 Decision gate sau review:
 
-- neu 4 artifact dung contract va claim-closed: chuyen sang khoa
-  split/provenance registry;
+- neu split lock va provenance population dung contract va claim-closed:
+  chuyen sang feature matrix/baseline planning;
 - neu artifact thieu source/link/status: sua scaffold, khong chay model;
-- khong mo Tranche 3 neu chua co review artifact scaffold.
+- khong mo Tranche 3 neu chua co review split lock va feature provenance.
 
 ## 7. One-line Mapping Decision
 

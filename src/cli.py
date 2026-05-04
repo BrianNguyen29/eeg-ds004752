@@ -98,6 +98,7 @@ from .v56.controls import V56ControlPolicyError
 from .v56.leaderboard import V56LeaderboardError
 from .v56.runner import V56ScaffoldRunError, run_v56_scaffold
 from .v56.splits import V56SplitPolicyError
+from .v56.tranche2_lock import V56Tranche2LockError, run_v56_tranche2_lock
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -741,6 +742,18 @@ def build_parser() -> argparse.ArgumentParser:
     v56_scaffold.add_argument("--controls", default="configs/v56/controls.json")
     v56_scaffold.add_argument("--comparators", default="configs/v56/comparators.json")
     v56_scaffold.add_argument("--output-root")
+
+    v56_tranche2_lock = subparsers.add_parser(
+        "v56-tranche2-lock",
+        help="Lock V5.6 split registry and populate provenance after scaffold review without running models",
+    )
+    v56_tranche2_lock.add_argument("--profile", default="t4_safe")
+    v56_tranche2_lock.add_argument("--gate0-run", required=True)
+    v56_tranche2_lock.add_argument("--split-registry-run", required=True)
+    v56_tranche2_lock.add_argument("--feature-provenance-run", required=True)
+    v56_tranche2_lock.add_argument("--benchmark-spec", default="configs/v56/benchmark_spec.json")
+    v56_tranche2_lock.add_argument("--splits", default="configs/v56/splits.json")
+    v56_tranche2_lock.add_argument("--output-root", default="artifacts")
 
     return parser
 
@@ -1511,6 +1524,24 @@ def main(argv: list[str] | None = None) -> int:
             print("Efficacy metrics: not computed")
             return 0
 
+        if args.command == "v56-tranche2-lock":
+            result = run_v56_tranche2_lock(
+                gate0_run=args.gate0_run,
+                split_registry_run=args.split_registry_run,
+                feature_provenance_run=args.feature_provenance_run,
+                benchmark_spec=args.benchmark_spec,
+                splits=args.splits,
+                output_root=args.output_root,
+                repo_root=Path.cwd(),
+            )
+            print(f"V5.6 Tranche 2.1 registry/provenance lock complete from Gate 0: {result.gate0_run}")
+            print(f"v56_split_registry_lock: {result.split_registry_lock_dir}")
+            print(f"v56_feature_provenance_populated: {result.feature_provenance_dir}")
+            print("Claim state: closed")
+            print("Model training: not run")
+            print("Efficacy metrics: not computed")
+            return 0
+
     except (
         FileNotFoundError,
         ValueError,
@@ -1560,6 +1591,7 @@ def main(argv: list[str] | None = None) -> int:
         V56ReadinessError,
         V56ScaffoldRunError,
         V56SplitPolicyError,
+        V56Tranche2LockError,
     ) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2

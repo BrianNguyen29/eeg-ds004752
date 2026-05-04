@@ -177,7 +177,8 @@ Khong duoc mo Tranche 3 neu:
 
 ## 7. Next Implementation Recommendation
 
-Sau khi scaffold artifact review pass, buoc code tiep theo nen la:
+Sau khi scaffold artifact review pass, buoc code tiep theo la Tranche 2.1
+theo `docs/23_v56_tranche2_lock_runbook_2026-05-04.md`:
 
 1. `v56_split_registry_lock`
    - lock subject-level split registry tu Gate 0 cohort lock;
@@ -193,3 +194,13 @@ Sau khi scaffold artifact review pass, buoc code tiep theo nen la:
 
 RIFT-Net Lite va A4 privileged execution van chua thuoc buoc tiep theo truc
 tiep.
+
+Lenh Tranche 2.1 khuyen nghi:
+
+```bash
+bash bootstrap/run_v56_tranche2_lock.sh \
+  /content/drive/MyDrive/eeg-ds004752/artifacts/gate0/20260424T100159866284Z \
+  /content/drive/MyDrive/eeg-ds004752/artifacts/v56_split_registry/latest.txt \
+  /content/drive/MyDrive/eeg-ds004752/artifacts/v56_feature_provenance/latest.txt \
+  /content/drive/MyDrive/eeg-ds004752/artifacts
+```

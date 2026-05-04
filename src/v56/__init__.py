@@ -10,6 +10,7 @@ from .controls import V56ControlPolicyError
 from .leaderboard import V56LeaderboardError
 from .runner import V56ScaffoldRunError
 from .splits import V56SplitPolicyError
+from .tranche2_lock import V56Tranche2LockError
 
 __all__ = [
     "V56ArtifactWriterError",
@@ -19,4 +20,5 @@ __all__ = [
     "V56ReadinessError",
     "V56ScaffoldRunError",
     "V56SplitPolicyError",
+    "V56Tranche2LockError",
 ]
